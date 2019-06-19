@@ -1,0 +1,27 @@
+package: "models"
+
+imports:
+  - time
+
+meta:
+  table_prefix: wz_
+
+models:
+  - name: Project
+    definition:
+      table_name: projects
+      soft_delete: true
+      fields:
+        - name: Name
+          type: string
+        - name: Description
+          type: string
+        - name: Visibility
+          type: int
+        - name: UserId
+          type: int64
+        - name: SortLevel
+          type: int
+        - name: CatalogId
+          type: null.Int
+

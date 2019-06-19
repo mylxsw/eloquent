@@ -1,0 +1,39 @@
+package: "models"
+
+imports:
+  - time
+
+meta:
+  table_prefix: wz_
+
+models:
+  - name: page
+    definition:
+      table_name: pages
+      fields:
+        - name: pid
+          type: int64
+        - name: title
+          type: string
+        - name: description
+          type: string
+        - name: content
+          type: string
+        - name: project_id
+          type: int64
+        - name: user_id
+          type: int64
+        - name: type
+          type: int
+        - name: status
+          type: int
+        - name: last_modified_uid
+          type: int64
+        - name: history_id
+          type: int64
+        - name: sort_level
+          type: int
+        - name: sync_url
+          type: string
+        - name: last_sync_at
+          type: time.Time
