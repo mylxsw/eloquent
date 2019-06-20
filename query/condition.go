@@ -24,8 +24,8 @@ type Condition interface {
 	WhereIn(field string, items ...interface{}) Condition
 	WhereGroup(wc ConditionGroup) Condition
 	OrWhereGroup(wc ConditionGroup) Condition
-	Where(field, operator string, value interface{}) Condition
-	OrWhere(field, operator string, value interface{}) Condition
+	Where(field string, value ...interface{}) Condition
+	OrWhere(field string, value ...interface{}) Condition
 	WhereCondition(cond sqlCondition) Condition
 
 	When(when When, cg ConditionGroup) Condition
@@ -298,23 +298,63 @@ func (builder *conditionBuilder) OrWhereGroup(wc ConditionGroup) Condition {
 	})
 }
 
-func (builder *conditionBuilder) Where(field, operator string, value interface{}) Condition {
+func (builder *conditionBuilder) Where(field string, value ...interface{}) Condition {
+	argCount := len(value)
+
+	var operator string
+	var values []interface{}
+
+	if argCount == 1 {
+		operator = "="
+		values = value
+	} else if argCount == 2 {
+		o, ok := value[0].(string)
+		if !ok {
+			panic("invalid where condition")
+		}
+
+		operator = o
+		values = value[1:]
+	} else {
+		panic("invalid where condition")
+	}
+
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeAnd,
 		Type:      condTypeSimple,
 		Field:     field,
 		Operate:   operator,
-		Values:    []interface{}{value},
+		Values:    values,
 	})
 }
 
-func (builder *conditionBuilder) OrWhere(field, operator string, value interface{}) Condition {
+func (builder *conditionBuilder) OrWhere(field string, value ...interface{}) Condition {
+	argCount := len(value)
+
+	var operator string
+	var values []interface{}
+
+	if argCount == 1 {
+		operator = "="
+		values = value
+	} else if argCount == 2 {
+		o, ok := value[0].(string)
+		if !ok {
+			panic("invalid where condition")
+		}
+
+		operator = o
+		values = value[1:]
+	} else {
+		panic("invalid where condition")
+	}
+
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeOr,
 		Type:      condTypeSimple,
 		Field:     field,
 		Operate:   operator,
-		Values:    []interface{}{value},
+		Values:    values,
 	})
 }
 

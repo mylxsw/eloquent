@@ -57,6 +57,8 @@ func ParseTemplate(templateContent string, data Domain) (string, error) {
 		"table":             ctx.tableName,
 		"wrap_type":         wrapType,
 		"unwrap_type":       unWrapType,
+		"unique":            unique,
+		"packages":          ctx.importPackages,
 	}
 	var buffer bytes.Buffer
 	if err := template.Must(template.New("").Funcs(funcMap).Parse(templateContent)).Execute(&buffer, data); err != nil {
@@ -85,7 +87,7 @@ func wrapType(t string) string {
 
 func unWrapType(name string, t string) string {
 	base := "w." + strcase.ToCamel(name)
-	// w.{{ camel $f.Name }}{{ wrap_type $f.Type | unwrap_type }}
+	// w.{{ camel $f.ColumnName }}{{ wrap_type $f.Type | unwrap_type }}
 	if strings.HasPrefix(t, "null.") {
 		return base
 	}
@@ -137,4 +139,39 @@ func (d DomainContext) assignableFields(fields []DefinitionField) []DefinitionFi
 	}
 
 	return res
+}
+
+func (d DomainContext) importPackages() []string {
+	var internalPackages = []string{
+		"database/sql",
+		"gopkg.in/guregu/null.v3",
+		"github.com/mylxsw/eloquent/query",
+	}
+
+	for _, m := range d.domain.Models {
+		if m.Definition.SoftDelete || !m.Definition.WithoutCreateTime || !m.Definition.WithoutUpdateTime {
+			internalPackages = append(internalPackages, "time")
+		}
+	}
+
+	for _, imp := range d.domain.Imports {
+		internalPackages = append(internalPackages, imp)
+	}
+
+	return unique(internalPackages)
+}
+
+func unique(elements []string) []string {
+	encountered := map[string]bool{}
+	var result []string
+
+	for v := range elements {
+		if encountered[elements[v]] == true {
+		} else {
+			encountered[elements[v]] = true
+			result = append(result, elements[v])
+		}
+	}
+
+	return result
 }

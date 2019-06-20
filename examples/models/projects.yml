@@ -1,8 +1,5 @@
 package: "models"
 
-imports:
-  - time
-
 meta:
   table_prefix: wz_
 

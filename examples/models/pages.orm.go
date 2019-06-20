@@ -12,7 +12,10 @@ func init() {
 
 }
 
+// Page is a Page object
 type Page struct {
+	original *pageOriginal
+
 	Id              int64
 	Pid             int64
 	Title           string
@@ -30,6 +33,184 @@ type Page struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// pageOriginal is an object which stores original Page from database
+type pageOriginal struct {
+	Id              int64
+	Pid             int64
+	Title           string
+	Description     string
+	Content         string
+	ProjectId       int64
+	UserId          int64
+	Type            int
+	Status          int
+	LastModifiedUid int64
+	HistoryId       int64
+	SortLevel       int
+	SyncUrl         string
+	LastSyncAt      time.Time
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// Staled identify whether the object has been modified
+func (page *Page) Staled() bool {
+	if page.original == nil {
+		page.original = &pageOriginal{}
+	}
+
+	if page.Id != page.original.Id {
+		return true
+	}
+
+	if page.Pid != page.original.Pid {
+		return true
+	}
+	if page.Title != page.original.Title {
+		return true
+	}
+	if page.Description != page.original.Description {
+		return true
+	}
+	if page.Content != page.original.Content {
+		return true
+	}
+	if page.ProjectId != page.original.ProjectId {
+		return true
+	}
+	if page.UserId != page.original.UserId {
+		return true
+	}
+	if page.Type != page.original.Type {
+		return true
+	}
+	if page.Status != page.original.Status {
+		return true
+	}
+	if page.LastModifiedUid != page.original.LastModifiedUid {
+		return true
+	}
+	if page.HistoryId != page.original.HistoryId {
+		return true
+	}
+	if page.SortLevel != page.original.SortLevel {
+		return true
+	}
+	if page.SyncUrl != page.original.SyncUrl {
+		return true
+	}
+	if page.LastSyncAt != page.original.LastSyncAt {
+		return true
+	}
+
+	if page.CreatedAt != page.original.CreatedAt {
+		return true
+	}
+	if page.UpdatedAt != page.original.UpdatedAt {
+		return true
+	}
+
+	return false
+}
+
+// StaledKV return all fields has been modified
+func (page *Page) StaledKV() query.KV {
+	kv := make(query.KV, 0)
+
+	if page.original == nil {
+		page.original = &pageOriginal{}
+	}
+
+	if page.Id != page.original.Id {
+		kv["id"] = page.Id
+	}
+
+	if page.Pid != page.original.Pid {
+		kv["pid"] = page.Pid
+	}
+	if page.Title != page.original.Title {
+		kv["title"] = page.Title
+	}
+	if page.Description != page.original.Description {
+		kv["description"] = page.Description
+	}
+	if page.Content != page.original.Content {
+		kv["content"] = page.Content
+	}
+	if page.ProjectId != page.original.ProjectId {
+		kv["project_id"] = page.ProjectId
+	}
+	if page.UserId != page.original.UserId {
+		kv["user_id"] = page.UserId
+	}
+	if page.Type != page.original.Type {
+		kv["type"] = page.Type
+	}
+	if page.Status != page.original.Status {
+		kv["status"] = page.Status
+	}
+	if page.LastModifiedUid != page.original.LastModifiedUid {
+		kv["last_modified_uid"] = page.LastModifiedUid
+	}
+	if page.HistoryId != page.original.HistoryId {
+		kv["history_id"] = page.HistoryId
+	}
+	if page.SortLevel != page.original.SortLevel {
+		kv["sort_level"] = page.SortLevel
+	}
+	if page.SyncUrl != page.original.SyncUrl {
+		kv["sync_url"] = page.SyncUrl
+	}
+	if page.LastSyncAt != page.original.LastSyncAt {
+		kv["last_sync_at"] = page.LastSyncAt
+	}
+
+	if page.CreatedAt != page.original.CreatedAt {
+		kv["created_at"] = page.CreatedAt
+	}
+	if page.UpdatedAt != page.original.UpdatedAt {
+		kv["updated_at"] = page.UpdatedAt
+	}
+
+	return kv
+}
+
+// PageDelegate is an delegate which add some model powers to object
+type PageDelegate struct {
+	delegate *PageModel
+	page     *Page
+}
+
+// Delegate create a Page for page
+func (page *Page) Delegate(m *PageModel) *PageDelegate {
+	return &PageDelegate{
+		delegate: m,
+		page:     page,
+	}
+}
+
+// Save create a new model or update it
+func (d *PageDelegate) Save() error {
+	id, _, err := d.delegate.SaveOrUpdate(*d.page)
+	if err != nil {
+		return err
+	}
+
+	d.page.Id = id
+	return nil
+}
+
+// Delete remove a page
+func (d *PageDelegate) Delete() error {
+	_, err := d.delegate.DeleteById(d.page.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type pageWrap struct {
@@ -54,6 +235,25 @@ type pageWrap struct {
 
 func (w pageWrap) ToPage() Page {
 	return Page{
+		original: &pageOriginal{
+			Id:              w.Id.Int64,
+			Pid:             w.Pid.Int64,
+			Title:           w.Title.String,
+			Description:     w.Description.String,
+			Content:         w.Content.String,
+			ProjectId:       w.ProjectId.Int64,
+			UserId:          w.UserId.Int64,
+			Type:            int(w.Type.Int64),
+			Status:          int(w.Status.Int64),
+			LastModifiedUid: w.LastModifiedUid.Int64,
+			HistoryId:       w.HistoryId.Int64,
+			SortLevel:       int(w.SortLevel.Int64),
+			SyncUrl:         w.SyncUrl.String,
+			LastSyncAt:      w.LastSyncAt.Time,
+
+			CreatedAt: w.CreatedAt.Time,
+			UpdatedAt: w.UpdatedAt.Time,
+		},
 		Id:              w.Id.Int64,
 		Pid:             w.Pid.Int64,
 		Title:           w.Title.String,
@@ -74,6 +274,7 @@ func (w pageWrap) ToPage() Page {
 	}
 }
 
+// PageModel is a model which encapsulates the operations of the object
 type PageModel struct {
 	db        *sql.DB
 	tableName string
@@ -90,6 +291,7 @@ type pageScope struct {
 var pageGlobalScopes = make([]pageScope, 0)
 var pageLocalScopes = make([]pageScope, 0)
 
+// NewPageModel create a PageModel
 func NewPageModel(db *sql.DB) *PageModel {
 	return &PageModel{
 		db:                  db,
@@ -99,10 +301,12 @@ func NewPageModel(db *sql.DB) *PageModel {
 	}
 }
 
+// AddPageGlobalScope assign a global scope to a model
 func AddPageGlobalScope(name string, apply func(builder query.Condition)) {
 	pageGlobalScopes = append(pageGlobalScopes, pageScope{name: name, apply: apply})
 }
 
+// AddPageLocalScope assign a local scope to a model
 func AddPageLocalScope(name string, apply func(builder query.Condition)) {
 	pageLocalScopes = append(pageLocalScopes, pageScope{name: name, apply: apply})
 }
@@ -153,6 +357,7 @@ func (m *PageModel) clone() *PageModel {
 	}
 }
 
+// WithoutGlobalScopes remove a global scope for given query
 func (m *PageModel) WithoutGlobalScopes(names ...string) *PageModel {
 	mc := m.clone()
 	mc.excludeGlobalScopes = append(mc.excludeGlobalScopes, names...)
@@ -160,6 +365,7 @@ func (m *PageModel) WithoutGlobalScopes(names ...string) *PageModel {
 	return mc
 }
 
+// WithLocalScopes add a local scope for given query
 func (m *PageModel) WithLocalScopes(names ...string) *PageModel {
 	mc := m.clone()
 	mc.includeLocalScopes = append(mc.includeLocalScopes, names...)
@@ -167,10 +373,30 @@ func (m *PageModel) WithLocalScopes(names ...string) *PageModel {
 	return mc
 }
 
+// Find retrieve a model by its primary key
 func (m *PageModel) Find(id int64) (Page, error) {
 	return m.First(query.Builder().Where("id", "=", id))
 }
 
+// Count return model count for a given query
+func (m *PageModel) Count(builder query.SQLBuilder) (int64, error) {
+	sqlStr, params := builder.Table(m.tableName).ResolveCount()
+
+	rows, err := m.db.Query(sqlStr, params...)
+	if err != nil {
+		return 0, err
+	}
+
+	rows.Next()
+	var res int64
+	if err := rows.Scan(&res); err != nil {
+		return 0, err
+	}
+
+	return res, nil
+}
+
+// Get retrieve all results for given query
 func (m *PageModel) Get(builder query.SQLBuilder) ([]Page, error) {
 	builder = builder.Table(m.tableName).Select("id", "created_at", "updated_at", "pid", "title", "description", "content", "project_id", "user_id", "type", "status", "last_modified_uid", "history_id", "sort_level", "sync_url", "last_sync_at")
 	sqlStr, params := builder.AppendCondition(m.applyScope()).ResolveQuery()
@@ -193,6 +419,7 @@ func (m *PageModel) Get(builder query.SQLBuilder) ([]Page, error) {
 	return pages, nil
 }
 
+// First return first result for given query
 func (m *PageModel) First(builder query.SQLBuilder) (Page, error) {
 	res, err := m.Get(builder.Limit(1))
 	if err != nil {
@@ -206,6 +433,7 @@ func (m *PageModel) First(builder query.SQLBuilder) (Page, error) {
 	return res[0], nil
 }
 
+// Create save a new page to database
 func (m *PageModel) Create(kv query.KV) (int64, error) {
 	kv["created_at"] = time.Now()
 	kv["updated_at"] = time.Now()
@@ -220,6 +448,7 @@ func (m *PageModel) Create(kv query.KV) (int64, error) {
 	return res.LastInsertId()
 }
 
+// SaveAll save all pages to database
 func (m *PageModel) SaveAll(pages []Page) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, page := range pages {
@@ -234,6 +463,7 @@ func (m *PageModel) SaveAll(pages []Page) ([]int64, error) {
 	return ids, nil
 }
 
+// Save save a page to database
 func (m *PageModel) Save(page Page) (int64, error) {
 	return m.Create(query.KV{
 		"pid":               page.Pid,
@@ -252,6 +482,7 @@ func (m *PageModel) Save(page Page) (int64, error) {
 	})
 }
 
+// SaveOrUpdate save a new page or update it when it has a id > 0
 func (m *PageModel) SaveOrUpdate(page Page) (id int64, updated bool, err error) {
 	if page.Id > 0 {
 		_, _err := m.UpdateById(page.Id, page)
@@ -262,7 +493,11 @@ func (m *PageModel) SaveOrUpdate(page Page) (id int64, updated bool, err error) 
 	return _id, false, _err
 }
 
+// UpdateFields update kv for a given query
 func (m *PageModel) UpdateFields(builder query.SQLBuilder, kv query.KV) (int64, error) {
+	if len(kv) == 0 {
+		return 0, nil
+	}
 
 	kv["updated_at"] = time.Now()
 
@@ -277,28 +512,17 @@ func (m *PageModel) UpdateFields(builder query.SQLBuilder, kv query.KV) (int64, 
 	return res.RowsAffected()
 }
 
+// Update update a model for given query
 func (m *PageModel) Update(builder query.SQLBuilder, page Page) (int64, error) {
-	return m.UpdateFields(builder, query.KV{
-		"pid":               page.Pid,
-		"title":             page.Title,
-		"description":       page.Description,
-		"content":           page.Content,
-		"project_id":        page.ProjectId,
-		"user_id":           page.UserId,
-		"type":              page.Type,
-		"status":            page.Status,
-		"last_modified_uid": page.LastModifiedUid,
-		"history_id":        page.HistoryId,
-		"sort_level":        page.SortLevel,
-		"sync_url":          page.SyncUrl,
-		"last_sync_at":      page.LastSyncAt,
-	})
+	return m.UpdateFields(builder, page.StaledKV())
 }
 
+// UpdateById update a model by id
 func (m *PageModel) UpdateById(id int64, page Page) (int64, error) {
 	return m.Update(query.Builder().Where("id", "=", id), page)
 }
 
+// Delete remove a model
 func (m *PageModel) Delete(builder query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := builder.AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
@@ -312,6 +536,7 @@ func (m *PageModel) Delete(builder query.SQLBuilder) (int64, error) {
 
 }
 
+// DeleteById remove a model by id
 func (m *PageModel) DeleteById(id int64) (int64, error) {
 	return m.Delete(query.Builder().Where("id", "=", id))
 }

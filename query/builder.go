@@ -2,7 +2,6 @@ package query
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -96,8 +95,6 @@ func (builder SQLBuilder) ResolveDelete() (string, []interface{}) {
 		sqlStr += fmt.Sprintf(" LIMIT %d", builder.limit)
 	}
 
-	log.Println(sqlStr)
-
 	return sqlStr, values
 }
 
@@ -113,8 +110,6 @@ func (builder SQLBuilder) ResolveUpdate(kvPairs KV) (string, []interface{}) {
 		sqlStr += fmt.Sprintf(" WHERE %s", conditions)
 		values = append(values, p...)
 	}
-
-	log.Println(sqlStr)
 
 	return sqlStr, values
 }
@@ -172,9 +167,47 @@ func (builder SQLBuilder) ResolveInsert(kvPairs KV) (string, []interface{}) {
 	fields, values := builder.resolveKvPairsForInsert(kvPairs)
 	sqlStr += fmt.Sprintf(" (%s) VALUES (%s)", strings.Join(fields, ", "), strings.Trim(strings.Repeat("?,", len(values)), ","))
 
-	log.Println(sqlStr)
-
 	return sqlStr, values
+}
+
+func (builder SQLBuilder) ResolveCount() (string, []interface{}) {
+	b := builder.Clone()
+	b.fields = make([]expr, 1)
+	b.fields[0] = Raw("COUNT(1) as count")
+
+	return b.ResolveQuery()
+}
+
+func (builder SQLBuilder) ResolveMax(field string) (string, []interface{}) {
+	b := builder.Clone()
+	b.fields = make([]expr, 1)
+	b.fields[0] = Raw(fmt.Sprintf("MAX(%s) as max", field))
+
+	return b.ResolveQuery()
+}
+
+func (builder SQLBuilder) ResolveMin(field string) (string, []interface{}) {
+	b := builder.Clone()
+	b.fields = make([]expr, 1)
+	b.fields[0] = Raw(fmt.Sprintf("MIN(%s) as min", field))
+
+	return b.ResolveQuery()
+}
+
+func (builder SQLBuilder) ResolveAvg(field string) (string, []interface{}) {
+	b := builder.Clone()
+	b.fields = make([]expr, 1)
+	b.fields[0] = Raw(fmt.Sprintf("AVG(%s) as avg", field))
+
+	return b.ResolveQuery()
+}
+
+func (builder SQLBuilder) ResolveSum(field string) (string, []interface{}) {
+	b := builder.Clone()
+	b.fields = make([]expr, 1)
+	b.fields[0] = Raw(fmt.Sprintf("SUM(%s) as sum", field))
+
+	return b.ResolveQuery()
 }
 
 func (builder SQLBuilder) ResolveQuery() (string, []interface{}) {
@@ -238,8 +271,6 @@ func (builder SQLBuilder) ResolveQuery() (string, []interface{}) {
 			params = append(params, p...)
 		}
 	}
-
-	log.Println(sqlStr)
 
 	return sqlStr, params
 }
@@ -343,7 +374,13 @@ func (builder SQLBuilder) Offset(offset int64) SQLBuilder {
 
 func (builder SQLBuilder) OrderBy(field string, direction string) SQLBuilder {
 	b := builder.Clone()
-	b.orders = append(builder.orders, sqlOrderBy{Field: field, Direction: direction})
+	b.orders = append(builder.orders, sqlOrderBy{raw: false, Field: field, Direction: direction})
+	return b
+}
+
+func (builder SQLBuilder) OrderByRaw(raw string) SQLBuilder {
+	b := builder.Clone()
+	b.orders = append(builder.orders, sqlOrderBy{raw: true, Raw: raw})
 	return b
 }
 
@@ -505,16 +542,16 @@ func (builder SQLBuilder) OrWhereGroup(wc ConditionGroup) SQLBuilder {
 	return b
 }
 
-func (builder SQLBuilder) Where(field, operator string, value interface{}) SQLBuilder {
+func (builder SQLBuilder) Where(field string, value ...interface{}) SQLBuilder {
 	b := builder.Clone()
-	b.conditions.Where(field, operator, value)
+	b.conditions.Where(field, value...)
 
 	return b
 }
 
-func (builder SQLBuilder) OrWhere(field, operator string, value interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhere(field string, value ...interface{}) SQLBuilder {
 	b := builder.Clone()
-	b.conditions.OrWhere(field, operator, value)
+	b.conditions.OrWhere(field, value...)
 
 	return b
 }
