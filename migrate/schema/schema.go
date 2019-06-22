@@ -6,6 +6,27 @@ type Schema interface {
 	Table(table string, apply func(builder TableBuilder))
 }
 
+type ExprType int
+
+type Expr struct {
+	Type  ExprType
+	Value string
+}
+
+const (
+	ExprTypeString ExprType = iota
+	ExprTypeRaw
+)
+
+type Command interface {
+	Name(name string) Command
+	Columns(columns ...string) Command
+	Algorithm(algorithm string) Command
+	Index(name string) Command
+	Equal(name string) bool
+	Build() string
+}
+
 type ColumnType interface {
 	// Nullable Allows (by default) NULL values to be inserted into the column
 	Nullable(value bool) ColumnType
@@ -20,7 +41,7 @@ type ColumnType interface {
 	// Comment Add a comment to a column (MySQL/PostgreSQL)
 	Comment(comment string) ColumnType
 	// Default Specify a "default" value for the column
-	Default(defaultVal string) ColumnType
+	Default(defaultVal Expr) ColumnType
 	// First Place the column "first" in the table (MySQL)
 	First() ColumnType
 	// StoredAs Create a stored generated column (MySQL)
@@ -36,7 +57,17 @@ type ColumnType interface {
 	// Always Defines the precedence of sequence values over input for an identity column (PostgreSQL)
 	Always() ColumnType
 
+	// Index add an index
+	// Index(name string) ColumnType
+	// Primary add a primary index
+	// Primary() bool
+
+	// Change modify some existing column types to a new type or modify the column's attributes
+	Change() ColumnType
+	IsChange() bool
+
 	Build() string
+	Type() string
 }
 
 type TableBuilder interface {
@@ -51,8 +82,8 @@ type TableBuilder interface {
 	Boolean(name string) ColumnType
 	Char(name string, length int) ColumnType
 	Date(name string) ColumnType
-	DateTime(name string) ColumnType
-	DateTimeTz(name string) ColumnType
+	DateTime(name string, precision int) ColumnType
+	DateTimeTz(name string, precision int) ColumnType
 	Decimal(name string, total int, scale int) ColumnType
 	Double(name string, total int, scale int) ColumnType
 	Enum(name string, items ...string) ColumnType
@@ -70,27 +101,30 @@ type TableBuilder interface {
 	MediumIncrements(name string) ColumnType
 	MediumInteger(name string, autoIncrement bool, unsigned bool) ColumnType
 	MediumText(name string) ColumnType
-	Morphs(name string) ColumnType
+	Morphs(name string, indexName string)
 	MultiLineString(name string) ColumnType
 	MultiPoint(name string) ColumnType
 	MultiPolygon(name string) ColumnType
-	NullableMorphs(name string) ColumnType
-	NullableTimestamps() ColumnType
-	Point(name string) ColumnType
+	NullableMorphs(name string, indexName string)
+	DropMorphs(name string, indexName string)
+	DropColumn(columns ...string)
+	NullableTimestamps(precision int)
+	Point(name string, srid int) ColumnType
 	Polygon(name string) ColumnType
 	RememberToken() ColumnType
+	DropRememberToken()
 	SmallIncrements(name string) ColumnType
 	SmallInteger(name string, autoIncrement bool, unsigned bool) ColumnType
-	SoftDeletes() ColumnType
-	SoftDeletesTz() ColumnType
+	SoftDeletes(column string, precision int) ColumnType
+	SoftDeletesTz(column string, precision int) ColumnType
 	String(name string, length int) ColumnType
 	Text(name string) ColumnType
-	Time(name string) ColumnType
-	TimeTz(name string) ColumnType
-	Timestamp(name string) ColumnType
-	TimestampTz(name string) ColumnType
-	Timestamps() ColumnType
-	TimestampsTz() ColumnType
+	Time(name string, precision int) ColumnType
+	TimeTz(name string, precision int) ColumnType
+	Timestamp(name string, precision int) ColumnType
+	TimestampTz(name string, precision int) ColumnType
+	Timestamps(precision int)
+	TimestampsTz(precision int)
 	TinyIncrements(name string) ColumnType
 	TinyInteger(name string, autoIncrement bool, unsigned bool) ColumnType
 	UnsignedBigInteger(name string, autoIncrement bool) ColumnType
@@ -103,22 +137,31 @@ type TableBuilder interface {
 	Year(name string) ColumnType
 	Set(name string, items ...string) ColumnType
 
+	// Drop add drop table command
+	Drop() Command
+	// DropIfExists add dropIfExists command
+	DropIfExists() Command
+	// Rename add rename table command
+	Rename(to string) Command
+	// Create add create table command
+	Create() Command
+
 	// Unique specifies a column's values should be unique
-	Unique(name ...string)
+	Unique(name string, columns ...string) Command
 	// DropUnique drop a unique index
-	DropUnique(name ...string)
+	DropUnique(name string) Command
 	// Index create a index
-	Index(name ...string)
+	Index(name string, columns ...string) Command
 	// DropIndex drop a index
-	DropIndex(name ...string)
+	DropIndex(name string) Command
 	// Primary adds a primary key
-	Primary(name ...string)
+	Primary(name string, columns ...string) Command
 	// DropPrimary drop a primary key
-	DropPrimary(name ...string)
+	DropPrimary(name string) Command
 	// SpatialIndex adds a spatial index
-	SpatialIndex(name ...string)
+	SpatialIndex(name string, columns ...string) Command
 	// DropSpatialIndex drop a spatial index
-	DropSpatialIndex(name ...string)
+	DropSpatialIndex(name string) Command
 
 	Build() string
 }

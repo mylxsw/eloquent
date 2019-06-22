@@ -18,13 +18,16 @@ type Schema struct {
 
 // Create creat a new table
 func (s *Schema) Create(table string, apply func(builder schema.TableBuilder)) {
-	builder := tableBuilder{}
-	apply(&builder)
+	builder := NewTableBuilder(table, "")
+	builder.Engine("InnoDB")
+	builder.Create()
+
+	apply(builder)
 
 	s.tableCreate = table
-	s.tableCreateBuilder = &builder
+	s.tableCreateBuilder = builder
 
-	fmt.Println(s.tableCreate, s.tableCreateBuilder.Build())
+	fmt.Println(s.tableCreateBuilder.Build())
 }
 
 // Drop drop a existing table
@@ -34,11 +37,13 @@ func (s *Schema) Drop(table string) {
 
 // Table update a existing table
 func (s *Schema) Table(table string, apply func(builder schema.TableBuilder)) {
-	builder := tableBuilder{}
-	apply(&builder)
+	builder := NewTableBuilder(table, "")
+	apply(builder)
 
 	s.tableUpdate = table
-	s.tableUpdateBuilder = &builder
+	s.tableUpdateBuilder = builder
+
+	fmt.Println(s.tableCreateBuilder.Build())
 }
 
 // NewSchema create a new Schema
