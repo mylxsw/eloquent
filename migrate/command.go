@@ -1,11 +1,7 @@
 package migrate
 
-import (
-	"github.com/mylxsw/eloquent/migrate/schema"
-)
-
 type Command struct {
-	t *tableBuilder
+	t *Builder
 
 	CommandName       string
 	CommandIndex      string
@@ -13,7 +9,7 @@ type Command struct {
 	CommandAlgorithm  string
 }
 
-func NewCommand(t *tableBuilder) schema.Command {
+func NewCommand(t *Builder) *Command {
 	return &Command{
 		t:                 t,
 		CommandParameters: make([]string, 0),
@@ -24,22 +20,22 @@ func (c *Command) Equal(name string) bool {
 	return c.CommandName == name
 }
 
-func (c *Command) Name(name string) schema.Command {
+func (c *Command) Name(name string) *Command {
 	c.CommandName = name
 	return c
 }
 
-func (c *Command) Index(name string) schema.Command {
+func (c *Command) Index(name string) *Command {
 	c.CommandIndex = name
 	return c
 }
 
-func (c *Command) Columns(columns ...string) schema.Command {
+func (c *Command) Columns(columns ...string) *Command {
 	c.CommandParameters = columns
 	return c
 }
 
-func (c *Command) Algorithm(algorithm string) schema.Command {
+func (c *Command) Algorithm(algorithm string) *Command {
 	c.CommandAlgorithm = algorithm
 	return c
 }
@@ -74,7 +70,7 @@ func (c *Command) Build() string {
 	case "change":
 		return c.t.compileChange()
 	case "renameColumn":
-		return c.t.compileRenameColumn()
+		return c.t.compileRenameColumn(c.CommandParameters[0], c.CommandParameters[1])
 	}
 
 	return ""

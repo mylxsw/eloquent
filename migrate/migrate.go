@@ -2,51 +2,68 @@ package migrate
 
 import (
 	"fmt"
-
-	"github.com/mylxsw/eloquent/migrate/schema"
+	"strings"
 )
 
-type Schema struct {
-	tableCreate        string
-	tableCreateBuilder schema.TableBuilder
+type ExprType int
 
-	tableDrop string
-
-	tableUpdate        string
-	tableUpdateBuilder schema.TableBuilder
+type Expr struct {
+	Type  ExprType
+	Value string
 }
 
-// Create creat a new table
-func (s *Schema) Create(table string, apply func(builder schema.TableBuilder)) {
-	builder := NewTableBuilder(table, "")
-	builder.Engine("InnoDB")
-	builder.Create()
+const (
+	ExprTypeString ExprType = iota
+	ExprTypeRaw
+)
 
-	apply(builder)
-
-	s.tableCreate = table
-	s.tableCreateBuilder = builder
-
-	fmt.Println(s.tableCreateBuilder.Build())
+type Manager struct {
+	Engine    string
+	Charset   string
+	Collation string
+	Prefix    string
 }
 
-// Drop drop a existing table
-func (s *Schema) Drop(table string) {
-	s.tableDrop = table
+func NewManager() *Manager {
+	return &Manager{
+		Engine:    "InnoDB",
+		Charset:   "utf8mb4",
+		Collation: "utf8mb4_unicode_ci",
+		Prefix:    "",
+	}
 }
 
-// Table update a existing table
-func (s *Schema) Table(table string, apply func(builder schema.TableBuilder)) {
-	builder := NewTableBuilder(table, "")
-	apply(builder)
-
-	s.tableUpdate = table
-	s.tableUpdateBuilder = builder
-
-	fmt.Println(s.tableCreateBuilder.Build())
+func (m *Manager) Schema(version string) *Schema {
+	return NewSchema(m, version)
 }
 
-// NewSchema create a new Schema
-func NewSchema() schema.Schema {
-	return &Schema{}
+func (m *Manager) Execute(builder *Builder, version string) {
+	if m.HasVersion(version) {
+		fmt.Printf("ignore-version(%s)\n", version)
+		return
+	}
+
+	sqls := builder.Build()
+
+	if err := m.execute(sqls); err != nil {
+		panic(err)
+	}
+
+	m.AddVersion(version, strings.Join(sqls, ";\n")+";")
+}
+
+func (m *Manager) execute(sqls []string) error {
+	for _, s := range sqls {
+		fmt.Printf("execute -> %s\n", s)
+	}
+
+	return nil
+}
+
+func (m *Manager) HasVersion(version string) bool {
+	return version == "201907150945"
+}
+
+func (m *Manager) AddVersion(version string, sqlStr string) {
+	fmt.Printf("add-version(%s)\n", version)
 }

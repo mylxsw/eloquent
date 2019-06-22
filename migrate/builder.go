@@ -3,33 +3,29 @@ package migrate
 import (
 	"fmt"
 	"strings"
-
-	"github.com/mylxsw/eloquent/migrate/schema"
 )
 
-type tableBuilder struct {
+type Builder struct {
 	name      string
 	prefix    string
 	engine    string
 	charset   string
 	collation string
 	temporary bool
-	columns   []schema.ColumnType
-	commands  []schema.Command
+	columns   []*ColumnDefinition
+	commands  []*Command
 }
 
-func NewTableBuilder(name string, prefix string) schema.TableBuilder {
-	return &tableBuilder{
+func NewBuilder(name string, prefix string) *Builder {
+	return &Builder{
 		name:      name,
 		prefix:    prefix,
-		columns:   make([]schema.ColumnType, 0),
-		commands:  make([]schema.Command, 0),
-		charset:   "utf8mb4",
-		collation: "utf8mb4_unicode_ci",
+		columns:   make([]*ColumnDefinition, 0),
+		commands:  make([]*Command, 0),
 	}
 }
 
-func (t *tableBuilder) addImpliedCommands() {
+func (t *Builder) addImpliedCommands() {
 	if !t.creating() {
 		if len(t.getAddedColumns()) > 0 {
 			t.addCommand("add")
@@ -40,11 +36,28 @@ func (t *tableBuilder) addImpliedCommands() {
 		}
 	}
 
-	// TODO
+	// add column index
+	for _, c := range t.columns {
+		if c.ColumnIndex != "" {
+			t.Index(c.ColumnIndex, c.ColumnName)
+		}
+
+		if c.ColumnUnique {
+			t.Unique("", c.ColumnName)
+		}
+
+		if c.ColumnPrimary {
+			t.Primary("", c.ColumnName)
+		}
+
+		if c.ColumnSpatialIndex {
+			t.SpatialIndex("", c.ColumnName)
+		}
+	}
 }
 
-func (t *tableBuilder) getAddedColumns() []schema.ColumnType {
-	var cols = make([]schema.ColumnType, 0)
+func (t *Builder) getAddedColumns() []*ColumnDefinition {
+	var cols = make([]*ColumnDefinition, 0)
 	for _, c := range t.columns {
 		if !c.IsChange() {
 			cols = append(cols, c)
@@ -54,8 +67,8 @@ func (t *tableBuilder) getAddedColumns() []schema.ColumnType {
 	return cols
 }
 
-func (t *tableBuilder) getChangedColumns() []schema.ColumnType {
-	var cols = make([]schema.ColumnType, 0)
+func (t *Builder) getChangedColumns() []*ColumnDefinition {
+	var cols = make([]*ColumnDefinition, 0)
 	for _, c := range t.columns {
 		if c.IsChange() {
 			cols = append(cols, c)
@@ -65,7 +78,7 @@ func (t *tableBuilder) getChangedColumns() []schema.ColumnType {
 	return cols
 }
 
-func (t *tableBuilder) Build() string {
+func (t *Builder) Build() []string {
 	t.addImpliedCommands()
 
 	sqlStrs := make([]string, 0)
@@ -73,14 +86,14 @@ func (t *tableBuilder) Build() string {
 		sqlStrs = append(sqlStrs, c.Build())
 	}
 
-	return strings.Join(sqlStrs, ";\n") + ";\n"
+	return sqlStrs
 }
 
-func (t *tableBuilder) wrapTable() string {
+func (t *Builder) wrapTable() string {
 	return "`" + t.name + "`"
 }
 
-func (t *tableBuilder) getColumns() []string {
+func (t *Builder) getColumns() []string {
 	cols := make([]string, 0)
 	for _, c := range t.getAddedColumns() {
 		colStr := c.Build()
@@ -92,28 +105,28 @@ func (t *tableBuilder) getColumns() []string {
 	return cols
 }
 
-func (t *tableBuilder) Engine(engine string) {
+func (t *Builder) Engine(engine string) {
 	t.engine = engine
 }
 
-func (t *tableBuilder) Charset(charset string) {
+func (t *Builder) Charset(charset string) {
 	t.charset = charset
 }
 
-func (t *tableBuilder) Collation(collation string) {
+func (t *Builder) Collation(collation string) {
 	t.collation = collation
 }
 
-func (t *tableBuilder) Temporary() {
+func (t *Builder) Temporary() {
 	t.temporary = true
 }
 
-func (t *tableBuilder) BigIncrements(name string) schema.ColumnType {
+func (t *Builder) BigIncrements(name string) *ColumnDefinition {
 	return t.UnsignedBigInteger(name, true)
 }
 
-func (t *tableBuilder) BigInteger(name string, autoIncrement bool, unsigned bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) BigInteger(name string, autoIncrement bool, unsigned bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "bigint",
 		ColumnAutoIncrement: autoIncrement,
@@ -121,101 +134,101 @@ func (t *tableBuilder) BigInteger(name string, autoIncrement bool, unsigned bool
 	})
 }
 
-func (t *tableBuilder) Binary(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Binary(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "blob",
 	})
 }
 
-func (t *tableBuilder) Boolean(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Boolean(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "tinyint(1)",
 	})
 }
 
-func (t *tableBuilder) Char(name string, length int) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Char(name string, length int) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: fmt.Sprintf("char(%d)", length),
 	})
 }
 
-func (t *tableBuilder) Date(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Date(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "date",
 	})
 }
 
-func (t *tableBuilder) DateTime(name string, precision int) schema.ColumnType {
+func (t *Builder) DateTime(name string, precision int) *ColumnDefinition {
 	dateType := "datetime"
 	if precision > 0 {
 		dateType += fmt.Sprintf("(%d)", precision)
 	}
 
-	return t.addColumn(&Column{
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: dateType,
 	})
 }
 
-func (t *tableBuilder) DateTimeTz(name string, precision int) schema.ColumnType {
+func (t *Builder) DateTimeTz(name string, precision int) *ColumnDefinition {
 	return t.DateTime(name, precision)
 }
 
-func (t *tableBuilder) Decimal(name string, total int, scale int) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Decimal(name string, total int, scale int) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:     name,
 		ColumnUnsigned: false,
 		ColumnType:     fmt.Sprintf("decimal(%d, %d)", total, scale),
 	})
 }
 
-func (t *tableBuilder) Double(name string, total int, scale int) schema.ColumnType {
+func (t *Builder) Double(name string, total int, scale int) *ColumnDefinition {
 	fieldType := "double"
 	if total != 0 && scale != 0 {
 		fieldType += fmt.Sprintf("(%d, %d)", total, scale)
 	}
 
-	return t.addColumn(&Column{
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: fieldType,
 	})
 }
 
-func (t *tableBuilder) Enum(name string, items ...string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Enum(name string, items ...string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: fmt.Sprintf("enum('%s')", strings.Join(items, "', '")),
 	})
 }
 
-func (t *tableBuilder) Float(name string, total int, scale int) schema.ColumnType {
+func (t *Builder) Float(name string, total int, scale int) *ColumnDefinition {
 	return t.Double(name, total, scale)
 }
 
-func (t *tableBuilder) Geometry(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Geometry(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "geometry",
 	})
 }
 
-func (t *tableBuilder) GeometryCollection(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) GeometryCollection(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "geometrycollection",
 	})
 }
 
-func (t *tableBuilder) Increments(name string) schema.ColumnType {
+func (t *Builder) Increments(name string) *ColumnDefinition {
 	return t.UnsignedInteger(name, true)
 }
 
-func (t *tableBuilder) Integer(name string, autoIncrement bool, unsigned bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Integer(name string, autoIncrement bool, unsigned bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "int",
 		ColumnAutoIncrement: autoIncrement,
@@ -223,51 +236,51 @@ func (t *tableBuilder) Integer(name string, autoIncrement bool, unsigned bool) s
 	})
 }
 
-func (t *tableBuilder) IpAddress(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) IpAddress(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "varchar(45)",
 	})
 }
 
-func (t *tableBuilder) Json(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Json(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "json",
 	})
 }
 
-func (t *tableBuilder) Jsonb(name string) schema.ColumnType {
+func (t *Builder) Jsonb(name string) *ColumnDefinition {
 	return t.Json(name)
 }
 
-func (t *tableBuilder) LineString(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) LineString(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "linestring",
 	})
 }
 
-func (t *tableBuilder) LongText(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) LongText(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "longtext",
 	})
 }
 
-func (t *tableBuilder) MacAddress(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) MacAddress(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "varchar(17)",
 	})
 }
 
-func (t *tableBuilder) MediumIncrements(name string) schema.ColumnType {
+func (t *Builder) MediumIncrements(name string) *ColumnDefinition {
 	return t.UnsignedMediumInteger(name, true)
 }
 
-func (t *tableBuilder) MediumInteger(name string, autoIncrement bool, unsigned bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) MediumInteger(name string, autoIncrement bool, unsigned bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "mediumint",
 		ColumnAutoIncrement: autoIncrement,
@@ -275,87 +288,87 @@ func (t *tableBuilder) MediumInteger(name string, autoIncrement bool, unsigned b
 	})
 }
 
-func (t *tableBuilder) MediumText(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) MediumText(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "mediumtext",
 	})
 }
 
-func (t *tableBuilder) Morphs(name string, indexName string) {
+func (t *Builder) Morphs(name string, indexName string) {
 	t.String(name+"_type", 255)
 	t.UnsignedBigInteger(name+"_id", false)
 	t.Index(indexName, name+"_type", name+"_id")
 }
 
-func (t *tableBuilder) NullableMorphs(name string, indexName string) {
+func (t *Builder) NullableMorphs(name string, indexName string) {
 	t.String(name+"_type", 255).Nullable(true)
 	t.UnsignedBigInteger(name+"_id", false).Nullable(true)
 	t.Index(indexName, name+"_type", name+"_id")
 }
 
-func (t *tableBuilder) DropMorphs(name string, indexName string) {
+func (t *Builder) DropMorphs(name string, indexName string) {
 	t.DropIndex(indexName)
 	t.DropColumn(name+"_type", name+"_id")
 }
 
-func (t *tableBuilder) DropColumn(columns ...string) {
-	panic("implement me")
+func (t *Builder) DropColumn(columns ...string) {
+	t.addCommand("dropColumn", columns...)
 }
 
-func (t *tableBuilder) MultiLineString(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) MultiLineString(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "multilinestring",
 	})
 }
 
-func (t *tableBuilder) MultiPoint(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) MultiPoint(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "multipoint",
 	})
 }
 
-func (t *tableBuilder) MultiPolygon(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) MultiPolygon(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "multipolygon",
 	})
 }
 
-func (t *tableBuilder) NullableTimestamps(precision int) {
+func (t *Builder) NullableTimestamps(precision int) {
 	t.Timestamps(precision)
 }
 
-func (t *tableBuilder) Point(name string, srid int) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Point(name string, srid int) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "point",
 	})
 }
 
-func (t *tableBuilder) Polygon(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Polygon(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "polygon",
 	})
 }
 
-func (t *tableBuilder) RememberToken() schema.ColumnType {
+func (t *Builder) RememberToken() *ColumnDefinition {
 	return t.String("remember_token", 100).Nullable(true)
 }
 
-func (t *tableBuilder) DropRememberToken() {
+func (t *Builder) DropRememberToken() {
 	t.DropColumn("remember_token")
 }
 
-func (t *tableBuilder) SmallIncrements(name string) schema.ColumnType {
+func (t *Builder) SmallIncrements(name string) *ColumnDefinition {
 	return t.UnsignedSmallInteger(name, true)
 }
 
-func (t *tableBuilder) SmallInteger(name string, autoIncrement bool, unsigned bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) SmallInteger(name string, autoIncrement bool, unsigned bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "smallint",
 		ColumnAutoIncrement: autoIncrement,
@@ -363,76 +376,76 @@ func (t *tableBuilder) SmallInteger(name string, autoIncrement bool, unsigned bo
 	})
 }
 
-func (t *tableBuilder) SoftDeletes(column string, precision int) schema.ColumnType {
+func (t *Builder) SoftDeletes(column string, precision int) *ColumnDefinition {
 	return t.Timestamp(column, precision).Nullable(true)
 }
 
-func (t *tableBuilder) SoftDeletesTz(column string, precision int) schema.ColumnType {
+func (t *Builder) SoftDeletesTz(column string, precision int) *ColumnDefinition {
 	return t.TimestampTz(column, precision).Nullable(true)
 }
 
-func (t *tableBuilder) String(name string, length int) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) String(name string, length int) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: fmt.Sprintf("VARCHAR(%d)", length),
 	})
 }
 
-func (t *tableBuilder) Text(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Text(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "text",
 	})
 }
 
-func (t *tableBuilder) Time(name string, precision int) schema.ColumnType {
+func (t *Builder) Time(name string, precision int) *ColumnDefinition {
 	dateType := "time"
 	if precision > 0 {
 		dateType += fmt.Sprintf("(%d)", precision)
 	}
 
-	return t.addColumn(&Column{
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: dateType,
 	})
 }
 
-func (t *tableBuilder) TimeTz(name string, precision int) schema.ColumnType {
+func (t *Builder) TimeTz(name string, precision int) *ColumnDefinition {
 	return t.Time(name, precision)
 }
 
-func (t *tableBuilder) Timestamp(name string, precision int) schema.ColumnType {
+func (t *Builder) Timestamp(name string, precision int) *ColumnDefinition {
 	dateType := "timestamp"
 	if precision > 0 {
 		dateType += fmt.Sprintf("(%d)", precision)
 	}
 
-	return t.addColumn(&Column{
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: dateType,
 	})
 }
 
-func (t *tableBuilder) TimestampTz(name string, precision int) schema.ColumnType {
+func (t *Builder) TimestampTz(name string, precision int) *ColumnDefinition {
 	return t.Timestamp(name, precision)
 }
 
-func (t *tableBuilder) Timestamps(precision int) {
+func (t *Builder) Timestamps(precision int) {
 	t.Timestamp("created_at", precision).Nullable(true)
 	t.Timestamp("updated_at", precision).Nullable(true)
 }
 
-func (t *tableBuilder) TimestampsTz(precision int) {
+func (t *Builder) TimestampsTz(precision int) {
 	t.TimestampTz("created_at", precision).Nullable(true)
 	t.TimestampTz("updated_at", precision).Nullable(true)
 }
 
-func (t *tableBuilder) TinyIncrements(name string) schema.ColumnType {
+func (t *Builder) TinyIncrements(name string) *ColumnDefinition {
 	return t.UnsignedTinyInteger(name, true)
 }
 
-func (t *tableBuilder) TinyInteger(name string, autoIncrement bool, unsigned bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) TinyInteger(name string, autoIncrement bool, unsigned bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "tinyint",
 		ColumnAutoIncrement: autoIncrement,
@@ -440,8 +453,8 @@ func (t *tableBuilder) TinyInteger(name string, autoIncrement bool, unsigned boo
 	})
 }
 
-func (t *tableBuilder) UnsignedBigInteger(name string, autoIncrement bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) UnsignedBigInteger(name string, autoIncrement bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "bigint",
 		ColumnAutoIncrement: autoIncrement,
@@ -449,16 +462,16 @@ func (t *tableBuilder) UnsignedBigInteger(name string, autoIncrement bool) schem
 	})
 }
 
-func (t *tableBuilder) UnsignedDecimal(name string, total int, scale int) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) UnsignedDecimal(name string, total int, scale int) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:     name,
 		ColumnUnsigned: true,
 		ColumnType:     fmt.Sprintf("decimal(%d, %d)", total, scale),
 	})
 }
 
-func (t *tableBuilder) UnsignedInteger(name string, autoIncrement bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) UnsignedInteger(name string, autoIncrement bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "int",
 		ColumnAutoIncrement: autoIncrement,
@@ -466,8 +479,8 @@ func (t *tableBuilder) UnsignedInteger(name string, autoIncrement bool) schema.C
 	})
 }
 
-func (t *tableBuilder) UnsignedMediumInteger(name string, autoIncrement bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) UnsignedMediumInteger(name string, autoIncrement bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "mediumint",
 		ColumnAutoIncrement: autoIncrement,
@@ -475,8 +488,8 @@ func (t *tableBuilder) UnsignedMediumInteger(name string, autoIncrement bool) sc
 	})
 }
 
-func (t *tableBuilder) UnsignedSmallInteger(name string, autoIncrement bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) UnsignedSmallInteger(name string, autoIncrement bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "smallint",
 		ColumnAutoIncrement: autoIncrement,
@@ -484,8 +497,8 @@ func (t *tableBuilder) UnsignedSmallInteger(name string, autoIncrement bool) sch
 	})
 }
 
-func (t *tableBuilder) UnsignedTinyInteger(name string, autoIncrement bool) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) UnsignedTinyInteger(name string, autoIncrement bool) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName:          name,
 		ColumnType:          "tinyint",
 		ColumnAutoIncrement: autoIncrement,
@@ -493,82 +506,86 @@ func (t *tableBuilder) UnsignedTinyInteger(name string, autoIncrement bool) sche
 	})
 }
 
-func (t *tableBuilder) Uuid(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Uuid(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "char(36)",
 	})
 }
 
-func (t *tableBuilder) Year(name string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Year(name string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: "year",
 	})
 }
 
-func (t *tableBuilder) Set(name string, items ...string) schema.ColumnType {
-	return t.addColumn(&Column{
+func (t *Builder) Set(name string, items ...string) *ColumnDefinition {
+	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: fmt.Sprintf("set('%s')", strings.Join(items, "', '")),
 	})
 }
 
-func (t *tableBuilder) addColumn(c schema.ColumnType) schema.ColumnType {
+func (t *Builder) addColumn(c *ColumnDefinition) *ColumnDefinition {
 	t.columns = append(t.columns, c)
 
 	return c
 }
 
-func (t *tableBuilder) Unique(name string, columns ...string) schema.Command {
+func (t *Builder) Unique(name string, columns ...string) *Command {
 	return t.indexCommand("unique", name, columns...)
 }
 
-func (t *tableBuilder) DropUnique(name string) schema.Command {
+func (t *Builder) DropUnique(name string) *Command {
 	return t.indexCommand("dropUnique", name)
 }
 
-func (t *tableBuilder) Index(name string, columns ...string) schema.Command {
+func (t *Builder) Index(name string, columns ...string) *Command {
 	return t.indexCommand("index", name, columns...)
 }
 
-func (t *tableBuilder) DropIndex(name string) schema.Command {
+func (t *Builder) DropIndex(name string) *Command {
 	return t.indexCommand("dropIndex", name)
 }
 
-func (t *tableBuilder) Primary(name string, columns ...string) schema.Command {
+func (t *Builder) Primary(name string, columns ...string) *Command {
 	return t.indexCommand("primary", name, columns...)
 }
 
-func (t *tableBuilder) DropPrimary(name string) schema.Command {
+func (t *Builder) DropPrimary(name string) *Command {
 	return t.indexCommand("dropPrimary", name)
 }
 
-func (t *tableBuilder) SpatialIndex(name string, columns ...string) schema.Command {
+func (t *Builder) SpatialIndex(name string, columns ...string) *Command {
 	return t.indexCommand("spatialIndex", name, columns...)
 }
 
-func (t *tableBuilder) DropSpatialIndex(name string) schema.Command {
+func (t *Builder) DropSpatialIndex(name string) *Command {
 	return t.indexCommand("dropSpatialIndex", name)
 }
 
-func (t *tableBuilder) Drop() schema.Command {
+func (t *Builder) Drop() *Command {
 	return t.addCommand("drop")
 }
 
-func (t *tableBuilder) Create() schema.Command {
+func (t *Builder) Create() *Command {
 	return t.addCommand("create")
 }
 
-func (t *tableBuilder) DropIfExists() schema.Command {
+func (t *Builder) DropIfExists() *Command {
 	return t.addCommand("dropIfExists")
 }
 
-func (t *tableBuilder) Rename(to string) schema.Command {
+func (t *Builder) Rename(to string) *Command {
 	return t.addCommand("rename", to)
 }
 
-func (t *tableBuilder) indexCommand(indexType string, indexName string, columns ...string) schema.Command {
+func (t *Builder) RenameColumn(from string, to string) *Command {
+	return t.addCommand("renameColumn", from, to)
+}
+
+func (t *Builder) indexCommand(indexType string, indexName string, columns ...string) *Command {
 	if indexName == "" {
 		indexName = createIndexName(t.name, indexType, columns...)
 	}
@@ -576,7 +593,7 @@ func (t *tableBuilder) indexCommand(indexType string, indexName string, columns 
 	return t.addCommand(indexType, columns...).Index(indexName)
 }
 
-func (t *tableBuilder) addCommand(name string, parameters ...string) schema.Command {
+func (t *Builder) addCommand(name string, parameters ...string) *Command {
 	cmd := NewCommand(t)
 	cmd.Name(name).Columns(parameters...)
 
@@ -585,7 +602,7 @@ func (t *tableBuilder) addCommand(name string, parameters ...string) schema.Comm
 	return cmd
 }
 
-func (t *tableBuilder) creating() bool {
+func (t *Builder) creating() bool {
 	for _, c := range t.commands {
 		if c.Equal("create") {
 			return true
@@ -595,7 +612,7 @@ func (t *tableBuilder) creating() bool {
 	return false
 }
 
-func (t *tableBuilder) compileKey(c *Command, indexType string) string {
+func (t *Builder) compileKey(c *Command, indexType string) string {
 	alg := ""
 	if c.CommandAlgorithm != "" {
 		alg = " USING " + c.CommandAlgorithm
@@ -611,15 +628,15 @@ func (t *tableBuilder) compileKey(c *Command, indexType string) string {
 	)
 }
 
-func (t *tableBuilder) compileDrop(c *Command) string {
+func (t *Builder) compileDrop(c *Command) string {
 	return fmt.Sprintf("DROP TABLE %s", t.wrapTable())
 }
 
-func (t *tableBuilder) compileDropIfExists(c *Command) string {
+func (t *Builder) compileDropIfExists(c *Command) string {
 	return fmt.Sprintf("DROP TABLE IF EXISTS %s", t.wrapTable())
 }
 
-func (t *tableBuilder) compileDropColumn(c *Command) string {
+func (t *Builder) compileDropColumn(c *Command) string {
 	dropColumns := make([]string, len(c.CommandParameters))
 	for i, cc := range c.CommandParameters {
 		dropColumns[i] = "DROP " + cc
@@ -628,19 +645,19 @@ func (t *tableBuilder) compileDropColumn(c *Command) string {
 	return fmt.Sprintf("ALTER TABLE %s %s", t.wrapTable(), strings.Join(dropColumns, ", "))
 }
 
-func (t *tableBuilder) compileDropPrimary(c *Command) string {
+func (t *Builder) compileDropPrimary(c *Command) string {
 	return fmt.Sprintf("ALTER TABLE %s DROP PRIMARY KEY", t.wrapTable())
 }
 
-func (t *tableBuilder) compileDropIndex(c *Command) string {
+func (t *Builder) compileDropIndex(c *Command) string {
 	return fmt.Sprintf("ALTER TABLE %s DROP INDEX `%s`", t.wrapTable(), c.CommandIndex)
 }
 
-func (t *tableBuilder) compileRename(c *Command) string {
+func (t *Builder) compileRename(c *Command) string {
 	return fmt.Sprintf("RENAME TABLE %s TO `%s`", t.wrapTable(), c.CommandParameters[0])
 }
 
-func (t *tableBuilder) compileCreateCommand() string {
+func (t *Builder) compileCreateCommand() string {
 	sqlStr := t.compileCreateTable()
 	sqlStr += t.compileCreateEncoding()
 	sqlStr += t.compileCreateEngine()
@@ -648,7 +665,7 @@ func (t *tableBuilder) compileCreateCommand() string {
 	return sqlStr
 }
 
-func (t *tableBuilder) compileCreateEngine() string {
+func (t *Builder) compileCreateEngine() string {
 	if t.engine != "" {
 		return " ENGINE = " + t.engine
 	}
@@ -656,7 +673,7 @@ func (t *tableBuilder) compileCreateEngine() string {
 	return ""
 }
 
-func (t *tableBuilder) compileCreateEncoding() string {
+func (t *Builder) compileCreateEncoding() string {
 	sqlStr := ""
 	if t.charset != "" {
 		sqlStr += " DEFAULT CHARACTER SET " + t.charset
@@ -669,7 +686,7 @@ func (t *tableBuilder) compileCreateEncoding() string {
 	return sqlStr
 }
 
-func (t *tableBuilder) compileCreateTable() string {
+func (t *Builder) compileCreateTable() string {
 	createStatement := "CREATE"
 	if t.temporary {
 		createStatement += " TEMPORARY"
@@ -683,23 +700,26 @@ func (t *tableBuilder) compileCreateTable() string {
 	)
 }
 
-func (t *tableBuilder) compileAdd() string {
+func (t *Builder) compileAdd() string {
 	var cols = make([]string, 0)
 	for _, c := range t.getColumns() {
-		cols = append(cols, "ADD " + c)
+		cols = append(cols, "ADD "+c)
 	}
 
 	return fmt.Sprintf("ALTER TABLE %s %s", t.wrapTable(), strings.Join(cols, ", "))
 }
 
-func (t *tableBuilder) compileChange() string {
-	// TODO
-	return ""
+func (t *Builder) compileChange() string {
+	var cols = make([]string, 0)
+	for _, c := range t.getChangedColumns() {
+		cols = append(cols, "MODIFY "+c.Build())
+	}
+
+	return fmt.Sprintf("ALTER TABLE %s %s", t.wrapTable(), strings.Join(cols, ", "))
 }
 
-func (t *tableBuilder) compileRenameColumn() string {
-	// TODO
-	return ""
+func (t *Builder) compileRenameColumn(from string, to string) string {
+	return fmt.Sprintf("ALTER TABLE %s RENAME COLUMN `%s` TO `%s`", t.wrapTable(), from, to)
 }
 
 func createIndexName(tableName string, indexType string, columns ...string) string {
