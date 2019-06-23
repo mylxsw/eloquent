@@ -34,6 +34,24 @@ func (s *Schema) Table(table string, apply func(builder *Builder)) {
 	s.m.Execute(builder, s.version)
 }
 
+// Drop drop a table
+func (s *Schema) Drop(table string) {
+	builder := NewBuilder(table, s.m.Prefix)
+	builder.Drop()
+
+	s.tableName = table
+	s.m.Execute(builder, s.version)
+}
+
+// Drop drop a table if exists
+func (s *Schema) DropIfExists(table string) {
+	builder := NewBuilder(table, s.m.Prefix)
+	builder.DropIfExists()
+
+	s.tableName = table
+	s.m.Execute(builder, s.version)
+}
+
 // NewSchema create a new Schema
 func NewSchema(m *Manager, v string) *Schema {
 	return &Schema{version: v, m: m}

@@ -2,14 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/mylxsw/eloquent/examples/models"
 	"github.com/mylxsw/eloquent/migrate"
-	"github.com/mylxsw/eloquent/query"
-	"github.com/mylxsw/go-toolkit/misc"
-	"gopkg.in/guregu/null.v3"
 )
 
 func main() {
@@ -24,30 +19,30 @@ func main() {
 
 	createMigrate(db)
 
-	projectModel := models.NewProjectModel(db)
-
-	id, err := projectModel.Save(models.Project{
-		Name: "test",
-	})
-	misc.AssertError(err)
-
-	fmt.Println("insert id=", id)
-
-	_, err = projectModel.UpdateById(id, models.Project{
-		Name:      "test2",
-		CatalogId: null.IntFrom(100),
-	})
-	misc.AssertError(err)
-
-	_, err = projectModel.DeleteById(id)
-	misc.AssertError(err)
-
-	projects, err := projectModel.Get(query.Builder().OrderBy("id", "desc").Limit(10))
-	misc.AssertError(err)
-
-	for _, p := range projects {
-		fmt.Printf("%v\n", p)
-	}
+	// projectModel := models.NewProjectModel(db)
+	//
+	// id, err := projectModel.Save(models.Project{
+	// 	Name: "test",
+	// })
+	// misc.AssertError(err)
+	//
+	// fmt.Println("insert id=", id)
+	//
+	// _, err = projectModel.UpdateById(id, models.Project{
+	// 	Name:      "test2",
+	// 	CatalogId: null.IntFrom(100),
+	// })
+	// misc.AssertError(err)
+	//
+	// _, err = projectModel.DeleteById(id)
+	// misc.AssertError(err)
+	//
+	// projects, err := projectModel.Get(query.Builder().OrderBy("id", "desc").Limit(10))
+	// misc.AssertError(err)
+	//
+	// for _, p := range projects {
+	// 	fmt.Printf("%v\n", p)
+	// }
 }
 
 func createMigrate(db *sql.DB) {
@@ -94,6 +89,8 @@ func createMigrate(db *sql.DB) {
 	m.Schema("201909040102").Table("wz_projects", func(builder *migrate.Builder) {
 		builder.DropColumn("description")
 	})
+
+	m.Schema("201909040103").Drop("wz_projects")
 
 	if err := m.Run(); err != nil {
 		panic(err)

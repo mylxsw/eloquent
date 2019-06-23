@@ -7,6 +7,12 @@ type Command struct {
 	CommandIndex      string
 	CommandParameters []string
 	CommandAlgorithm  string
+
+	CommandReferences            []string
+	CommandOnTable               string
+	CommandOnDelete              string
+	CommandOnUpdate              string
+	CommandNotInitiallyImmediate bool
 }
 
 func NewCommand(t *Builder) *Command {
@@ -14,6 +20,31 @@ func NewCommand(t *Builder) *Command {
 		t:                 t,
 		CommandParameters: make([]string, 0),
 	}
+}
+
+func (c *Command) References(columns ...string) *Command {
+	c.CommandReferences = columns
+	return c
+}
+
+func (c *Command) On(table string) *Command {
+	c.CommandOnTable = table
+	return c
+}
+
+func (c *Command) OnDelete(action string) *Command {
+	c.CommandOnDelete = action
+	return c
+}
+
+func (c *Command) OnUpdate(action string) *Command {
+	c.CommandOnUpdate = action
+	return c
+}
+
+func (c *Command) NotInitiallyImmediate(value bool) *Command {
+	c.CommandNotInitiallyImmediate = value
+	return c
 }
 
 func (c *Command) Equal(name string) bool {
@@ -73,6 +104,10 @@ func (c *Command) Build() string {
 		return c.t.compileChange()
 	case "renameColumn":
 		return c.t.compileRenameColumn(c.CommandParameters[0], c.CommandParameters[1])
+	case "foreign":
+		return c.t.compileForeign(c)
+	case "dropForeign":
+		return c.t.compileDropForeign(c.CommandParameters[0])
 	}
 
 	return ""

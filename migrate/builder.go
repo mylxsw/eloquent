@@ -604,6 +604,14 @@ func (t *Builder) RenameColumn(from string, to string) *Command {
 	return t.addCommand("renameColumn", from, to)
 }
 
+func (t *Builder) Foreign(name string, columns ...string) *Command {
+	return t.indexCommand("foreign", name, columns...)
+}
+
+func (t *Builder) DropForeign(name string) *Command {
+	return t.addCommand("dropForeign", name)
+}
+
 func (t *Builder) indexCommand(indexType string, indexName string, columns ...string) *Command {
 	if indexName == "" {
 		indexName = createIndexName(t.GetTableName(), indexType, columns...)
@@ -638,12 +646,12 @@ func (t *Builder) compileKey(c *Command, indexType string) string {
 	}
 
 	return fmt.Sprintf(
-		"ALTER TABLE %s ADD %s %s%s(`%s`)",
+		"ALTER TABLE %s ADD %s %s%s(%s)",
 		t.wrapTable(),
 		indexType,
 		c.CommandIndex,
 		alg,
-		strings.Join(c.CommandParameters, "`, `"),
+		columnize(c.CommandParameters),
 	)
 }
 
@@ -747,10 +755,38 @@ func (t *Builder) compileRenameColumn(from string, to string) string {
 	return fmt.Sprintf("ALTER TABLE %s RENAME COLUMN `%s` TO `%s`", t.wrapTable(), from, to)
 }
 
+func (t *Builder) compileForeign(c *Command) string {
+	sqlStr := fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s ", t.wrapTable(), c.CommandIndex)
+	sqlStr += fmt.Sprintf(
+		"FOREIGN KEY (%s) REFERENCES `%s` (%s)",
+		columnize(c.CommandParameters),
+		c.CommandOnTable,
+		columnize(c.CommandReferences),
+	)
+
+	if c.CommandOnDelete != "" {
+		sqlStr += " ON DELETE " + c.CommandOnDelete
+	}
+
+	if c.CommandOnUpdate != "" {
+		sqlStr += " ON UPDATE " + c.CommandOnUpdate
+	}
+
+	return sqlStr
+}
+
+func (t *Builder) compileDropForeign(name string) string {
+	return fmt.Sprintf("ALTER TABLE %s DROP FOREIGN KEY `%s`", t.wrapTable(), name)
+}
+
 func createIndexName(tableName string, indexType string, columns ...string) string {
 	index := fmt.Sprintf("%s_%s_%s", tableName, strings.Join(columns, "_"), indexType)
 	index = strings.ReplaceAll(index, "-", "_")
 	index = strings.ReplaceAll(index, ".", "_")
 
 	return index
+}
+
+func columnize(columns []string) string {
+	return "`" + strings.Join(columns, "`, `")
 }
