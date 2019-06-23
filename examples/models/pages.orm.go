@@ -291,11 +291,17 @@ type pageScope struct {
 var pageGlobalScopes = make([]pageScope, 0)
 var pageLocalScopes = make([]pageScope, 0)
 
+var pageTableName = "wz_pages"
+
+func SetPageTable(tableName string) {
+	pageTableName = tableName
+}
+
 // NewPageModel create a PageModel
 func NewPageModel(db *sql.DB) *PageModel {
 	return &PageModel{
 		db:                  db,
-		tableName:           "wz_pages",
+		tableName:           pageTableName,
 		excludeGlobalScopes: make([]string, 0),
 		includeLocalScopes:  make([]string, 0),
 	}
@@ -378,6 +384,12 @@ func (m *PageModel) Find(id int64) (Page, error) {
 	return m.First(query.Builder().Where("id", "=", id))
 }
 
+// Exists return whether the records exists for a given query
+func (m *PageModel) Exists(builder query.SQLBuilder) (bool, error) {
+	count, err := m.Count(builder)
+	return count > 0, err
+}
+
 // Count return model count for a given query
 func (m *PageModel) Count(builder query.SQLBuilder) (int64, error) {
 	sqlStr, params := builder.Table(m.tableName).ResolveCount()
@@ -394,6 +406,39 @@ func (m *PageModel) Count(builder query.SQLBuilder) (int64, error) {
 	}
 
 	return res, nil
+}
+
+func (m *PageModel) Paginate(builder query.SQLBuilder, page int64, perPage int64) ([]Page, query.PaginateMeta, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	if perPage <= 0 {
+		perPage = 15
+	}
+
+	meta := query.PaginateMeta{
+		PerPage: perPage,
+		Page:    page,
+	}
+
+	count, err := m.Count(builder)
+	if err != nil {
+		return nil, meta, err
+	}
+
+	meta.Total = count
+	meta.LastPage = count / perPage
+	if count%perPage != 0 {
+		meta.LastPage += 1
+	}
+
+	res, err := m.Get(builder.Limit(perPage).Offset((page - 1) * perPage))
+	if err != nil {
+		return res, meta, err
+	}
+
+	return res, meta, nil
 }
 
 // Get retrieve all results for given query

@@ -4,6 +4,13 @@ import (
 	"strings"
 )
 
+type PaginateMeta struct {
+	Page     int64 `json:"page"`
+	PerPage  int64 `json:"per_page"`
+	Total    int64 `json:"total"`
+	LastPage int64 `json:"last_page"`
+}
+
 func isSubQuery(values []interface{}) bool {
 	if len(values) != 1 {
 		return false

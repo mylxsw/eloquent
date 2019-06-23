@@ -3,8 +3,8 @@ package generator
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"strings"
+	"text/template"
 
 	"github.com/iancoleman/strcase"
 )

@@ -305,6 +305,39 @@ func (m *{{ camel $m.Name }}Model) Count(builder query.SQLBuilder) (int64, error
 	return res, nil
 }
 
+func (m *{{ camel $m.Name }}Model) Paginate(builder query.SQLBuilder, page int64, perPage int64) ([]{{ camel $m.Name }}, query.PaginateMeta, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	if perPage <= 0 {
+		perPage = 15
+	}
+
+	meta := query.PaginateMeta {
+		PerPage: perPage,
+		Page: page,
+	}
+
+	count, err := m.Count(builder)
+	if err != nil {
+		return nil, meta, err
+	}
+
+	meta.Total = count
+	meta.LastPage = count / perPage
+	if count % perPage != 0 {
+		meta.LastPage += 1
+	}
+
+	res, err := m.Get(builder.Limit(perPage).Offset((page - 1) * perPage))
+	if err != nil {
+		return res, meta, err
+	}
+
+	return res, meta, nil
+}
+
 // Get retrieve all results for given query
 func (m *{{ camel $m.Name }}Model) Get(builder query.SQLBuilder) ([]{{ camel $m.Name }}, error) {
 	builder = builder.Table(m.tableName).Select("id"{{ if not $m.Definition.WithoutCreateTime }}, "created_at"{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}, "updated_at"{{ end }}{{ range $j, $f := assignable_fields $m.Definition.Fields }}, "{{ snake $f.Name }}"{{ end }}{{ if $m.Definition.SoftDelete }}, "deleted_at"{{ end }})
