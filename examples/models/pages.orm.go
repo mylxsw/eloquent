@@ -2,6 +2,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -276,7 +277,7 @@ func (w pageWrap) ToPage() Page {
 
 // PageModel is a model which encapsulates the operations of the object
 type PageModel struct {
-	db        *sql.DB
+	db        query.Database
 	tableName string
 
 	excludeGlobalScopes []string
@@ -298,7 +299,7 @@ func SetPageTable(tableName string) {
 }
 
 // NewPageModel create a PageModel
-func NewPageModel(db *sql.DB) *PageModel {
+func NewPageModel(db query.Database) *PageModel {
 	return &PageModel{
 		db:                  db,
 		tableName:           pageTableName,
@@ -394,7 +395,7 @@ func (m *PageModel) Exists(builder query.SQLBuilder) (bool, error) {
 func (m *PageModel) Count(builder query.SQLBuilder) (int64, error) {
 	sqlStr, params := builder.Table(m.tableName).ResolveCount()
 
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -446,7 +447,7 @@ func (m *PageModel) Get(builder query.SQLBuilder) ([]Page, error) {
 	builder = builder.Table(m.tableName).Select("id", "created_at", "updated_at", "pid", "title", "description", "content", "project_id", "user_id", "type", "status", "last_modified_uid", "history_id", "sort_level", "sync_url", "last_sync_at")
 	sqlStr, params := builder.AppendCondition(m.applyScope()).ResolveQuery()
 
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +486,7 @@ func (m *PageModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := query.Builder().Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -549,7 +550,7 @@ func (m *PageModel) UpdateFields(builder query.SQLBuilder, kv query.KV) (int64, 
 	builder = builder.AppendCondition(m.applyScope())
 	sqlStr, params := builder.Table(m.tableName).ResolveUpdate(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -572,7 +573,7 @@ func (m *PageModel) Delete(builder query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := builder.AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}

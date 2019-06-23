@@ -2,6 +2,7 @@
 package migrate
 
 import (
+	"context"
 	"database/sql"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -147,7 +148,7 @@ func (w migrationsWrap) ToMigrations() Migrations {
 
 // MigrationsModel is a model which encapsulates the operations of the object
 type MigrationsModel struct {
-	db        *sql.DB
+	db        query.Database
 	tableName string
 
 	excludeGlobalScopes []string
@@ -169,7 +170,7 @@ func SetMigrationsTable(tableName string) {
 }
 
 // NewMigrationsModel create a MigrationsModel
-func NewMigrationsModel(db *sql.DB) *MigrationsModel {
+func NewMigrationsModel(db query.Database) *MigrationsModel {
 	return &MigrationsModel{
 		db:                  db,
 		tableName:           migrationsTableName,
@@ -265,7 +266,7 @@ func (m *MigrationsModel) Exists(builder query.SQLBuilder) (bool, error) {
 func (m *MigrationsModel) Count(builder query.SQLBuilder) (int64, error) {
 	sqlStr, params := builder.Table(m.tableName).ResolveCount()
 
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -279,12 +280,45 @@ func (m *MigrationsModel) Count(builder query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
+func (m *MigrationsModel) Paginate(builder query.SQLBuilder, page int64, perPage int64) ([]Migrations, query.PaginateMeta, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	if perPage <= 0 {
+		perPage = 15
+	}
+
+	meta := query.PaginateMeta{
+		PerPage: perPage,
+		Page:    page,
+	}
+
+	count, err := m.Count(builder)
+	if err != nil {
+		return nil, meta, err
+	}
+
+	meta.Total = count
+	meta.LastPage = count / perPage
+	if count%perPage != 0 {
+		meta.LastPage += 1
+	}
+
+	res, err := m.Get(builder.Limit(perPage).Offset((page - 1) * perPage))
+	if err != nil {
+		return res, meta, err
+	}
+
+	return res, meta, nil
+}
+
 // Get retrieve all results for given query
 func (m *MigrationsModel) Get(builder query.SQLBuilder) ([]Migrations, error) {
 	builder = builder.Table(m.tableName).Select("id", "version", "migration", "table", "batch")
 	sqlStr, params := builder.AppendCondition(m.applyScope()).ResolveQuery()
 
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +355,7 @@ func (m *MigrationsModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := query.Builder().Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -374,7 +408,7 @@ func (m *MigrationsModel) UpdateFields(builder query.SQLBuilder, kv query.KV) (i
 	builder = builder.AppendCondition(m.applyScope())
 	sqlStr, params := builder.Table(m.tableName).ResolveUpdate(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -397,7 +431,7 @@ func (m *MigrationsModel) Delete(builder query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := builder.AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}

@@ -143,6 +143,7 @@ func (d DomainContext) assignableFields(fields []DefinitionField) []DefinitionFi
 
 func (d DomainContext) importPackages() []string {
 	var internalPackages = []string{
+		"context",
 		"database/sql",
 		"gopkg.in/guregu/null.v3",
 		"github.com/mylxsw/eloquent/query",

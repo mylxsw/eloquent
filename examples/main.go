@@ -4,7 +4,10 @@ import (
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/mylxsw/eloquent/examples/models"
 	"github.com/mylxsw/eloquent/migrate"
+	"github.com/mylxsw/eloquent/query"
+	"github.com/mylxsw/go-toolkit/misc"
 )
 
 func main() {
@@ -18,6 +21,16 @@ func main() {
 	defer db.Close()
 
 	createMigrate(db)
+
+	misc.AssertError(query.Transaction(db, func(tx query.Database) error {
+		if _, err := models.NewProjectModel(tx).Save(models.Project{
+			Name: "Test project",
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	}))
 
 	// projectModel := models.NewProjectModel(db)
 	//

@@ -2,6 +2,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -215,7 +216,7 @@ func (w projectWrap) ToProject() Project {
 
 // ProjectModel is a model which encapsulates the operations of the object
 type ProjectModel struct {
-	db        *sql.DB
+	db        query.Database
 	tableName string
 
 	excludeGlobalScopes []string
@@ -237,7 +238,7 @@ func SetProjectTable(tableName string) {
 }
 
 // NewProjectModel create a ProjectModel
-func NewProjectModel(db *sql.DB) *ProjectModel {
+func NewProjectModel(db query.Database) *ProjectModel {
 	return &ProjectModel{
 		db:                  db,
 		tableName:           projectTableName,
@@ -338,7 +339,7 @@ func (m *ProjectModel) Exists(builder query.SQLBuilder) (bool, error) {
 func (m *ProjectModel) Count(builder query.SQLBuilder) (int64, error) {
 	sqlStr, params := builder.Table(m.tableName).ResolveCount()
 
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -390,7 +391,7 @@ func (m *ProjectModel) Get(builder query.SQLBuilder) ([]Project, error) {
 	builder = builder.Table(m.tableName).Select("id", "created_at", "updated_at", "name", "description", "visibility", "user_id", "sort_level", "catalog_id", "deleted_at")
 	sqlStr, params := builder.AppendCondition(m.applyScope()).ResolveQuery()
 
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +430,7 @@ func (m *ProjectModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := query.Builder().Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -486,7 +487,7 @@ func (m *ProjectModel) UpdateFields(builder query.SQLBuilder, kv query.KV) (int6
 	builder = builder.AppendCondition(m.applyScope())
 	sqlStr, params := builder.Table(m.tableName).ResolveUpdate(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -510,7 +511,7 @@ func (m *ProjectModel) ForceDelete(builder query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := builder.AppendCondition(m2.applyScope()).Table(m2.tableName).ResolveDelete()
 
-	res, err := m2.db.Exec(sqlStr, params...)
+	res, err := m2.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}

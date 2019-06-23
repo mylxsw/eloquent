@@ -166,7 +166,7 @@ func (w {{ lower_camel $m.Name }}Wrap) To{{ camel $m.Name }} () {{ camel $m.Name
 
 // {{ camel $m.Name }}Model is a model which encapsulates the operations of the object
 type {{ camel $m.Name }}Model struct {
-	db *sql.DB
+	db query.Database
 	tableName string
 
 	excludeGlobalScopes []string
@@ -188,7 +188,7 @@ func Set{{ camel $m.Name }}Table (tableName string) {
 }
 
 // New{{ camel $m.Name }}Model create a {{ camel $m.Name }}Model
-func New{{ camel $m.Name }}Model (db *sql.DB) *{{ camel $m.Name }}Model {
+func New{{ camel $m.Name }}Model (db query.Database) *{{ camel $m.Name }}Model {
 	return &{{ camel $m.Name }}Model {
 		db: db, 
 		tableName: {{ lowercase $m.Name }}TableName,
@@ -291,7 +291,7 @@ func (m *{{ camel $m.Name }}Model) Exists(builder query.SQLBuilder) (bool, error
 func (m *{{ camel $m.Name }}Model) Count(builder query.SQLBuilder) (int64, error) {
 	sqlStr, params := builder.Table(m.tableName).ResolveCount()
 	
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -343,7 +343,7 @@ func (m *{{ camel $m.Name }}Model) Get(builder query.SQLBuilder) ([]{{ camel $m.
 	builder = builder.Table(m.tableName).Select("id"{{ if not $m.Definition.WithoutCreateTime }}, "created_at"{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}, "updated_at"{{ end }}{{ range $j, $f := assignable_fields $m.Definition.Fields }}, "{{ snake $f.Name }}"{{ end }}{{ if $m.Definition.SoftDelete }}, "deleted_at"{{ end }})
 	sqlStr, params := builder.AppendCondition(m.applyScope()).ResolveQuery()
 	
-	rows, err := m.db.Query(sqlStr, params...)
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +382,7 @@ func (m *{{ camel $m.Name }}Model) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := query.Builder().Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -436,7 +436,7 @@ func (m *{{ camel $m.Name }}Model) UpdateFields(builder query.SQLBuilder, kv que
 	builder = builder.AppendCondition(m.applyScope())
 	sqlStr, params := builder.Table(m.tableName).ResolveUpdate(kv)
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -461,7 +461,7 @@ func (m *{{ camel $m.Name }}Model) ForceDelete(builder query.SQLBuilder) (int64,
 
 	sqlStr, params := builder.AppendCondition(m2.applyScope()).Table(m2.tableName).ResolveDelete()
 
-	res, err := m2.db.Exec(sqlStr, params...)
+	res, err := m2.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -497,7 +497,7 @@ func (m *{{ camel $m.Name }}Model) Delete(builder query.SQLBuilder) (int64, erro
 	{{ else }}
 	sqlStr, params := builder.AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.Exec(sqlStr, params...)
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
