@@ -83,7 +83,7 @@ func (builder SQLBuilder) ResolveDelete() (string, []interface{}) {
 	tableAlias := resolveTableAlias(builder.tableName)
 	if !builder.conditions.Empty() {
 		conditions, p := builder.conditions.Resolve(tableAlias)
-		sqlStr += fmt.Sprintf(" WHERE %s", conditions)
+		sqlStr += fmt.Sprintf(" WHERE %s", strings.TrimLeft(conditions, " "))
 		values = append(values, p...)
 	}
 
@@ -107,7 +107,7 @@ func (builder SQLBuilder) ResolveUpdate(kvPairs KV) (string, []interface{}) {
 
 	if !builder.conditions.Empty() {
 		conditions, p := builder.conditions.Resolve(resolveTableAlias(builder.tableName))
-		sqlStr += fmt.Sprintf(" WHERE %s", conditions)
+		sqlStr += fmt.Sprintf(" WHERE %s", strings.TrimLeft(conditions, " "))
 		values = append(values, p...)
 	}
 
@@ -229,7 +229,7 @@ func (builder SQLBuilder) ResolveQuery() (string, []interface{}) {
 
 	if !builder.conditions.Empty() {
 		conditions, p := builder.conditions.Resolve(tableAlias)
-		sqlStr += fmt.Sprintf(" WHERE %s", conditions)
+		sqlStr += fmt.Sprintf(" WHERE %s", strings.TrimLeft(conditions, " "))
 		params = append(params, p...)
 	}
 
@@ -566,6 +566,34 @@ func (builder SQLBuilder) When(when When, cg ConditionGroup) SQLBuilder {
 func (builder SQLBuilder) OrWhen(when When, cg ConditionGroup) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhen(when, cg)
+
+	return b
+}
+
+func (builder SQLBuilder) WhereBetween(field string, min interface{}, max interface{}) SQLBuilder {
+	b := builder.Clone()
+	b.conditions.WhereBetween(field, min, max)
+
+	return b
+}
+
+func (builder SQLBuilder) OrWhereBetween(field string, min interface{}, max interface{}) SQLBuilder {
+	b := builder.Clone()
+	b.conditions.OrWhereBetween(field, min, max)
+
+	return b
+}
+
+func (builder SQLBuilder) WhereNotBetween(field string, min interface{}, max interface{}) SQLBuilder {
+	b := builder.Clone()
+	b.conditions.WhereNotBetween(field, min, max)
+
+	return b
+}
+
+func (builder SQLBuilder) OrWhereNotBetween(field string, min interface{}, max interface{}) SQLBuilder {
+	b := builder.Clone()
+	b.conditions.OrWhereNotBetween(field, min, max)
 
 	return b
 }

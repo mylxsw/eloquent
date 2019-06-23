@@ -26,6 +26,11 @@ type Condition interface {
 	OrWhereGroup(wc ConditionGroup) Condition
 	Where(field string, value ...interface{}) Condition
 	OrWhere(field string, value ...interface{}) Condition
+	WhereBetween(field string, min, max interface{}) Condition
+	WhereNotBetween(field string, min, max interface{}) Condition
+	OrWhereBetween(field string, min, max interface{}) Condition
+	OrWhereNotBetween(field string, min, max interface{}) Condition
+
 	WhereCondition(cond sqlCondition) Condition
 
 	When(when When, cg ConditionGroup) Condition
@@ -60,6 +65,8 @@ const (
 	condTypeExists
 	condTypeNotExists
 	condTypeGroup
+	condTypeBetween
+	condTypeNotBetween
 )
 
 type SubQuery interface {
@@ -358,6 +365,42 @@ func (builder *conditionBuilder) OrWhere(field string, value ...interface{}) Con
 	})
 }
 
+func (builder *conditionBuilder) WhereBetween(field string, min, max interface{}) Condition {
+	return builder.WhereCondition(sqlCondition{
+		Connector: connectTypeAnd,
+		Type:      condTypeBetween,
+		Field:     field,
+		Values:    []interface{}{min, max},
+	})
+}
+
+func (builder *conditionBuilder) OrWhereBetween(field string, min, max interface{}) Condition {
+	return builder.WhereCondition(sqlCondition{
+		Connector: connectTypeOr,
+		Type:      condTypeBetween,
+		Field:     field,
+		Values:    []interface{}{min, max},
+	})
+}
+
+func (builder *conditionBuilder) WhereNotBetween(field string, min, max interface{}) Condition {
+	return builder.WhereCondition(sqlCondition{
+		Connector: connectTypeAnd,
+		Type:      condTypeNotBetween,
+		Field:     field,
+		Values:    []interface{}{min, max},
+	})
+}
+
+func (builder *conditionBuilder) OrWhereNotBetween(field string, min, max interface{}) Condition {
+	return builder.WhereCondition(sqlCondition{
+		Connector: connectTypeOr,
+		Type:      condTypeNotBetween,
+		Field:     field,
+		Values:    []interface{}{min, max},
+	})
+}
+
 func (builder *conditionBuilder) WhereCondition(cond sqlCondition) Condition {
 	if cond.When == nil {
 		cond.When = func() bool {
@@ -454,6 +497,14 @@ func (builder *conditionBuilder) resolveCondition(tableAlias string, connector c
 		newCond, newParams := newBuilder.Resolve(tableAlias)
 		params = append(params, newParams...)
 		result += fmt.Sprintf(" %s (%s)", connector, newCond)
+	case condTypeBetween, condTypeNotBetween:
+		between := "BETWEEN"
+		if condTypeNotBetween == c.Type {
+			between = "NOT BETWEEN"
+		}
+
+		result += fmt.Sprintf(" %s %s %s ? AND ?", connector, replaceTableField(tableAlias, c.Field), between)
+		params = append(params, c.Values...)
 	}
 	return result, params
 }
