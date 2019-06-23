@@ -9,7 +9,7 @@ type Schema struct {
 
 // Create creat a new table
 func (s *Schema) Create(table string, apply func(builder *Builder)) {
-	builder := NewBuilder(table, s.m.Prefix)
+	builder := NewBuilder(table, s.m.Prefix).DefaultStringLength(s.m.DefaultStringLength)
 	builder.Engine(s.m.Engine)
 	builder.Charset(s.m.Charset)
 	builder.Collation(s.m.Collation)
@@ -23,7 +23,7 @@ func (s *Schema) Create(table string, apply func(builder *Builder)) {
 
 // Table update a existing table
 func (s *Schema) Table(table string, apply func(builder *Builder)) {
-	builder := NewBuilder(table, s.m.Prefix)
+	builder := NewBuilder(table, s.m.Prefix).DefaultStringLength(s.m.DefaultStringLength)
 	builder.Engine(s.m.Engine)
 	builder.Charset(s.m.Charset)
 	builder.Collation(s.m.Collation)

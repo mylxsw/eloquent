@@ -6,23 +6,33 @@ import (
 )
 
 type Builder struct {
-	name      string
-	prefix    string
-	engine    string
-	charset   string
-	collation string
-	temporary bool
-	columns   []*ColumnDefinition
-	commands  []*Command
+	name                string
+	prefix              string
+	engine              string
+	charset             string
+	collation           string
+	temporary           bool
+	defaultStringLength int
+	columns             []*ColumnDefinition
+	commands            []*Command
 }
 
 func NewBuilder(name string, prefix string) *Builder {
 	return &Builder{
-		name:      name,
-		prefix:    prefix,
-		columns:   make([]*ColumnDefinition, 0),
-		commands:  make([]*Command, 0),
+		name:     name,
+		prefix:   prefix,
+		columns:  make([]*ColumnDefinition, 0),
+		commands: make([]*Command, 0),
 	}
+}
+
+func (t *Builder) GetTableName() string {
+	return t.prefix + t.name
+}
+
+func (t *Builder) DefaultStringLength(length int) *Builder {
+	t.defaultStringLength = length
+	return t
 }
 
 func (t *Builder) addImpliedCommands() {
@@ -90,7 +100,7 @@ func (t *Builder) Build() []string {
 }
 
 func (t *Builder) wrapTable() string {
-	return "`" + t.name + "`"
+	return "`" + t.GetTableName() + "`"
 }
 
 func (t *Builder) getColumns() []string {
@@ -296,13 +306,13 @@ func (t *Builder) MediumText(name string) *ColumnDefinition {
 }
 
 func (t *Builder) Morphs(name string, indexName string) {
-	t.String(name+"_type", 255)
+	t.String(name+"_type", t.defaultStringLength)
 	t.UnsignedBigInteger(name+"_id", false)
 	t.Index(indexName, name+"_type", name+"_id")
 }
 
 func (t *Builder) NullableMorphs(name string, indexName string) {
-	t.String(name+"_type", 255).Nullable(true)
+	t.String(name+"_type", t.defaultStringLength).Nullable(true)
 	t.UnsignedBigInteger(name+"_id", false).Nullable(true)
 	t.Index(indexName, name+"_type", name+"_id")
 }
@@ -385,6 +395,10 @@ func (t *Builder) SoftDeletesTz(column string, precision int) *ColumnDefinition 
 }
 
 func (t *Builder) String(name string, length int) *ColumnDefinition {
+	if length <= 0 {
+		length = t.defaultStringLength
+	}
+
 	return t.addColumn(&ColumnDefinition{
 		ColumnName: name,
 		ColumnType: fmt.Sprintf("VARCHAR(%d)", length),
@@ -573,6 +587,10 @@ func (t *Builder) Create() *Command {
 	return t.addCommand("create")
 }
 
+func (t *Builder) CreateIfNotExists() *Command {
+	return t.addCommand("createIfNotExists")
+}
+
 func (t *Builder) DropIfExists() *Command {
 	return t.addCommand("dropIfExists")
 }
@@ -581,13 +599,14 @@ func (t *Builder) Rename(to string) *Command {
 	return t.addCommand("rename", to)
 }
 
+// RenameColumn rename a column name (only support for MySQL 8.0)
 func (t *Builder) RenameColumn(from string, to string) *Command {
 	return t.addCommand("renameColumn", from, to)
 }
 
 func (t *Builder) indexCommand(indexType string, indexName string, columns ...string) *Command {
 	if indexName == "" {
-		indexName = createIndexName(t.name, indexType, columns...)
+		indexName = createIndexName(t.GetTableName(), indexType, columns...)
 	}
 
 	return t.addCommand(indexType, columns...).Index(indexName)
@@ -604,7 +623,7 @@ func (t *Builder) addCommand(name string, parameters ...string) *Command {
 
 func (t *Builder) creating() bool {
 	for _, c := range t.commands {
-		if c.Equal("create") {
+		if c.Equal("create") || c.Equal("createIfNotExists") {
 			return true
 		}
 	}
@@ -657,8 +676,8 @@ func (t *Builder) compileRename(c *Command) string {
 	return fmt.Sprintf("RENAME TABLE %s TO `%s`", t.wrapTable(), c.CommandParameters[0])
 }
 
-func (t *Builder) compileCreateCommand() string {
-	sqlStr := t.compileCreateTable()
+func (t *Builder) compileCreateCommand(createIfNotExist bool) string {
+	sqlStr := t.compileCreateTable(createIfNotExist)
 	sqlStr += t.compileCreateEncoding()
 	sqlStr += t.compileCreateEngine()
 
@@ -686,15 +705,21 @@ func (t *Builder) compileCreateEncoding() string {
 	return sqlStr
 }
 
-func (t *Builder) compileCreateTable() string {
+func (t *Builder) compileCreateTable(createIfNotExist bool) string {
 	createStatement := "CREATE"
 	if t.temporary {
 		createStatement += " TEMPORARY"
 	}
 
+	ifNotExists := ""
+	if createIfNotExist {
+		ifNotExists = "IF NOT EXISTS "
+	}
+
 	return fmt.Sprintf(
-		"%s TABLE %s (%s)",
+		"%s TABLE %s%s (%s)",
 		createStatement,
+		ifNotExists,
 		t.wrapTable(),
 		strings.Join(t.getColumns(), ", "),
 	)

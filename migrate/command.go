@@ -64,7 +64,9 @@ func (c *Command) Build() string {
 	case "rename":
 		return c.t.compileRename(c)
 	case "create":
-		return c.t.compileCreateCommand()
+		return c.t.compileCreateCommand(false)
+	case "createIfNotExists":
+		return c.t.compileCreateCommand(true)
 	case "add":
 		return c.t.compileAdd()
 	case "change":

@@ -1,0 +1,18 @@
+
+package: "migrate"
+
+models:
+  - name: migrations
+    definition:
+      table_name: migrations
+      without_create_time: true
+      without_update_time: true
+      fields:
+        - name: version
+          type: string
+        - name: migration
+          type: string
+        - name: table
+          type: string
+        - name: batch
+          type: int64

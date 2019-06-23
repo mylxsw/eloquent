@@ -8,3 +8,9 @@ generate-models: build
 
 build:
 	go build -o bin/orm cmd/orm/*.go
+
+init: build
+	./bin/orm "./migrate/*.yml"
+	go fmt ./migrate/migrations.orm.go
+
+.PHONY: build init generate-models run
