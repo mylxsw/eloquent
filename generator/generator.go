@@ -22,7 +22,18 @@ type Meta struct {
 
 type Model struct {
 	Name       string     `yaml:"name"`
+	Relations  []Relation `yaml:"relations"`
 	Definition Definition `yaml:"definition"`
+}
+
+type Relation struct {
+	Model      string `yaml:"model"`
+	Rel        string `yaml:"rel"`
+	ForeignKey string `yaml:"foreign_key"`
+	OwnerKey   string `yaml:"owner_key"`
+	LocalKey   string `yaml:"local_key"`
+
+	Package string `yaml:"package"`
 }
 
 type Definition struct {
@@ -43,22 +54,26 @@ type DefinitionField struct {
 func ParseTemplate(templateContent string, data Domain) (string, error) {
 	ctx := DomainContext{domain: data}
 	funcMap := template.FuncMap{
-		"implode":           strings.Join,
-		"trim":              strings.Trim,
-		"trim_right":        strings.TrimRight,
-		"trim_left":         strings.TrimLeft,
-		"trim_space":        strings.TrimSpace,
-		"lowercase":         strings.ToLower,
-		"format":            fmt.Sprintf,
-		"assignable_fields": ctx.assignableFields,
-		"snake":             strcase.ToSnake,
-		"camel":             strcase.ToCamel,
-		"lower_camel":       strcase.ToLowerCamel,
-		"table":             ctx.tableName,
-		"wrap_type":         wrapType,
-		"unwrap_type":       unWrapType,
-		"unique":            unique,
-		"packages":          ctx.importPackages,
+		"implode":            strings.Join,
+		"trim":               strings.Trim,
+		"trim_right":         strings.TrimRight,
+		"trim_left":          strings.TrimLeft,
+		"trim_space":         strings.TrimSpace,
+		"lowercase":          strings.ToLower,
+		"format":             fmt.Sprintf,
+		"assignable_fields":  ctx.assignableFields,
+		"snake":              strcase.ToSnake,
+		"camel":              strcase.ToCamel,
+		"lower_camel":        strcase.ToLowerCamel,
+		"table":              ctx.tableName,
+		"wrap_type":          wrapType,
+		"unwrap_type":        unWrapType,
+		"unique":             unique,
+		"packages":           ctx.importPackages,
+		"rel_owner_key":      relationOwnerKey,
+		"rel_foreign_key":    relationForeignKey,
+		"rel_local_key":      relationLocalKey,
+		"rel_package_prefix": relationPackagePrefix,
 	}
 	var buffer bytes.Buffer
 	if err := template.Must(template.New("").Funcs(funcMap).Parse(templateContent)).Execute(&buffer, data); err != nil {
@@ -153,6 +168,12 @@ func (d DomainContext) importPackages() []string {
 		if m.Definition.SoftDelete || !m.Definition.WithoutCreateTime || !m.Definition.WithoutUpdateTime {
 			internalPackages = append(internalPackages, "time")
 		}
+
+		for _, rel := range m.Relations {
+			if rel.Package != "" {
+				internalPackages = append(internalPackages, rel.Package)
+			}
+		}
 	}
 
 	for _, imp := range d.domain.Imports {
@@ -175,4 +196,39 @@ func unique(elements []string) []string {
 	}
 
 	return result
+}
+
+func relationForeignKey(rel Relation) string {
+	if rel.ForeignKey == "" {
+		return strings.ToLower(rel.Model) + "_id"
+	}
+
+	return rel.ForeignKey
+}
+
+func relationOwnerKey(rel Relation) string {
+	if rel.OwnerKey == "" {
+		return "id"
+	}
+
+	return rel.OwnerKey
+}
+
+func relationLocalKey(rel Relation) string {
+	if rel.LocalKey == "" {
+		return "id"
+	}
+
+	return rel.LocalKey
+}
+
+func relationPackagePrefix(rel Relation) string {
+	if rel.Package == "" {
+		return ""
+	}
+
+	segs := strings.Split(rel.Package, "/")
+	lastSeg := segs[len(segs)-1]
+
+	return lastSeg + "."
 }

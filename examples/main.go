@@ -50,7 +50,7 @@ func main() {
 	// _, err = projectModel.DeleteById(id)
 	// misc.AssertError(err)
 	//
-	// projects, err := projectModel.Get(query.Builder().OrderBy("id", "desc").Limit(10))
+	// projects, err := projectModel.Query(query.Builder().OrderBy("id", "desc").Limit(10)).Get()
 	// misc.AssertError(err)
 	//
 	// for _, p := range projects {

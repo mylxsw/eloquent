@@ -36,3 +36,10 @@ func TestSQLBuilder_WhereBetween(t *testing.T) {
 		t.Error("test failed")
 	}
 }
+
+func TestSQLBuilder_Merge(t *testing.T) {
+	sqlStr, _ := Builder().Table("test").Where("username", "zhangsan").Merge(Builder().Where("password", "123456")).ResolveQuery()
+	if sqlStr != "SELECT * FROM test WHERE test.`username` = ? AND test.`password` = ?" {
+		t.Error("test failed")
+	}
+}

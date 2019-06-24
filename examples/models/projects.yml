@@ -5,6 +5,10 @@ meta:
 
 models:
   - name: Project
+    relations:
+      - model: page
+        rel: hasMany
+
     definition:
       table_name: projects
       soft_delete: true

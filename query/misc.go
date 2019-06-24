@@ -3,8 +3,14 @@ package query
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
+)
+
+var (
+	// ErrModelNotSet means you are not set the model for the domain object
+	ErrModelNotSet = errors.New("model not set")
 )
 
 type PaginateMeta struct {

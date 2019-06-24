@@ -111,7 +111,7 @@ func (m *Manager) execute(sqls []string) error {
 }
 
 func (m *Manager) HasVersion(version string, tableName string) bool {
-	existed, err := m.migrateRepo.Exists(query.Builder().Where("version", version).Where("table", tableName))
+	existed, err := m.migrateRepo.Query(query.Builder().Where("version", version).Where("table", tableName)).Exists()
 	if err != nil {
 		panic(err)
 	}

@@ -8,6 +8,11 @@ meta:
 
 models:
   - name: page
+    relations:
+      - model: project
+        rel: belongsTo
+        foreign_key: project_id
+        owner_key: id
     definition:
       table_name: pages
       fields:

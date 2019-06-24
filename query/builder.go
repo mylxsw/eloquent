@@ -57,6 +57,29 @@ func Builder() SQLBuilder {
 	}
 }
 
+
+func (builder SQLBuilder) Merge(b2s ...SQLBuilder) SQLBuilder {
+	b := builder.Clone()
+	for _, b2 := range b2s {
+		b.conditions.Append(b2.conditions)
+		b.fields = append(b.fields, b2.fields...)
+		b.orders = append(b.orders, b2.orders...)
+		b.groups = append(b.groups, b2.groups...)
+		b.joins = append(b.joins, b2.joins...)
+		b.unions = append(b.unions, b2.unions...)
+
+		if b2.limit != -1 {
+			b.limit = b2.limit
+		}
+
+		if b2.offset != -1 {
+			b.offset = b2.offset
+		}
+	}
+
+	return b
+}
+
 func (builder SQLBuilder) Clone() SQLBuilder {
 	b := SQLBuilder{
 		conditions: builder.conditions.Clone(),
