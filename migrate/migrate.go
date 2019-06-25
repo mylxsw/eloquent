@@ -2,7 +2,6 @@ package migrate
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -80,7 +79,7 @@ func (m *Manager) Execute(builder *Builder, version string) {
 	m.migrateFuncs = append(m.migrateFuncs, func() error {
 		tableName := builder.GetTableName()
 		if m.HasVersion(version, tableName) {
-			fmt.Printf("ignore-version(%s)\n", version)
+			// fmt.Printf("ignore-version(%s)\n", version)
 			return nil
 		}
 
@@ -100,8 +99,7 @@ func (m *Manager) Execute(builder *Builder, version string) {
 
 func (m *Manager) execute(sqls []string) error {
 	for _, s := range sqls {
-		fmt.Printf("execute -> %s\n", s)
-
+		// fmt.Printf("execute -> %s\n", s)
 		if _, err := m.db.Exec(s); err != nil {
 			return err
 		}
@@ -120,8 +118,7 @@ func (m *Manager) HasVersion(version string, tableName string) bool {
 }
 
 func (m *Manager) AddVersion(version string, tableName string, sqlStr string) error {
-	fmt.Printf("add-version(%s)\n", version)
-
+	// fmt.Printf("add-version(%s)\n", version)
 	_, err := m.migrateRepo.Save(Migrations{
 		Version:   version,
 		Table:     tableName,

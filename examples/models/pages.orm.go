@@ -4,7 +4,6 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -187,7 +186,6 @@ func (pageSelf *Page) StaledKV() query.KV {
 }
 
 func (pageSelf *Page) Project() *ProjectModel {
-
 	q := query.Builder().Where("id", pageSelf.ProjectId)
 
 	return NewProjectModel(pageSelf.pageModel.GetDB()).Query(q)
@@ -519,7 +517,7 @@ func (m *PageModel) First(builders ...query.SQLBuilder) (Page, error) {
 	}
 
 	if len(res) == 0 {
-		return Page{}, sql.ErrNoRows
+		return Page{}, query.ErrNoResult
 	}
 
 	return res[0], nil

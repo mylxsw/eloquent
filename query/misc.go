@@ -11,6 +11,8 @@ import (
 var (
 	// ErrModelNotSet means you are not set the model for the domain object
 	ErrModelNotSet = errors.New("model not set")
+	// ErrNoResult means there is no result for current query.
+	ErrNoResult = errors.New("no result")
 )
 
 type PaginateMeta struct {

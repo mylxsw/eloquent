@@ -34,6 +34,7 @@ type Relation struct {
 	LocalKey   string `yaml:"local_key"`
 
 	Package string `yaml:"package"`
+	Method  string `yaml:"method"`
 }
 
 type Definition struct {
@@ -74,6 +75,8 @@ func ParseTemplate(templateContent string, data Domain) (string, error) {
 		"rel_foreign_key":    relationForeignKey,
 		"rel_local_key":      relationLocalKey,
 		"rel_package_prefix": relationPackagePrefix,
+		"rel_method":         relationMethod,
+		"rel":                relationRel,
 	}
 	var buffer bytes.Buffer
 	if err := template.Must(template.New("").Funcs(funcMap).Parse(templateContent)).Execute(&buffer, data); err != nil {
@@ -159,7 +162,6 @@ func (d DomainContext) assignableFields(fields []DefinitionField) []DefinitionFi
 func (d DomainContext) importPackages() []string {
 	var internalPackages = []string{
 		"context",
-		"database/sql",
 		"gopkg.in/guregu/null.v3",
 		"github.com/mylxsw/eloquent/query",
 	}
@@ -231,4 +233,28 @@ func relationPackagePrefix(rel Relation) string {
 	lastSeg := segs[len(segs)-1]
 
 	return lastSeg + "."
+}
+
+func relationMethod(rel Relation) string {
+	if rel.Method == "" {
+		switch rel.Rel {
+		case "belongsTo":
+			return strcase.ToCamel(rel.Model)
+		case "hasMany":
+			return strcase.ToCamel(rel.Model) + "s"
+		}
+	}
+
+	return strcase.ToCamel(rel.Method)
+}
+
+func relationRel(rel Relation) string {
+	switch strings.ToLower(rel.Rel) {
+	case "belongsto", "belongs_to", "n-1", "n:1", "*:1", "*-1", "-1":
+		return "belongsTo"
+	case "hasmany", "has_many", "1-n", "1:n", "1:*", "1-*", "1-":
+		return "hasMany"
+	}
+
+	panic(fmt.Sprintf("not support: %s", rel.Rel))
 }

@@ -212,7 +212,7 @@ func (m *{{ camel $m.Name }}Model) First(builders ...query.SQLBuilder) ({{ camel
 	}
 
 	if len(res) == 0 {
-		return {{ camel $m.Name }}{}, sql.ErrNoRows
+		return {{ camel $m.Name }}{}, query.ErrNoResult
 	}
 
 	return res[0], nil
@@ -445,10 +445,9 @@ func (w {{ lower_camel $m.Name }}Wrap) To{{ camel $m.Name }} () {{ camel $m.Name
 
 var tempRelation = `
 {{ range $j, $rel := $m.Relations }}
-func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) {{ camel $rel.Model }} () *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model {
-	{{ if eq $rel.Rel "belongsTo" }}
-	q := query.Builder().Where("{{ rel_owner_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }})
-	{{ end }}{{ if eq $rel.Rel "hasMany" }}
+func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model {
+	{{ if rel $rel | eq "belongsTo" }}q := query.Builder().Where("{{ rel_owner_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }})
+	{{ end }}{{ if rel $rel | eq "hasMany" }}
 	q := query.Builder().Where("{{ rel_foreign_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_local_key $rel | camel }})
 	{{ end }}
 
