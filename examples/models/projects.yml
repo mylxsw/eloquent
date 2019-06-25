@@ -13,16 +13,24 @@ models:
       table_name: projects
       soft_delete: true
       fields:
+        - name: id
+          type: int64
+          tag: 'json:"id"'
         - name: Name
           type: string
         - name: Description
           type: string
+          tag: 'json:"description"'
         - name: Visibility
           type: int
+          tag: 'json:"visibility" yaml:"visibility"'
         - name: UserId
           type: int64
         - name: SortLevel
           type: int
+          tag: 'yaml:"sort_level"'
         - name: CatalogId
           type: null.Int
+        - name: status
+          tag: 'json:"status" yaml:"status"'
 

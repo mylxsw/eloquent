@@ -175,8 +175,9 @@ func (m *{{ camel $m.Name }}Model) Paginate(page int64, perPage int64, builders 
 func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel $m.Name }}, error) {
 	sqlStr, params := m.query.Merge(builders...).
 		Table(m.tableName).
-		Select("id"{{ if not $m.Definition.WithoutCreateTime }}, "created_at"{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}, "updated_at"{{ end }}{{ range $j, $f := assignable_fields $m.Definition.Fields }}, "{{ snake $f.Name }}"{{ end }}{{ if $m.Definition.SoftDelete }}, "deleted_at"{{ end }}).
-		AppendCondition(m.applyScope()).
+		Select({{ range $j, $f := fields $m.Definition }}
+			"{{ snake $f.Name }}",{{ end }}
+		).AppendCondition(m.applyScope()).
 		ResolveQuery()
 	
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
@@ -187,12 +188,8 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 	{{ lowercase $m.Name }}s := make([]{{ camel $m.Name }}, 0)
 	for rows.Next() {
 		var {{ lowercase $m.Name }}Var {{ lower_camel $m.Name }}Wrap
-		if err := rows.Scan(
-			&{{ lowercase $m.Name }}Var.Id{{ if not $m.Definition.WithoutCreateTime }}, 
-			&{{ lowercase $m.Name }}Var.CreatedAt{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}, 
-			&{{ lowercase $m.Name }}Var.UpdatedAt{{ end }}{{ range $j, $f := assignable_fields $m.Definition.Fields }}, 
-			&{{ lowercase $m.Name }}Var.{{ camel $f.Name }}{{ end }}{{ if $m.Definition.SoftDelete }}, 
-			&{{ lowercase $m.Name }}Var.DeletedAt{{ end }}); err != nil {
+		if err := rows.Scan({{ range $j, $f := fields $m.Definition }} 
+			&{{ lowercase $m.Name }}Var.{{ camel $f.Name }},{{ end }}); err != nil {
 			return nil, err
 		}
 
@@ -250,7 +247,7 @@ func (m *{{ camel $m.Name }}Model) SaveAll({{ lowercase $m.Name }}s []{{ camel $
 
 // Save save a {{ $m.Name }} to database
 func (m *{{ camel $m.Name }}Model) Save({{ lowercase $m.Name }} {{ camel $m.Name }}) (int64, error) {
-	return m.Create(query.KV{ {{ range $j, $f := assignable_fields $m.Definition.Fields }}
+	return m.Create(query.KV{ {{ range $j, $f := assignable_fields $m.Definition }}
 		"{{ snake $f.Name }}": {{ lowercase $m.Name }}.{{ camel $f.Name }},{{ end }}
 	})	
 }
@@ -414,31 +411,17 @@ func (m *{{ camel $m.Name }}Model) globalScopeEnabled(name string) bool {
 `
 
 var tempWrap = `
-type {{ lower_camel $m.Name }}Wrap struct { 
-	Id null.Int{{ range $j, $f := $m.Definition.Fields }}	
+type {{ lower_camel $m.Name }}Wrap struct { {{ range $j, $f := fields $m.Definition }}	
 	{{ camel $f.Name }} {{ wrap_type $f.Type }}{{ end }}
-	{{ if not $m.Definition.WithoutCreateTime }}
-	CreatedAt null.Time{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-	UpdatedAt null.Time{{ end }}{{ if $m.Definition.SoftDelete }}
-	DeletedAt null.Time{{ end }}
 }
 
 func (w {{ lower_camel $m.Name }}Wrap) To{{ camel $m.Name }} () {{ camel $m.Name }} {
 	return {{ camel $m.Name }} {
-		original: &{{ lowercase $m.Name }}Original {
-			Id: w.Id.Int64,{{ range $j, $f := $m.Definition.Fields }}
+		original: &{{ lowercase $m.Name }}Original { {{ range $j, $f := fields $m.Definition }}
 			{{ camel $f.Name }}: {{ unwrap_type $f.Name $f.Type }},{{ end }}
-			{{ if not $m.Definition.WithoutCreateTime }}
-			CreatedAt: w.CreatedAt.Time,{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-			UpdatedAt: w.UpdatedAt.Time,{{ end }}{{ if $m.Definition.SoftDelete }}
-			DeletedAt: w.DeletedAt,{{ end }}
 		},
-		Id: w.Id.Int64,{{ range $j, $f := $m.Definition.Fields }}
+		{{ range $j, $f := fields $m.Definition }}
 		{{ camel $f.Name }}: {{ unwrap_type $f.Name $f.Type }},{{ end }}
-		{{ if not $m.Definition.WithoutCreateTime }}
-		CreatedAt: w.CreatedAt.Time,{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-		UpdatedAt: w.UpdatedAt.Time,{{ end }}{{ if $m.Definition.SoftDelete }}
-		DeletedAt: w.DeletedAt,{{ end }}
 	}
 }
 `
@@ -462,12 +445,8 @@ type {{ camel $m.Name }} struct {
 	original *{{ lowercase $m.Name }}Original
 	{{ lowercase $m.Name }}Model *{{ camel $m.Name }}Model
 
-	Id int64{{ range $j, $f := $m.Definition.Fields }}
-	{{ camel $f.Name }} {{ $f.Type }}{{ end }}
-	{{ if not $m.Definition.WithoutCreateTime }}
-	CreatedAt time.Time{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-	UpdatedAt time.Time{{ end }}{{ if $m.Definition.SoftDelete }}
-	DeletedAt null.Time{{ end }}
+	{{ range $j, $f := fields $m.Definition }}
+	{{ camel $f.Name }} {{ $f.Type }} {{ tag $f }}{{ end }}
 }
 
 // SetModel set model for {{ camel $m.Name }}
@@ -477,12 +456,8 @@ func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) SetModel({{ lowercase $m
 
 // {{ lowercase $m.Name }}Original is an object which stores original {{ camel $m.Name }} from database
 type {{ lowercase $m.Name }}Original struct {
-	Id int64{{ range $j, $f := $m.Definition.Fields }}
+	{{ range $j, $f := fields $m.Definition }}
 	{{ camel $f.Name }} {{ $f.Type }}{{ end }}
-	{{ if not $m.Definition.WithoutCreateTime }}
-	CreatedAt time.Time{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-	UpdatedAt time.Time{{ end }}{{ if $m.Definition.SoftDelete }}
-	DeletedAt null.Time{{ end }}
 }
 
 // Staled identify whether the object has been modified
@@ -491,23 +466,8 @@ func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) Staled() bool {
 		{{ lowercase $m.Name }}Self.original = &{{ lowercase $m.Name }}Original {}
 	}
 
-	if {{ lowercase $m.Name }}Self.Id != {{ lowercase $m.Name }}Self.original.Id {
-		return true
-	}
-
-	{{ range $j, $f := $m.Definition.Fields }}
+	{{ range $j, $f := fields $m.Definition }}
 	if {{ lowercase $m.Name }}Self.{{ camel $f.Name }} != {{ lowercase $m.Name }}Self.original.{{ camel $f.Name }} {
-		return true
-	}{{ end }}
-
-	{{ if not $m.Definition.WithoutCreateTime }}
-	if {{ lowercase $m.Name }}Self.CreatedAt != {{ lowercase $m.Name }}Self.original.CreatedAt {
-		return true
-	}{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-	if {{ lowercase $m.Name }}Self.UpdatedAt != {{ lowercase $m.Name }}Self.original.UpdatedAt {
-		return true
-	}{{ end }}{{ if $m.Definition.SoftDelete }}
-	if {{ lowercase $m.Name }}Self.DeletedAt != {{ lowercase $m.Name }}Self.original.DeletedAt {
 		return true
 	}{{ end }}
 
@@ -522,24 +482,9 @@ func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) StaledKV() query.KV {
 		{{ lowercase $m.Name }}Self.original = &{{ lowercase $m.Name }}Original {}
 	}
 
-	if {{ lowercase $m.Name }}Self.Id != {{ lowercase $m.Name }}Self.original.Id {
-		kv["id"] = {{ lowercase $m.Name }}Self.Id
-	}
-
-	{{ range $j, $f := $m.Definition.Fields }}
+	{{ range $j, $f := fields $m.Definition }}
 	if {{ lowercase $m.Name }}Self.{{ camel $f.Name }} != {{ lowercase $m.Name }}Self.original.{{ camel $f.Name }} {
 		kv["{{ snake $f.Name }}"] = {{ lowercase $m.Name }}Self.{{ camel $f.Name }}
-	}{{ end }}
-
-	{{ if not $m.Definition.WithoutCreateTime }}
-	if {{ lowercase $m.Name }}Self.CreatedAt != {{ lowercase $m.Name }}Self.original.CreatedAt {
-		kv["created_at"] = {{ lowercase $m.Name }}Self.CreatedAt
-	}{{ end }}{{ if not $m.Definition.WithoutUpdateTime }}
-	if {{ lowercase $m.Name }}Self.UpdatedAt != {{ lowercase $m.Name }}Self.original.UpdatedAt {
-		kv["updated_at"] = {{ lowercase $m.Name }}Self.UpdatedAt
-	}{{ end }}{{ if $m.Definition.SoftDelete }}
-	if {{ lowercase $m.Name }}Self.DeletedAt != {{ lowercase $m.Name }}Self.original.DeletedAt {
-		kv["deleted_at"] = {{ lowercase $m.Name }}Self.DeletedAt
 	}{{ end }}
 
 	return kv

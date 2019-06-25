@@ -23,17 +23,17 @@ type Project struct {
 	original     *projectOriginal
 	projectModel *ProjectModel
 
-	Id          int64
+	Id          int64 `json:"id"`
 	Name        string
-	Description string
-	Visibility  int
+	Description string `json:"description"`
+	Visibility  int    `json:"visibility" yaml:"visibility"`
 	UserId      int64
-	SortLevel   int
+	SortLevel   int `yaml:"sort_level"`
 	CatalogId   null.Int
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt null.Time
+	Status      string `json:"status" yaml:"status"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   null.Time
 }
 
 // SetModel set model for Project
@@ -50,10 +50,10 @@ type projectOriginal struct {
 	UserId      int64
 	SortLevel   int
 	CatalogId   null.Int
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt null.Time
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   null.Time
 }
 
 // Staled identify whether the object has been modified
@@ -65,7 +65,6 @@ func (projectSelf *Project) Staled() bool {
 	if projectSelf.Id != projectSelf.original.Id {
 		return true
 	}
-
 	if projectSelf.Name != projectSelf.original.Name {
 		return true
 	}
@@ -84,7 +83,9 @@ func (projectSelf *Project) Staled() bool {
 	if projectSelf.CatalogId != projectSelf.original.CatalogId {
 		return true
 	}
-
+	if projectSelf.Status != projectSelf.original.Status {
+		return true
+	}
 	if projectSelf.CreatedAt != projectSelf.original.CreatedAt {
 		return true
 	}
@@ -109,7 +110,6 @@ func (projectSelf *Project) StaledKV() query.KV {
 	if projectSelf.Id != projectSelf.original.Id {
 		kv["id"] = projectSelf.Id
 	}
-
 	if projectSelf.Name != projectSelf.original.Name {
 		kv["name"] = projectSelf.Name
 	}
@@ -128,7 +128,9 @@ func (projectSelf *Project) StaledKV() query.KV {
 	if projectSelf.CatalogId != projectSelf.original.CatalogId {
 		kv["catalog_id"] = projectSelf.CatalogId
 	}
-
+	if projectSelf.Status != projectSelf.original.Status {
+		kv["status"] = projectSelf.Status
+	}
 	if projectSelf.CreatedAt != projectSelf.original.CreatedAt {
 		kv["created_at"] = projectSelf.CreatedAt
 	}
@@ -241,10 +243,10 @@ type projectWrap struct {
 	UserId      null.Int
 	SortLevel   null.Int
 	CatalogId   null.Int
-
-	CreatedAt null.Time
-	UpdatedAt null.Time
-	DeletedAt null.Time
+	Status      null.String
+	CreatedAt   null.Time
+	UpdatedAt   null.Time
+	DeletedAt   null.Time
 }
 
 func (w projectWrap) ToProject() Project {
@@ -257,11 +259,12 @@ func (w projectWrap) ToProject() Project {
 			UserId:      w.UserId.Int64,
 			SortLevel:   int(w.SortLevel.Int64),
 			CatalogId:   w.CatalogId,
-
-			CreatedAt: w.CreatedAt.Time,
-			UpdatedAt: w.UpdatedAt.Time,
-			DeletedAt: w.DeletedAt,
+			Status:      w.Status.String,
+			CreatedAt:   w.CreatedAt.Time,
+			UpdatedAt:   w.UpdatedAt.Time,
+			DeletedAt:   w.DeletedAt,
 		},
+
 		Id:          w.Id.Int64,
 		Name:        w.Name.String,
 		Description: w.Description.String,
@@ -269,10 +272,10 @@ func (w projectWrap) ToProject() Project {
 		UserId:      w.UserId.Int64,
 		SortLevel:   int(w.SortLevel.Int64),
 		CatalogId:   w.CatalogId,
-
-		CreatedAt: w.CreatedAt.Time,
-		UpdatedAt: w.UpdatedAt.Time,
-		DeletedAt: w.DeletedAt,
+		Status:      w.Status.String,
+		CreatedAt:   w.CreatedAt.Time,
+		UpdatedAt:   w.UpdatedAt.Time,
+		DeletedAt:   w.DeletedAt,
 	}
 }
 
@@ -414,8 +417,19 @@ func (m *ProjectModel) Paginate(page int64, perPage int64, builders ...query.SQL
 func (m *ProjectModel) Get(builders ...query.SQLBuilder) ([]Project, error) {
 	sqlStr, params := m.query.Merge(builders...).
 		Table(m.tableName).
-		Select("id", "created_at", "updated_at", "name", "description", "visibility", "user_id", "sort_level", "catalog_id", "deleted_at").
-		AppendCondition(m.applyScope()).
+		Select(
+			"id",
+			"name",
+			"description",
+			"visibility",
+			"user_id",
+			"sort_level",
+			"catalog_id",
+			"status",
+			"created_at",
+			"updated_at",
+			"deleted_at",
+		).AppendCondition(m.applyScope()).
 		ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
@@ -428,14 +442,15 @@ func (m *ProjectModel) Get(builders ...query.SQLBuilder) ([]Project, error) {
 		var projectVar projectWrap
 		if err := rows.Scan(
 			&projectVar.Id,
-			&projectVar.CreatedAt,
-			&projectVar.UpdatedAt,
 			&projectVar.Name,
 			&projectVar.Description,
 			&projectVar.Visibility,
 			&projectVar.UserId,
 			&projectVar.SortLevel,
 			&projectVar.CatalogId,
+			&projectVar.Status,
+			&projectVar.CreatedAt,
+			&projectVar.UpdatedAt,
 			&projectVar.DeletedAt); err != nil {
 			return nil, err
 		}
@@ -501,6 +516,7 @@ func (m *ProjectModel) Save(project Project) (int64, error) {
 		"user_id":     project.UserId,
 		"sort_level":  project.SortLevel,
 		"catalog_id":  project.CatalogId,
+		"status":      project.Status,
 	})
 }
 

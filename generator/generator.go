@@ -16,6 +16,19 @@ type Domain struct {
 	Meta        Meta     `yaml:"meta"`
 }
 
+func (dom Domain) Init() Domain {
+	for i, m := range dom.Models {
+		for j, f := range m.Definition.Fields {
+			dom.Models[i].Definition.Fields[j].Name = strcase.ToCamel(f.Name)
+			if f.Type == "" {
+				dom.Models[i].Definition.Fields[j].Type = "string"
+			}
+		}
+	}
+
+	return dom
+}
+
 type Meta struct {
 	TablePrefix string `yaml:"table_prefix"`
 }
@@ -46,9 +59,9 @@ type Definition struct {
 }
 
 type DefinitionField struct {
-	Name          string `yaml:"name"`
-	Type          string `yaml:"type"`
-	RelationField bool   `yaml:"relation_field"`
+	Name string `yaml:"name"`
+	Type string `yaml:"type"`
+	Tag  string `yaml:"tag"`
 }
 
 // ParseTemplate 模板解析
@@ -71,6 +84,8 @@ func ParseTemplate(templateContent string, data Domain) (string, error) {
 		"unwrap_type":        unWrapType,
 		"unique":             unique,
 		"packages":           ctx.importPackages,
+		"fields":             entityFields,
+		"tag":                entityTags,
 		"rel_owner_key":      relationOwnerKey,
 		"rel_foreign_key":    relationForeignKey,
 		"rel_local_key":      relationLocalKey,
@@ -146,17 +161,29 @@ func (d DomainContext) tableName(i int) string {
 	return d.domain.Meta.TablePrefix + strings.ToLower(m.Name)
 }
 
-func (d DomainContext) assignableFields(fields []DefinitionField) []DefinitionField {
-	var res = make([]DefinitionField, 0)
-	for _, f := range fields {
-		if f.RelationField {
+func (d DomainContext) assignableFields(def Definition) []DefinitionField {
+	fields := make([]DefinitionField, 0)
+	for _, f := range entityFields(def) {
+		if f.Name == "Id" {
 			continue
 		}
 
-		res = append(res, f)
+		if !def.WithoutCreateTime && f.Name == "CreatedAt" {
+			continue
+		}
+
+		if !def.WithoutUpdateTime && f.Name == "UpdatedAt" {
+			continue
+		}
+
+		if def.SoftDelete && f.Name == "DeletedAt" {
+			continue
+		}
+
+		fields = append(fields, f)
 	}
 
-	return res
+	return fields
 }
 
 func (d DomainContext) importPackages() []string {
@@ -190,14 +217,64 @@ func unique(elements []string) []string {
 	var result []string
 
 	for v := range elements {
-		if encountered[elements[v]] == true {
-		} else {
-			encountered[elements[v]] = true
-			result = append(result, elements[v])
+		if encountered[elements[v]] {
+			continue
 		}
+
+		encountered[elements[v]] = true
+		result = append(result, elements[v])
 	}
 
 	return result
+}
+
+func entityFields(def Definition) []DefinitionField {
+	fields := make([]DefinitionField, 0)
+
+	for _, f := range def.Fields {
+		f.Name = strcase.ToCamel(f.Name)
+		fields = append(fields, f)
+	}
+
+	fields = append(fields, DefinitionField{Name: "Id", Type: "int64"})
+
+	if !def.WithoutCreateTime {
+		fields = append(fields, DefinitionField{Name: "CreatedAt", Type: "time.Time"})
+	}
+
+	if !def.WithoutUpdateTime {
+		fields = append(fields, DefinitionField{Name: "UpdatedAt", Type: "time.Time"})
+	}
+
+	if def.SoftDelete {
+		fields = append(fields, DefinitionField{Name: "DeletedAt", Type: "null.Time"})
+	}
+
+	return uniqueFields(fields)
+}
+
+func uniqueFields(elements []DefinitionField) []DefinitionField {
+	encountered := map[string]bool{}
+	var result []DefinitionField
+
+	for v := range elements {
+		if encountered[elements[v].Name] {
+			continue
+		}
+
+		encountered[elements[v].Name] = true
+		result = append(result, elements[v])
+	}
+
+	return result
+}
+
+func entityTags(field DefinitionField) string {
+	if field.Tag == "" {
+		return ""
+	}
+
+	return "`" + field.Tag + "`"
 }
 
 func relationForeignKey(rel Relation) string {

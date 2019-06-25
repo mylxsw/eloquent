@@ -24,7 +24,7 @@ func main() {
 		var domain generator.Domain
 		assertError(yaml.Unmarshal(input, &domain))
 
-		res, err := generator.ParseTemplate(generator.GetTemplate(), domain)
+		res, err := generator.ParseTemplate(generator.GetTemplate(), domain.Init())
 		assertError(err)
 
 		assertError(ioutil.WriteFile(dest, []byte(res), os.ModePerm))

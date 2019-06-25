@@ -18,7 +18,6 @@ type Page struct {
 	original  *pageOriginal
 	pageModel *PageModel
 
-	Id              int64
 	Pid             int64
 	Title           string
 	Description     string
@@ -32,9 +31,9 @@ type Page struct {
 	SortLevel       int
 	SyncUrl         string
 	LastSyncAt      time.Time
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id              int64
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // SetModel set model for Page
@@ -44,7 +43,6 @@ func (pageSelf *Page) SetModel(pageModel *PageModel) {
 
 // pageOriginal is an object which stores original Page from database
 type pageOriginal struct {
-	Id              int64
 	Pid             int64
 	Title           string
 	Description     string
@@ -58,19 +56,15 @@ type pageOriginal struct {
 	SortLevel       int
 	SyncUrl         string
 	LastSyncAt      time.Time
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id              int64
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // Staled identify whether the object has been modified
 func (pageSelf *Page) Staled() bool {
 	if pageSelf.original == nil {
 		pageSelf.original = &pageOriginal{}
-	}
-
-	if pageSelf.Id != pageSelf.original.Id {
-		return true
 	}
 
 	if pageSelf.Pid != pageSelf.original.Pid {
@@ -112,7 +106,9 @@ func (pageSelf *Page) Staled() bool {
 	if pageSelf.LastSyncAt != pageSelf.original.LastSyncAt {
 		return true
 	}
-
+	if pageSelf.Id != pageSelf.original.Id {
+		return true
+	}
 	if pageSelf.CreatedAt != pageSelf.original.CreatedAt {
 		return true
 	}
@@ -129,10 +125,6 @@ func (pageSelf *Page) StaledKV() query.KV {
 
 	if pageSelf.original == nil {
 		pageSelf.original = &pageOriginal{}
-	}
-
-	if pageSelf.Id != pageSelf.original.Id {
-		kv["id"] = pageSelf.Id
 	}
 
 	if pageSelf.Pid != pageSelf.original.Pid {
@@ -174,7 +166,9 @@ func (pageSelf *Page) StaledKV() query.KV {
 	if pageSelf.LastSyncAt != pageSelf.original.LastSyncAt {
 		kv["last_sync_at"] = pageSelf.LastSyncAt
 	}
-
+	if pageSelf.Id != pageSelf.original.Id {
+		kv["id"] = pageSelf.Id
+	}
 	if pageSelf.CreatedAt != pageSelf.original.CreatedAt {
 		kv["created_at"] = pageSelf.CreatedAt
 	}
@@ -276,7 +270,6 @@ func (m *PageModel) globalScopeEnabled(name string) bool {
 }
 
 type pageWrap struct {
-	Id              null.Int
 	Pid             null.Int
 	Title           null.String
 	Description     null.String
@@ -290,15 +283,14 @@ type pageWrap struct {
 	SortLevel       null.Int
 	SyncUrl         null.String
 	LastSyncAt      null.Time
-
-	CreatedAt null.Time
-	UpdatedAt null.Time
+	Id              null.Int
+	CreatedAt       null.Time
+	UpdatedAt       null.Time
 }
 
 func (w pageWrap) ToPage() Page {
 	return Page{
 		original: &pageOriginal{
-			Id:              w.Id.Int64,
 			Pid:             w.Pid.Int64,
 			Title:           w.Title.String,
 			Description:     w.Description.String,
@@ -312,11 +304,11 @@ func (w pageWrap) ToPage() Page {
 			SortLevel:       int(w.SortLevel.Int64),
 			SyncUrl:         w.SyncUrl.String,
 			LastSyncAt:      w.LastSyncAt.Time,
-
-			CreatedAt: w.CreatedAt.Time,
-			UpdatedAt: w.UpdatedAt.Time,
+			Id:              w.Id.Int64,
+			CreatedAt:       w.CreatedAt.Time,
+			UpdatedAt:       w.UpdatedAt.Time,
 		},
-		Id:              w.Id.Int64,
+
 		Pid:             w.Pid.Int64,
 		Title:           w.Title.String,
 		Description:     w.Description.String,
@@ -330,9 +322,9 @@ func (w pageWrap) ToPage() Page {
 		SortLevel:       int(w.SortLevel.Int64),
 		SyncUrl:         w.SyncUrl.String,
 		LastSyncAt:      w.LastSyncAt.Time,
-
-		CreatedAt: w.CreatedAt.Time,
-		UpdatedAt: w.UpdatedAt.Time,
+		Id:              w.Id.Int64,
+		CreatedAt:       w.CreatedAt.Time,
+		UpdatedAt:       w.UpdatedAt.Time,
 	}
 }
 
@@ -469,8 +461,24 @@ func (m *PageModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 func (m *PageModel) Get(builders ...query.SQLBuilder) ([]Page, error) {
 	sqlStr, params := m.query.Merge(builders...).
 		Table(m.tableName).
-		Select("id", "created_at", "updated_at", "pid", "title", "description", "content", "project_id", "user_id", "type", "status", "last_modified_uid", "history_id", "sort_level", "sync_url", "last_sync_at").
-		AppendCondition(m.applyScope()).
+		Select(
+			"pid",
+			"title",
+			"description",
+			"content",
+			"project_id",
+			"user_id",
+			"type",
+			"status",
+			"last_modified_uid",
+			"history_id",
+			"sort_level",
+			"sync_url",
+			"last_sync_at",
+			"id",
+			"created_at",
+			"updated_at",
+		).AppendCondition(m.applyScope()).
 		ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
@@ -482,9 +490,6 @@ func (m *PageModel) Get(builders ...query.SQLBuilder) ([]Page, error) {
 	for rows.Next() {
 		var pageVar pageWrap
 		if err := rows.Scan(
-			&pageVar.Id,
-			&pageVar.CreatedAt,
-			&pageVar.UpdatedAt,
 			&pageVar.Pid,
 			&pageVar.Title,
 			&pageVar.Description,
@@ -497,7 +502,10 @@ func (m *PageModel) Get(builders ...query.SQLBuilder) ([]Page, error) {
 			&pageVar.HistoryId,
 			&pageVar.SortLevel,
 			&pageVar.SyncUrl,
-			&pageVar.LastSyncAt); err != nil {
+			&pageVar.LastSyncAt,
+			&pageVar.Id,
+			&pageVar.CreatedAt,
+			&pageVar.UpdatedAt); err != nil {
 			return nil, err
 		}
 
