@@ -4,13 +4,25 @@ import (
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/mylxsw/eloquent/event"
 	"github.com/mylxsw/eloquent/examples/models"
 	"github.com/mylxsw/eloquent/migrate"
 	"github.com/mylxsw/eloquent/query"
+	"github.com/mylxsw/go-toolkit/events"
+	"github.com/mylxsw/go-toolkit/log"
 	"github.com/mylxsw/go-toolkit/misc"
 )
 
+var logger = log.Module("example")
+
 func main() {
+
+	eventManager := events.NewEventManager(events.NewMemoryEventStore(false))
+	event.SetDispatcher(eventManager)
+
+	eventManager.Listen(func(evt event.MigrationStartedEvent) {
+		logger.Debugf("MigrationStartedEvent received: %s",evt.SQL)
+	})
 
 	connURI := "root:@tcp(127.0.0.1:3306)/eloquent_example?parseTime=true"
 	db, err := sql.Open("mysql", connURI)

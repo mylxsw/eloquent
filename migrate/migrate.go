@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mylxsw/eloquent/event"
 	"github.com/mylxsw/eloquent/query"
 )
 
@@ -98,12 +99,19 @@ func (m *Manager) Execute(builder *Builder, version string) {
 }
 
 func (m *Manager) execute(sqls []string) error {
+	event.Dispatch(event.MigrationsStartedEvent{})
+
 	for _, s := range sqls {
 		// fmt.Printf("execute -> %s\n", s)
+		event.Dispatch(event.MigrationStartedEvent{SQL: s})
 		if _, err := m.db.Exec(s); err != nil {
 			return err
 		}
+
+		event.Dispatch(event.MigrationEndedEvent{SQL: s})
 	}
+
+	event.Dispatch(event.MigrationsEndedEvent{})
 
 	return nil
 }

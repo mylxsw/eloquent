@@ -36,7 +36,7 @@ func init() {
 var tempModel = `
 // {{ camel $m.Name }}Model is a model which encapsulates the operations of the object
 type {{ camel $m.Name }}Model struct {
-	db query.Database
+	db *query.DatabaseWrap
 	tableName string
 
 	excludeGlobalScopes []string
@@ -54,7 +54,7 @@ func Set{{ camel $m.Name }}Table (tableName string) {
 // New{{ camel $m.Name }}Model create a {{ camel $m.Name }}Model
 func New{{ camel $m.Name }}Model (db query.Database) *{{ camel $m.Name }}Model {
 	return &{{ camel $m.Name }}Model {
-		db: db, 
+		db: query.NewDatabaseWrap(db), 
 		tableName: {{ lowercase $m.Name }}TableName,
 		excludeGlobalScopes: make([]string, 0),
 		includeLocalScopes: make([]string, 0),
@@ -64,7 +64,7 @@ func New{{ camel $m.Name }}Model (db query.Database) *{{ camel $m.Name }}Model {
 
 // GetDB return database instance
 func (m *{{ camel $m.Name }}Model) GetDB() query.Database {
-	return m.db
+	return m.db.GetDB()
 }
 
 {{ if $m.Definition.SoftDelete }}

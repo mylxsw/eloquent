@@ -281,7 +281,7 @@ func (w projectWrap) ToProject() Project {
 
 // ProjectModel is a model which encapsulates the operations of the object
 type ProjectModel struct {
-	db        query.Database
+	db        *query.DatabaseWrap
 	tableName string
 
 	excludeGlobalScopes []string
@@ -299,7 +299,7 @@ func SetProjectTable(tableName string) {
 // NewProjectModel create a ProjectModel
 func NewProjectModel(db query.Database) *ProjectModel {
 	return &ProjectModel{
-		db:                  db,
+		db:                  query.NewDatabaseWrap(db),
 		tableName:           projectTableName,
 		excludeGlobalScopes: make([]string, 0),
 		includeLocalScopes:  make([]string, 0),
@@ -309,7 +309,7 @@ func NewProjectModel(db query.Database) *ProjectModel {
 
 // GetDB return database instance
 func (m *ProjectModel) GetDB() query.Database {
-	return m.db
+	return m.db.GetDB()
 }
 
 // WithTrashed force soft deleted models to appear in a result set

@@ -330,7 +330,7 @@ func (w pageWrap) ToPage() Page {
 
 // PageModel is a model which encapsulates the operations of the object
 type PageModel struct {
-	db        query.Database
+	db        *query.DatabaseWrap
 	tableName string
 
 	excludeGlobalScopes []string
@@ -348,7 +348,7 @@ func SetPageTable(tableName string) {
 // NewPageModel create a PageModel
 func NewPageModel(db query.Database) *PageModel {
 	return &PageModel{
-		db:                  db,
+		db:                  query.NewDatabaseWrap(db),
 		tableName:           pageTableName,
 		excludeGlobalScopes: make([]string, 0),
 		includeLocalScopes:  make([]string, 0),
@@ -358,7 +358,7 @@ func NewPageModel(db query.Database) *PageModel {
 
 // GetDB return database instance
 func (m *PageModel) GetDB() query.Database {
-	return m.db
+	return m.db.GetDB()
 }
 
 func (m *PageModel) clone() *PageModel {
