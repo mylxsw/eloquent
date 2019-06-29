@@ -65,8 +65,10 @@ func (m *Manager) Init() *Manager {
 
 	builder.CreateIfNotExists()
 
-	if err := m.execute(builder.Build()); err != nil {
-		panic(err)
+	for _, s := range builder.Build() {
+		if _, err := m.db.Exec(s); err != nil {
+			panic(err)
+		}
 	}
 
 	return m

@@ -4,7 +4,6 @@ package migrate
 
 import (
 	"context"
-	"database/sql"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 )
@@ -18,11 +17,11 @@ type Migrations struct {
 	original        *migrationsOriginal
 	migrationsModel *MigrationsModel
 
-	Id        int64
 	Version   string
 	Migration string
 	Table     string
 	Batch     int64
+	Id        int64
 }
 
 // SetModel set model for Migrations
@@ -32,21 +31,17 @@ func (migrationsSelf *Migrations) SetModel(migrationsModel *MigrationsModel) {
 
 // migrationsOriginal is an object which stores original Migrations from database
 type migrationsOriginal struct {
-	Id        int64
 	Version   string
 	Migration string
 	Table     string
 	Batch     int64
+	Id        int64
 }
 
 // Staled identify whether the object has been modified
 func (migrationsSelf *Migrations) Staled() bool {
 	if migrationsSelf.original == nil {
 		migrationsSelf.original = &migrationsOriginal{}
-	}
-
-	if migrationsSelf.Id != migrationsSelf.original.Id {
-		return true
 	}
 
 	if migrationsSelf.Version != migrationsSelf.original.Version {
@@ -59,6 +54,9 @@ func (migrationsSelf *Migrations) Staled() bool {
 		return true
 	}
 	if migrationsSelf.Batch != migrationsSelf.original.Batch {
+		return true
+	}
+	if migrationsSelf.Id != migrationsSelf.original.Id {
 		return true
 	}
 
@@ -73,10 +71,6 @@ func (migrationsSelf *Migrations) StaledKV() query.KV {
 		migrationsSelf.original = &migrationsOriginal{}
 	}
 
-	if migrationsSelf.Id != migrationsSelf.original.Id {
-		kv["id"] = migrationsSelf.Id
-	}
-
 	if migrationsSelf.Version != migrationsSelf.original.Version {
 		kv["version"] = migrationsSelf.Version
 	}
@@ -88,6 +82,9 @@ func (migrationsSelf *Migrations) StaledKV() query.KV {
 	}
 	if migrationsSelf.Batch != migrationsSelf.original.Batch {
 		kv["batch"] = migrationsSelf.Batch
+	}
+	if migrationsSelf.Id != migrationsSelf.original.Id {
+		kv["id"] = migrationsSelf.Id
 	}
 
 	return kv
@@ -178,33 +175,34 @@ func (m *MigrationsModel) globalScopeEnabled(name string) bool {
 }
 
 type migrationsWrap struct {
-	Id        null.Int
 	Version   null.String
 	Migration null.String
 	Table     null.String
 	Batch     null.Int
+	Id        null.Int
 }
 
 func (w migrationsWrap) ToMigrations() Migrations {
 	return Migrations{
 		original: &migrationsOriginal{
-			Id:        w.Id.Int64,
 			Version:   w.Version.String,
 			Migration: w.Migration.String,
 			Table:     w.Table.String,
 			Batch:     w.Batch.Int64,
+			Id:        w.Id.Int64,
 		},
-		Id:        w.Id.Int64,
+
 		Version:   w.Version.String,
 		Migration: w.Migration.String,
 		Table:     w.Table.String,
 		Batch:     w.Batch.Int64,
+		Id:        w.Id.Int64,
 	}
 }
 
 // MigrationsModel is a model which encapsulates the operations of the object
 type MigrationsModel struct {
-	db        query.Database
+	db        *query.DatabaseWrap
 	tableName string
 
 	excludeGlobalScopes []string
@@ -222,7 +220,7 @@ func SetMigrationsTable(tableName string) {
 // NewMigrationsModel create a MigrationsModel
 func NewMigrationsModel(db query.Database) *MigrationsModel {
 	return &MigrationsModel{
-		db:                  db,
+		db:                  query.NewDatabaseWrap(db),
 		tableName:           migrationsTableName,
 		excludeGlobalScopes: make([]string, 0),
 		includeLocalScopes:  make([]string, 0),
@@ -232,7 +230,7 @@ func NewMigrationsModel(db query.Database) *MigrationsModel {
 
 // GetDB return database instance
 func (m *MigrationsModel) GetDB() query.Database {
-	return m.db
+	return m.db.GetDB()
 }
 
 func (m *MigrationsModel) clone() *MigrationsModel {
@@ -289,6 +287,8 @@ func (m *MigrationsModel) Count(builders ...query.SQLBuilder) (int64, error) {
 		return 0, err
 	}
 
+	defer rows.Close()
+
 	rows.Next()
 	var res int64
 	if err := rows.Scan(&res); err != nil {
@@ -335,8 +335,13 @@ func (m *MigrationsModel) Paginate(page int64, perPage int64, builders ...query.
 func (m *MigrationsModel) Get(builders ...query.SQLBuilder) ([]Migrations, error) {
 	sqlStr, params := m.query.Merge(builders...).
 		Table(m.tableName).
-		Select("id", "version", "migration", "table", "batch").
-		AppendCondition(m.applyScope()).
+		Select(
+			"version",
+			"migration",
+			"table",
+			"batch",
+			"id",
+		).AppendCondition(m.applyScope()).
 		ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
@@ -344,15 +349,17 @@ func (m *MigrationsModel) Get(builders ...query.SQLBuilder) ([]Migrations, error
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	migrationss := make([]Migrations, 0)
 	for rows.Next() {
 		var migrationsVar migrationsWrap
 		if err := rows.Scan(
-			&migrationsVar.Id,
 			&migrationsVar.Version,
 			&migrationsVar.Migration,
 			&migrationsVar.Table,
-			&migrationsVar.Batch); err != nil {
+			&migrationsVar.Batch,
+			&migrationsVar.Id); err != nil {
 			return nil, err
 		}
 
@@ -372,7 +379,7 @@ func (m *MigrationsModel) First(builders ...query.SQLBuilder) (Migrations, error
 	}
 
 	if len(res) == 0 {
-		return Migrations{}, sql.ErrNoRows
+		return Migrations{}, query.ErrNoResult
 	}
 
 	return res[0], nil

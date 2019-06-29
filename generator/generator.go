@@ -314,7 +314,7 @@ func relationPackagePrefix(rel Relation) string {
 
 func relationMethod(rel Relation) string {
 	if rel.Method == "" {
-		switch rel.Rel {
+		switch relationRel(rel) {
 		case "belongsTo":
 			return strcase.ToCamel(rel.Model)
 		case "hasMany":

@@ -788,5 +788,5 @@ func createIndexName(tableName string, indexType string, columns ...string) stri
 }
 
 func columnize(columns []string) string {
-	return "`" + strings.Join(columns, "`, `")
+	return "`" + strings.Join(columns, "`, `") + "`"
 }

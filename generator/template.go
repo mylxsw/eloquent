@@ -43,6 +43,32 @@ type {{ camel $m.Name }}Model struct {
 	includeLocalScopes []string
 	
 	query query.SQLBuilder
+
+	beforeCreate func(kv query.KV) error
+	afterCreate func(id int64) error
+	beforeUpdate func(kv query.KV) error
+	beforeDelete func() error
+	afterDelete func() error
+}
+
+func (m *{{ camel $m.Name }}Model) BeforeCreate(f func(kv query.KV) error) {
+	m.beforeCreate = f
+}
+
+func (m *{{ camel $m.Name }}Model) AfterCreate(f func(id int64) error) {
+	m.afterCreate = f
+}
+
+func (m *{{ camel $m.Name }}Model) BeforeUpdate(f func(kv query.KV) error) {
+	m.beforeUpdate = f
+}
+
+func (m *{{ camel $m.Name }}Model) BeforeDelete(f func() error) {
+	m.beforeDelete = f
+}
+
+func (m *{{ camel $m.Name }}Model) AfterDelete(f func() error) {
+	m.afterDelete = f
 }
 
 var {{ lowercase $m.Name }}TableName = "{{ table $i }}"
@@ -81,6 +107,11 @@ func (m *{{ camel $m.Name }}Model) clone() *{{ camel $m.Name }}Model {
 		excludeGlobalScopes: append([]string{}, m.excludeGlobalScopes...),
 		includeLocalScopes: append([]string{}, m.includeLocalScopes...),
 		query: m.query,
+		beforeCreate: m.beforeCreate,
+		afterCreate: m.afterCreate,
+		beforeUpdate: m.beforeUpdate,
+		beforeDelete: m.beforeDelete,
+		afterDelete: m.afterDelete,
 	}
 }
 
@@ -121,12 +152,18 @@ func (m *{{ camel $m.Name }}Model) Exists(builders ...query.SQLBuilder) (bool, e
 
 // Count return model count for a given query
 func (m *{{ camel $m.Name }}Model) Count(builders ...query.SQLBuilder) (int64, error) {
-	sqlStr, params := m.query.Merge(builders...).Table(m.tableName).ResolveCount()
+	sqlStr, params := m.query.
+		Merge(builders...).
+		Table(m.tableName).
+		AppendCondition(m.applyScope()).
+		ResolveCount()
 	
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
+
+	defer rows.Close()
 
 	rows.Next()
 	var res int64
@@ -185,6 +222,8 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	{{ lowercase $m.Name }}s := make([]{{ camel $m.Name }}, 0)
 	for rows.Next() {
 		var {{ lowercase $m.Name }}Var {{ lower_camel $m.Name }}Wrap
@@ -220,6 +259,12 @@ func (m *{{ camel $m.Name }}Model) Create(kv query.KV) (int64, error) {
 	{{ if not $m.Definition.WithoutCreateTime }}kv["created_at"] = time.Now(){{ end }}
 	{{ if not $m.Definition.WithoutUpdateTime }}kv["updated_at"] = time.Now(){{ end }}
 
+	if m.beforeCreate != nil {
+		if err := m.beforeCreate(kv); err != nil {
+			return 0, err
+		}
+	}
+
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
 	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
@@ -227,7 +272,18 @@ func (m *{{ camel $m.Name }}Model) Create(kv query.KV) (int64, error) {
 		return 0, err
 	}
 
-	return res.LastInsertId()	
+	lastInsertId, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	if m.afterCreate != nil {
+		if err := m.afterCreate(lastInsertId); err != nil {
+			return lastInsertId, err
+		}
+	}
+
+	return lastInsertId, nil
 }
 
 // SaveAll save all {{ $m.Name }}s to database
@@ -271,7 +327,13 @@ func (m *{{ camel $m.Name }}Model) UpdateFields(kv query.KV, builders ...query.S
 
 	{{ if not $m.Definition.WithoutUpdateTime }}
 	kv["updated_at"] = time.Now()
-	{{ end }} 
+	{{ end }}
+
+	if m.beforeUpdate != nil {
+		if err := m.beforeUpdate(kv); err != nil {
+			return 0, err
+		}
+	}
 	
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).
 		Table(m.tableName).
@@ -331,10 +393,24 @@ func (m *{{ camel $m.Name }}Model) RestoreById(id int64) (int64, error) {
 
 // Delete remove a model
 func (m *{{ camel $m.Name }}Model) Delete(builders ...query.SQLBuilder) (int64, error) {
+	if m.beforeDelete != nil {
+		if err := m.beforeDelete(); err != nil {
+			return 0, err
+		}
+	}
+	
 	{{ if $m.Definition.SoftDelete }}
-	return m.UpdateFields(query.KV {
+	affectedRows, err := m.UpdateFields(query.KV {
 		"deleted_at": time.Now(),
 	}, builders...)
+	
+	if err == nil && m.afterDelete != nil {
+		if err2 := m.afterDelete(); err2 != nil {
+			return 0, err2
+		}
+	}
+	
+	return affectedRows, err
 	{{ else }}
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
@@ -343,7 +419,18 @@ func (m *{{ camel $m.Name }}Model) Delete(builders ...query.SQLBuilder) (int64, 
 		return 0, err
 	}
 
-	return res.RowsAffected()
+	affectedRows, err := res.RowsAffected()
+	if err != nil {
+		return affectedRows, err
+	}
+
+	if m.afterDelete != nil {
+		if err := m.afterDelete(); err != nil {
+			return affectedRows, err
+		}
+	}
+
+	return affectedRows, nil
 	{{ end }}
 }
 
@@ -429,14 +516,32 @@ func (w {{ lower_camel $m.Name }}Wrap) To{{ camel $m.Name }} () {{ camel $m.Name
 var tempRelation = `
 {{ range $j, $rel := $m.Relations }}
 func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model {
-	{{ if rel $rel | eq "belongsTo" }}q := query.Builder().Where("{{ rel_owner_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }})
-	{{ end }}{{ if rel $rel | eq "hasMany" }}
+	{{ if rel $rel | eq "belongsTo" }}
+	q := query.Builder().Where("{{ rel_owner_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }})
+	{{ end }}
+	{{ if rel $rel | eq "hasMany" }}
 	q := query.Builder().Where("{{ rel_foreign_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_local_key $rel | camel }})
 	{{ end }}
 
-	return {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model({{ lowercase $m.Name }}Self.{{ lowercase $m.Name }}Model.GetDB()).Query(q)
+	relModel := {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model({{ lowercase $m.Name }}Self.{{ lowercase $m.Name }}Model.GetDB()).Query(q)
+	{{ if rel $rel | eq "belongsTo" }}
+	relModel.AfterCreate(func(id int64) error {
+		{{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }} = id
+		return {{ lowercase $m.Name }}Self.Save()
+	})
+	{{ end }}
+	{{ if rel $rel | eq "hasMany" }}
+	relModel.BeforeCreate(func(kv query.KV) error {
+		kv["{{ rel_foreign_key $rel | lowercase }}"] = {{ lowercase $m.Name }}Self.{{ rel_local_key $rel | camel }}
+		return nil
+	})
+	{{ end }}
+	return relModel
 }
 {{ end }}
+
+
+
 `
 
 var tempEntity = `

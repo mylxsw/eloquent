@@ -1,0 +1,16 @@
+package: "models"
+
+meta:
+  table_prefix: wz_
+
+models:
+  - name: Role
+    relations:
+      - model: user
+        rel: 1-n
+    definition:
+      fields:
+        - name: name
+          type: string
+        - name: description
+          type: string

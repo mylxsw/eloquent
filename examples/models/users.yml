@@ -1,0 +1,38 @@
+package: "models"
+
+meta:
+  table_prefix: wz_
+
+models:
+  - name: User
+    relations:
+      - model: role
+        rel: belongsTo
+        foreign_key: role_id
+        owner_key: id
+    definition:
+      soft_delete: true
+      fields:
+        - name: id
+          type: int64
+          tag: 'json:"id"'
+        - name: name
+          type: string
+        - name: email
+          type: string
+          tag: 'json:"email"'
+        - name: password
+          type: string
+          tag: 'json:"password" yaml:"password"'
+        - name: role_id
+          type: int64
+        - name: remember_token
+          tag: 'json:"remember_token" yaml:"remember_token"'
+  - name: PasswordReset
+    definition:
+      without_update_time: true
+      fields:
+        - name: email
+          type: string
+        - name: token
+          type: string
