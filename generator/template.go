@@ -515,29 +515,90 @@ func (w {{ lower_camel $m.Name }}Wrap) To{{ camel $m.Name }} () {{ camel $m.Name
 
 var tempRelation = `
 {{ range $j, $rel := $m.Relations }}
-func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model {
-	{{ if rel $rel | eq "belongsTo" }}
-	q := query.Builder().Where("{{ rel_owner_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }})
-	{{ end }}
-	{{ if rel $rel | eq "hasMany" }}
-	q := query.Builder().Where("{{ rel_foreign_key $rel | lowercase }}", {{ lowercase $m.Name }}Self.{{ rel_local_key $rel | camel }})
-	{{ end }}
-
-	relModel := {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model({{ lowercase $m.Name }}Self.{{ lowercase $m.Name }}Model.GetDB()).Query(q)
-	{{ if rel $rel | eq "belongsTo" }}
-	relModel.AfterCreate(func(id int64) error {
-		{{ lowercase $m.Name }}Self.{{ rel_foreign_key $rel | camel }} = id
-		return {{ lowercase $m.Name }}Self.Save()
-	})
-	{{ end }}
-	{{ if rel $rel | eq "hasMany" }}
-	relModel.BeforeCreate(func(kv query.KV) error {
-		kv["{{ rel_foreign_key $rel | lowercase }}"] = {{ lowercase $m.Name }}Self.{{ rel_local_key $rel | camel }}
-		return nil
-	})
-	{{ end }}
-	return relModel
+{{ if rel $rel | eq "belongsTo" }}
+{{ $relName := rel_belongs_to_name $rel $m }}
+func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
+	return &{{ $relName }} {
+		source: {{ lowercase $m.Name }}Self,
+		relModel: {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model({{ lowercase $m.Name }}Self.{{ lowercase $m.Name }}Model.GetDB()),
+	}
 }
+
+type {{ $relName }} struct {
+	source *{{ camel $m.Name }}
+	relModel *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model
+}
+
+func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) {
+	targetId, err := rel.relModel.Save(target)
+	if err != nil {
+		return 0, err
+	}
+
+	target.Id = targetId
+
+	rel.source.{{ rel_foreign_key $rel | camel }} = target.{{ rel_owner_key $rel | camel }}
+	if err := rel.source.Save(); err != nil {
+		return targetId, err
+	}
+
+	return targetId, nil
+}
+
+func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}, error) {
+	builder := query.Builder().Where("{{ rel_owner_key $rel | snake }}", rel.source.{{ rel_foreign_key $rel | camel }}).Merge(builders...)
+
+	return rel.relModel.Get(builder)
+}
+
+func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
+	builder := query.Builder().Where("{{ rel_owner_key $rel | snake }}", rel.source.{{ rel_foreign_key $rel | camel }}).Limit(1).Merge(builders...)
+
+	return rel.relModel.First(builder)
+}
+
+func (rel *{{ $relName }}) Associate(target {{ camel $rel.Model }}) error {
+	rel.source.{{ rel_foreign_key $rel | camel }} = target.{{ rel_owner_key $rel | camel }}
+	return rel.source.Save()
+}
+
+func (rel *{{ $relName }}) Dissociate() error {
+	rel.source.{{ rel_foreign_key $rel | camel }} = 0
+	return rel.source.Save()
+}
+{{ end }}
+
+{{ if rel $rel | eq "hasMany" }}
+{{ $relName := rel_has_many_name $rel $m }}
+func ({{ lowercase $m.Name }}Self *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
+	return &{{ $relName }} {
+		source: {{ lowercase $m.Name }}Self,
+		relModel: {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model({{ lowercase $m.Name }}Self.{{ lowercase $m.Name }}Model.GetDB()),
+	}
+}
+
+type {{ $relName }} struct {
+	source *{{ camel $m.Name }}
+	relModel *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model
+}
+
+func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}, error) {
+	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
+
+	return rel.relModel.Get(builder)
+}
+
+func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
+	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Limit(1).Merge(builders...)
+	return rel.relModel.First(builder)
+}
+
+func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) {
+	target.RoleId = rel.source.Id
+	return rel.relModel.Save(target)
+}
+{{ end }}
+
 {{ end }}
 
 

@@ -68,30 +68,33 @@ type DefinitionField struct {
 func ParseTemplate(templateContent string, data Domain) (string, error) {
 	ctx := DomainContext{domain: data}
 	funcMap := template.FuncMap{
-		"implode":            strings.Join,
-		"trim":               strings.Trim,
-		"trim_right":         strings.TrimRight,
-		"trim_left":          strings.TrimLeft,
-		"trim_space":         strings.TrimSpace,
-		"lowercase":          strings.ToLower,
-		"format":             fmt.Sprintf,
-		"assignable_fields":  ctx.assignableFields,
-		"snake":              strcase.ToSnake,
-		"camel":              strcase.ToCamel,
-		"lower_camel":        strcase.ToLowerCamel,
-		"table":              ctx.tableName,
-		"wrap_type":          wrapType,
-		"unwrap_type":        unWrapType,
-		"unique":             unique,
-		"packages":           ctx.importPackages,
-		"fields":             entityFields,
-		"tag":                entityTags,
-		"rel_owner_key":      relationOwnerKey,
-		"rel_foreign_key":    relationForeignKey,
-		"rel_local_key":      relationLocalKey,
-		"rel_package_prefix": relationPackagePrefix,
-		"rel_method":         relationMethod,
-		"rel":                relationRel,
+		"implode":             strings.Join,
+		"trim":                strings.Trim,
+		"trim_right":          strings.TrimRight,
+		"trim_left":           strings.TrimLeft,
+		"trim_space":          strings.TrimSpace,
+		"lowercase":           strings.ToLower,
+		"format":              fmt.Sprintf,
+		"assignable_fields":   ctx.assignableFields,
+		"snake":               strcase.ToSnake,
+		"camel":               strcase.ToCamel,
+		"lower_camel":         strcase.ToLowerCamel,
+		"table":               ctx.tableName,
+		"wrap_type":           wrapType,
+		"unwrap_type":         unWrapType,
+		"unique":              unique,
+		"packages":            ctx.importPackages,
+		"fields":              entityFields,
+		"tag":                 entityTags,
+		"rel_owner_key":       relationOwnerKey,
+		"rel_foreign_key":     relationForeignKey,
+		"rel_foreign_key_rev": relationForeignKeyRev,
+		"rel_local_key":       relationLocalKey,
+		"rel_package_prefix":  relationPackagePrefix,
+		"rel_method":          relationMethod,
+		"rel":                 relationRel,
+		"rel_belongs_to_name": relationBelongsToName,
+		"rel_has_many_name":   relationHasManyName,
 	}
 	var buffer bytes.Buffer
 	if err := template.Must(template.New("").Funcs(funcMap).Parse(templateContent)).Execute(&buffer, data); err != nil {
@@ -277,9 +280,17 @@ func entityTags(field DefinitionField) string {
 	return "`" + field.Tag + "`"
 }
 
+func relationForeignKeyRev(rel Relation, m Model) string {
+	if rel.ForeignKey == "" {
+		return strcase.ToSnake(m.Name) + "_id"
+	}
+
+	return rel.ForeignKey
+}
+
 func relationForeignKey(rel Relation) string {
 	if rel.ForeignKey == "" {
-		return strings.ToLower(rel.Model) + "_id"
+		return strcase.ToSnake(rel.Model) + "_id"
 	}
 
 	return rel.ForeignKey
@@ -334,4 +345,12 @@ func relationRel(rel Relation) string {
 	}
 
 	panic(fmt.Sprintf("not support: %s", rel.Rel))
+}
+
+func relationBelongsToName(rel Relation, m Model) string {
+	return fmt.Sprintf("%sBelongsTo%sRel", strcase.ToCamel(m.Name), strcase.ToCamel(rel.Model))
+}
+
+func relationHasManyName(rel Relation, m Model) string {
+	return fmt.Sprintf("%sHasMany%sRel", strcase.ToCamel(m.Name), strcase.ToCamel(rel.Model))
 }

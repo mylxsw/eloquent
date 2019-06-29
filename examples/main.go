@@ -54,7 +54,7 @@ func modelOperationExample(db *sql.DB) {
 
 		logger.Infof("User id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
 
-		roleId, err := user.Role().Save(models.Role{
+		roleId, err := user.Role().Create(models.Role{
 			Name: "admin",
 			Description: "root user",
 		})

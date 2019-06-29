@@ -128,18 +128,54 @@ func (userSelf *User) StaledKV() query.KV {
 	return kv
 }
 
-func (userSelf *User) Role() *RoleModel {
+func (userSelf *User) Role() *UserBelongsToRoleRel {
+	return &UserBelongsToRoleRel{
+		source:   userSelf,
+		relModel: NewRoleModel(userSelf.userModel.GetDB()),
+	}
+}
 
-	q := query.Builder().Where("id", userSelf.RoleId)
+type UserBelongsToRoleRel struct {
+	source   *User
+	relModel *RoleModel
+}
 
-	relModel := NewRoleModel(userSelf.userModel.GetDB()).Query(q)
+func (rel *UserBelongsToRoleRel) Create(target Role) (int64, error) {
+	targetId, err := rel.relModel.Save(target)
+	if err != nil {
+		return 0, err
+	}
 
-	relModel.AfterCreate(func(id int64) error {
-		userSelf.RoleId = id
-		return userSelf.Save()
-	})
+	target.Id = targetId
 
-	return relModel
+	rel.source.RoleId = target.Id
+	if err := rel.source.Save(); err != nil {
+		return targetId, err
+	}
+
+	return targetId, nil
+}
+
+func (rel *UserBelongsToRoleRel) Get(builders ...query.SQLBuilder) ([]Role, error) {
+	builder := query.Builder().Where("id", rel.source.RoleId).Merge(builders...)
+
+	return rel.relModel.Get(builder)
+}
+
+func (rel *UserBelongsToRoleRel) First(builders ...query.SQLBuilder) (Role, error) {
+	builder := query.Builder().Where("id", rel.source.RoleId).Limit(1).Merge(builders...)
+
+	return rel.relModel.First(builder)
+}
+
+func (rel *UserBelongsToRoleRel) Associate(target Role) error {
+	rel.source.RoleId = target.Id
+	return rel.source.Save()
+}
+
+func (rel *UserBelongsToRoleRel) Dissociate() error {
+	rel.source.RoleId = 0
+	return rel.source.Save()
 }
 
 // Save create a new model or update it

@@ -91,18 +91,32 @@ func (roleSelf *Role) StaledKV() query.KV {
 	return kv
 }
 
-func (roleSelf *Role) Users() *UserModel {
+func (roleSelf *Role) Users() *RoleHasManyUserRel {
+	return &RoleHasManyUserRel{
+		source:   roleSelf,
+		relModel: NewUserModel(roleSelf.roleModel.GetDB()),
+	}
+}
 
-	q := query.Builder().Where("user_id", roleSelf.Id)
+type RoleHasManyUserRel struct {
+	source   *Role
+	relModel *UserModel
+}
 
-	relModel := NewUserModel(roleSelf.roleModel.GetDB()).Query(q)
+func (rel *RoleHasManyUserRel) Get(builders ...query.SQLBuilder) ([]User, error) {
+	builder := query.Builder().Where("role_id", rel.source.Id).Merge(builders...)
 
-	relModel.BeforeCreate(func(kv query.KV) error {
-		kv["user_id"] = roleSelf.Id
-		return nil
-	})
+	return rel.relModel.Get(builder)
+}
 
-	return relModel
+func (rel *RoleHasManyUserRel) First(builders ...query.SQLBuilder) (User, error) {
+	builder := query.Builder().Where("role_id", rel.source.Id).Limit(1).Merge(builders...)
+	return rel.relModel.First(builder)
+}
+
+func (rel *RoleHasManyUserRel) Create(target User) (int64, error) {
+	target.RoleId = rel.source.Id
+	return rel.relModel.Save(target)
 }
 
 // Save create a new model or update it
