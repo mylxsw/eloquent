@@ -280,7 +280,11 @@ func (m *MigrationsModel) Exists(builders ...query.SQLBuilder) (bool, error) {
 
 // Count return model count for a given query
 func (m *MigrationsModel) Count(builders ...query.SQLBuilder) (int64, error) {
-	sqlStr, params := m.query.Merge(builders...).Table(m.tableName).ResolveCount()
+	sqlStr, params := m.query.
+		Merge(builders...).
+		Table(m.tableName).
+		AppendCondition(m.applyScope()).
+		ResolveCount()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {

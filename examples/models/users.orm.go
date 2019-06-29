@@ -309,32 +309,6 @@ type UserModel struct {
 	includeLocalScopes  []string
 
 	query query.SQLBuilder
-
-	beforeCreate func(kv query.KV) error
-	afterCreate  func(id int64) error
-	beforeUpdate func(kv query.KV) error
-	beforeDelete func() error
-	afterDelete  func() error
-}
-
-func (m *UserModel) BeforeCreate(f func(kv query.KV) error) {
-	m.beforeCreate = f
-}
-
-func (m *UserModel) AfterCreate(f func(id int64) error) {
-	m.afterCreate = f
-}
-
-func (m *UserModel) BeforeUpdate(f func(kv query.KV) error) {
-	m.beforeUpdate = f
-}
-
-func (m *UserModel) BeforeDelete(f func() error) {
-	m.beforeDelete = f
-}
-
-func (m *UserModel) AfterDelete(f func() error) {
-	m.afterDelete = f
 }
 
 var userTableName = "wz_user"
@@ -371,11 +345,6 @@ func (m *UserModel) clone() *UserModel {
 		excludeGlobalScopes: append([]string{}, m.excludeGlobalScopes...),
 		includeLocalScopes:  append([]string{}, m.includeLocalScopes...),
 		query:               m.query,
-		beforeCreate:        m.beforeCreate,
-		afterCreate:         m.afterCreate,
-		beforeUpdate:        m.beforeUpdate,
-		beforeDelete:        m.beforeDelete,
-		afterDelete:         m.afterDelete,
 	}
 }
 
@@ -538,12 +507,6 @@ func (m *UserModel) Create(kv query.KV) (int64, error) {
 	kv["created_at"] = time.Now()
 	kv["updated_at"] = time.Now()
 
-	if m.beforeCreate != nil {
-		if err := m.beforeCreate(kv); err != nil {
-			return 0, err
-		}
-	}
-
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
 	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
@@ -551,18 +514,7 @@ func (m *UserModel) Create(kv query.KV) (int64, error) {
 		return 0, err
 	}
 
-	lastInsertId, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	if m.afterCreate != nil {
-		if err := m.afterCreate(lastInsertId); err != nil {
-			return lastInsertId, err
-		}
-	}
-
-	return lastInsertId, nil
+	return res.LastInsertId()
 }
 
 // SaveAll save all Users to database
@@ -609,12 +561,6 @@ func (m *UserModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 	}
 
 	kv["updated_at"] = time.Now()
-
-	if m.beforeUpdate != nil {
-		if err := m.beforeUpdate(kv); err != nil {
-			return 0, err
-		}
-	}
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).
 		Table(m.tableName).
@@ -672,23 +618,10 @@ func (m *UserModel) RestoreById(id int64) (int64, error) {
 
 // Delete remove a model
 func (m *UserModel) Delete(builders ...query.SQLBuilder) (int64, error) {
-	if m.beforeDelete != nil {
-		if err := m.beforeDelete(); err != nil {
-			return 0, err
-		}
-	}
 
-	affectedRows, err := m.UpdateFields(query.KV{
+	return m.UpdateFields(query.KV{
 		"deleted_at": time.Now(),
 	}, builders...)
-
-	if err == nil && m.afterDelete != nil {
-		if err2 := m.afterDelete(); err2 != nil {
-			return 0, err2
-		}
-	}
-
-	return affectedRows, err
 
 }
 
@@ -883,32 +816,6 @@ type PasswordResetModel struct {
 	includeLocalScopes  []string
 
 	query query.SQLBuilder
-
-	beforeCreate func(kv query.KV) error
-	afterCreate  func(id int64) error
-	beforeUpdate func(kv query.KV) error
-	beforeDelete func() error
-	afterDelete  func() error
-}
-
-func (m *PasswordResetModel) BeforeCreate(f func(kv query.KV) error) {
-	m.beforeCreate = f
-}
-
-func (m *PasswordResetModel) AfterCreate(f func(id int64) error) {
-	m.afterCreate = f
-}
-
-func (m *PasswordResetModel) BeforeUpdate(f func(kv query.KV) error) {
-	m.beforeUpdate = f
-}
-
-func (m *PasswordResetModel) BeforeDelete(f func() error) {
-	m.beforeDelete = f
-}
-
-func (m *PasswordResetModel) AfterDelete(f func() error) {
-	m.afterDelete = f
 }
 
 var passwordresetTableName = "wz_passwordreset"
@@ -940,11 +847,6 @@ func (m *PasswordResetModel) clone() *PasswordResetModel {
 		excludeGlobalScopes: append([]string{}, m.excludeGlobalScopes...),
 		includeLocalScopes:  append([]string{}, m.includeLocalScopes...),
 		query:               m.query,
-		beforeCreate:        m.beforeCreate,
-		afterCreate:         m.afterCreate,
-		beforeUpdate:        m.beforeUpdate,
-		beforeDelete:        m.beforeDelete,
-		afterDelete:         m.afterDelete,
 	}
 }
 
@@ -1096,12 +998,6 @@ func (m *PasswordResetModel) First(builders ...query.SQLBuilder) (PasswordReset,
 func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
 	kv["created_at"] = time.Now()
 
-	if m.beforeCreate != nil {
-		if err := m.beforeCreate(kv); err != nil {
-			return 0, err
-		}
-	}
-
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
 	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
@@ -1109,18 +1005,7 @@ func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
 		return 0, err
 	}
 
-	lastInsertId, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	if m.afterCreate != nil {
-		if err := m.afterCreate(lastInsertId); err != nil {
-			return lastInsertId, err
-		}
-	}
-
-	return lastInsertId, nil
+	return res.LastInsertId()
 }
 
 // SaveAll save all PasswordResets to database
@@ -1163,12 +1048,6 @@ func (m *PasswordResetModel) UpdateFields(kv query.KV, builders ...query.SQLBuil
 		return 0, nil
 	}
 
-	if m.beforeUpdate != nil {
-		if err := m.beforeUpdate(kv); err != nil {
-			return 0, err
-		}
-	}
-
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).
 		Table(m.tableName).
 		ResolveUpdate(kv)
@@ -1193,11 +1072,6 @@ func (m *PasswordResetModel) UpdateById(id int64, passwordreset PasswordReset) (
 
 // Delete remove a model
 func (m *PasswordResetModel) Delete(builders ...query.SQLBuilder) (int64, error) {
-	if m.beforeDelete != nil {
-		if err := m.beforeDelete(); err != nil {
-			return 0, err
-		}
-	}
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
@@ -1206,18 +1080,7 @@ func (m *PasswordResetModel) Delete(builders ...query.SQLBuilder) (int64, error)
 		return 0, err
 	}
 
-	affectedRows, err := res.RowsAffected()
-	if err != nil {
-		return affectedRows, err
-	}
-
-	if m.afterDelete != nil {
-		if err := m.afterDelete(); err != nil {
-			return affectedRows, err
-		}
-	}
-
-	return affectedRows, nil
+	return res.RowsAffected()
 
 }
 

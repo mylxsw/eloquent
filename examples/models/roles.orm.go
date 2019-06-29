@@ -238,32 +238,6 @@ type RoleModel struct {
 	includeLocalScopes  []string
 
 	query query.SQLBuilder
-
-	beforeCreate func(kv query.KV) error
-	afterCreate  func(id int64) error
-	beforeUpdate func(kv query.KV) error
-	beforeDelete func() error
-	afterDelete  func() error
-}
-
-func (m *RoleModel) BeforeCreate(f func(kv query.KV) error) {
-	m.beforeCreate = f
-}
-
-func (m *RoleModel) AfterCreate(f func(id int64) error) {
-	m.afterCreate = f
-}
-
-func (m *RoleModel) BeforeUpdate(f func(kv query.KV) error) {
-	m.beforeUpdate = f
-}
-
-func (m *RoleModel) BeforeDelete(f func() error) {
-	m.beforeDelete = f
-}
-
-func (m *RoleModel) AfterDelete(f func() error) {
-	m.afterDelete = f
 }
 
 var roleTableName = "wz_role"
@@ -295,11 +269,6 @@ func (m *RoleModel) clone() *RoleModel {
 		excludeGlobalScopes: append([]string{}, m.excludeGlobalScopes...),
 		includeLocalScopes:  append([]string{}, m.includeLocalScopes...),
 		query:               m.query,
-		beforeCreate:        m.beforeCreate,
-		afterCreate:         m.afterCreate,
-		beforeUpdate:        m.beforeUpdate,
-		beforeDelete:        m.beforeDelete,
-		afterDelete:         m.afterDelete,
 	}
 }
 
@@ -454,12 +423,6 @@ func (m *RoleModel) Create(kv query.KV) (int64, error) {
 	kv["created_at"] = time.Now()
 	kv["updated_at"] = time.Now()
 
-	if m.beforeCreate != nil {
-		if err := m.beforeCreate(kv); err != nil {
-			return 0, err
-		}
-	}
-
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
 	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
@@ -467,18 +430,7 @@ func (m *RoleModel) Create(kv query.KV) (int64, error) {
 		return 0, err
 	}
 
-	lastInsertId, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	if m.afterCreate != nil {
-		if err := m.afterCreate(lastInsertId); err != nil {
-			return lastInsertId, err
-		}
-	}
-
-	return lastInsertId, nil
+	return res.LastInsertId()
 }
 
 // SaveAll save all Roles to database
@@ -523,12 +475,6 @@ func (m *RoleModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 
 	kv["updated_at"] = time.Now()
 
-	if m.beforeUpdate != nil {
-		if err := m.beforeUpdate(kv); err != nil {
-			return 0, err
-		}
-	}
-
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).
 		Table(m.tableName).
 		ResolveUpdate(kv)
@@ -553,11 +499,6 @@ func (m *RoleModel) UpdateById(id int64, role Role) (int64, error) {
 
 // Delete remove a model
 func (m *RoleModel) Delete(builders ...query.SQLBuilder) (int64, error) {
-	if m.beforeDelete != nil {
-		if err := m.beforeDelete(); err != nil {
-			return 0, err
-		}
-	}
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
@@ -566,18 +507,7 @@ func (m *RoleModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 		return 0, err
 	}
 
-	affectedRows, err := res.RowsAffected()
-	if err != nil {
-		return affectedRows, err
-	}
-
-	if m.afterDelete != nil {
-		if err := m.afterDelete(); err != nil {
-			return affectedRows, err
-		}
-	}
-
-	return affectedRows, nil
+	return res.RowsAffected()
 
 }
 
