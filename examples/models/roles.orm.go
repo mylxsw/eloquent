@@ -109,6 +109,18 @@ func (rel *RoleHasManyUserRel) Get(builders ...query.SQLBuilder) ([]User, error)
 	return rel.relModel.Get(builder)
 }
 
+func (rel *RoleHasManyUserRel) Count(builders ...query.SQLBuilder) (int64, error) {
+	builder := query.Builder().Where("role_id", rel.source.Id).Merge(builders...)
+
+	return rel.relModel.Count(builder)
+}
+
+func (rel *RoleHasManyUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+	builder := query.Builder().Where("role_id", rel.source.Id).Merge(builders...)
+
+	return rel.relModel.Exists(builder)
+}
+
 func (rel *RoleHasManyUserRel) First(builders ...query.SQLBuilder) (User, error) {
 	builder := query.Builder().Where("role_id", rel.source.Id).Limit(1).Merge(builders...)
 	return rel.relModel.First(builder)

@@ -156,10 +156,10 @@ func (rel *UserBelongsToRoleRel) Create(target Role) (int64, error) {
 	return targetId, nil
 }
 
-func (rel *UserBelongsToRoleRel) Get(builders ...query.SQLBuilder) ([]Role, error) {
+func (rel *UserBelongsToRoleRel) Exists(builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("id", rel.source.RoleId).Merge(builders...)
 
-	return rel.relModel.Get(builder)
+	return rel.relModel.Exists(builder)
 }
 
 func (rel *UserBelongsToRoleRel) First(builders ...query.SQLBuilder) (Role, error) {

@@ -466,10 +466,10 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) 
 	return targetId, nil
 }
 
-func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}, error) {
+func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("{{ rel_owner_key $rel | snake }}", rel.source.{{ rel_foreign_key $rel | camel }}).Merge(builders...)
-
-	return rel.relModel.Get(builder)
+	
+	return rel.relModel.Exists(builder)
 }
 
 func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
@@ -507,6 +507,18 @@ func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Mo
 	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
 
 	return rel.relModel.Get(builder)
+}
+
+func (rel *{{ $relName }}) Count(builders ...query.SQLBuilder) (int64, error) {
+	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
+	
+	return rel.relModel.Count(builder)
+}
+
+func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
+	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
+	
+	return rel.relModel.Exists(builder)
 }
 
 func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
