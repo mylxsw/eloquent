@@ -203,7 +203,7 @@ func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Mo
 	}
 
 	resArr, _ := res.ToArray()
-	return rel.relModel.Get(query.Builder().WhereIn("{{ rel_owner_key $rel | snake }}", resArr...))
+	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("{{ rel_owner_key $rel | snake }}", resArr...))
 }
 
 func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}, builders ...query.SQLBuilder) (int64, error) {

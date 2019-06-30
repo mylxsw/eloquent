@@ -344,7 +344,7 @@ func (rel *UserBelongsToManyOrganizationRel) Get(builders ...query.SQLBuilder) (
 	}
 
 	resArr, _ := res.ToArray()
-	return rel.relModel.Get(query.Builder().WhereIn("id", resArr...))
+	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("id", resArr...))
 }
 
 func (rel *UserBelongsToManyOrganizationRel) Create(target Organization, builders ...query.SQLBuilder) (int64, error) {
