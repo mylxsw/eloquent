@@ -1,0 +1,21 @@
+package: "models"
+
+meta:
+  table_prefix: wz_
+
+models:
+  - name: enterprise
+    relations:
+      - model: user
+        rel: hasMany
+    definition:
+      soft_delete: true
+      fields:
+        - name: id
+          type: int64
+        - name: name
+          type: string
+        - name: address
+          type: string
+        - name: status
+          type: int8

@@ -4,6 +4,8 @@ package models
 
 import (
 	"context"
+	"database/sql"
+	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -12,7 +14,7 @@ import (
 func init() {
 
 	// AddUserGlobalScope assign a global scope to a model for soft delete
-	AddUserGlobalScope("soft_delete", func(builder query.Condition) {
+	AddGlobalScopeForUser("soft_delete", func(builder query.Condition) {
 		builder.WhereNull("deleted_at")
 	})
 
@@ -28,6 +30,7 @@ type User struct {
 	Email         string `json:"email"`
 	Password      string `json:"password" yaml:"password"`
 	RoleId        int64
+	EnterpriseId  int64
 	RememberToken string `json:"remember_token" yaml:"remember_token"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
@@ -35,8 +38,8 @@ type User struct {
 }
 
 // SetModel set model for User
-func (userSelf *User) SetModel(userModel *UserModel) {
-	userSelf.userModel = userModel
+func (inst *User) SetModel(userModel *UserModel) {
+	inst.userModel = userModel
 }
 
 // userOriginal is an object which stores original User from database
@@ -46,6 +49,7 @@ type userOriginal struct {
 	Email         string
 	Password      string
 	RoleId        int64
+	EnterpriseId  int64
 	RememberToken string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
@@ -53,36 +57,39 @@ type userOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (userSelf *User) Staled() bool {
-	if userSelf.original == nil {
-		userSelf.original = &userOriginal{}
+func (inst *User) Staled() bool {
+	if inst.original == nil {
+		inst.original = &userOriginal{}
 	}
 
-	if userSelf.Id != userSelf.original.Id {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if userSelf.Name != userSelf.original.Name {
+	if inst.Name != inst.original.Name {
 		return true
 	}
-	if userSelf.Email != userSelf.original.Email {
+	if inst.Email != inst.original.Email {
 		return true
 	}
-	if userSelf.Password != userSelf.original.Password {
+	if inst.Password != inst.original.Password {
 		return true
 	}
-	if userSelf.RoleId != userSelf.original.RoleId {
+	if inst.RoleId != inst.original.RoleId {
 		return true
 	}
-	if userSelf.RememberToken != userSelf.original.RememberToken {
+	if inst.EnterpriseId != inst.original.EnterpriseId {
 		return true
 	}
-	if userSelf.CreatedAt != userSelf.original.CreatedAt {
+	if inst.RememberToken != inst.original.RememberToken {
 		return true
 	}
-	if userSelf.UpdatedAt != userSelf.original.UpdatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
-	if userSelf.DeletedAt != userSelf.original.DeletedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
+		return true
+	}
+	if inst.DeletedAt != inst.original.DeletedAt {
 		return true
 	}
 
@@ -90,48 +97,80 @@ func (userSelf *User) Staled() bool {
 }
 
 // StaledKV return all fields has been modified
-func (userSelf *User) StaledKV() query.KV {
+func (inst *User) StaledKV() query.KV {
 	kv := make(query.KV, 0)
 
-	if userSelf.original == nil {
-		userSelf.original = &userOriginal{}
+	if inst.original == nil {
+		inst.original = &userOriginal{}
 	}
 
-	if userSelf.Id != userSelf.original.Id {
-		kv["id"] = userSelf.Id
+	if inst.Id != inst.original.Id {
+		kv["id"] = inst.Id
 	}
-	if userSelf.Name != userSelf.original.Name {
-		kv["name"] = userSelf.Name
+	if inst.Name != inst.original.Name {
+		kv["name"] = inst.Name
 	}
-	if userSelf.Email != userSelf.original.Email {
-		kv["email"] = userSelf.Email
+	if inst.Email != inst.original.Email {
+		kv["email"] = inst.Email
 	}
-	if userSelf.Password != userSelf.original.Password {
-		kv["password"] = userSelf.Password
+	if inst.Password != inst.original.Password {
+		kv["password"] = inst.Password
 	}
-	if userSelf.RoleId != userSelf.original.RoleId {
-		kv["role_id"] = userSelf.RoleId
+	if inst.RoleId != inst.original.RoleId {
+		kv["role_id"] = inst.RoleId
 	}
-	if userSelf.RememberToken != userSelf.original.RememberToken {
-		kv["remember_token"] = userSelf.RememberToken
+	if inst.EnterpriseId != inst.original.EnterpriseId {
+		kv["enterprise_id"] = inst.EnterpriseId
 	}
-	if userSelf.CreatedAt != userSelf.original.CreatedAt {
-		kv["created_at"] = userSelf.CreatedAt
+	if inst.RememberToken != inst.original.RememberToken {
+		kv["remember_token"] = inst.RememberToken
 	}
-	if userSelf.UpdatedAt != userSelf.original.UpdatedAt {
-		kv["updated_at"] = userSelf.UpdatedAt
+	if inst.CreatedAt != inst.original.CreatedAt {
+		kv["created_at"] = inst.CreatedAt
 	}
-	if userSelf.DeletedAt != userSelf.original.DeletedAt {
-		kv["deleted_at"] = userSelf.DeletedAt
+	if inst.UpdatedAt != inst.original.UpdatedAt {
+		kv["updated_at"] = inst.UpdatedAt
+	}
+	if inst.DeletedAt != inst.original.DeletedAt {
+		kv["deleted_at"] = inst.DeletedAt
 	}
 
 	return kv
 }
 
-func (userSelf *User) Role() *UserBelongsToRoleRel {
+// Save create a new model or update it
+func (inst *User) Save() error {
+	if inst.userModel == nil {
+		return query.ErrModelNotSet
+	}
+
+	id, _, err := inst.userModel.SaveOrUpdate(*inst)
+	if err != nil {
+		return err
+	}
+
+	inst.Id = id
+	return nil
+}
+
+// Delete remove a User
+func (inst *User) Delete() error {
+	if inst.userModel == nil {
+		return query.ErrModelNotSet
+	}
+
+	_, err := inst.userModel.DeleteById(inst.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (inst *User) Role() *UserBelongsToRoleRel {
 	return &UserBelongsToRoleRel{
-		source:   userSelf,
-		relModel: NewRoleModel(userSelf.userModel.GetDB()),
+		source:   inst,
+		relModel: NewRoleModel(inst.userModel.GetDB()),
 	}
 }
 
@@ -178,33 +217,150 @@ func (rel *UserBelongsToRoleRel) Dissociate() error {
 	return rel.source.Save()
 }
 
-// Save create a new model or update it
-func (userSelf *User) Save() error {
-	if userSelf.userModel == nil {
-		return query.ErrModelNotSet
+func (inst *User) Enterprise() *UserBelongsToEnterpriseRel {
+	return &UserBelongsToEnterpriseRel{
+		source:   inst,
+		relModel: NewEnterpriseModel(inst.userModel.GetDB()),
 	}
-
-	id, _, err := userSelf.userModel.SaveOrUpdate(*userSelf)
-	if err != nil {
-		return err
-	}
-
-	userSelf.Id = id
-	return nil
 }
 
-// Delete remove a User
-func (userSelf *User) Delete() error {
-	if userSelf.userModel == nil {
-		return query.ErrModelNotSet
-	}
+type UserBelongsToEnterpriseRel struct {
+	source   *User
+	relModel *EnterpriseModel
+}
 
-	_, err := userSelf.userModel.DeleteById(userSelf.Id)
+func (rel *UserBelongsToEnterpriseRel) Create(target Enterprise) (int64, error) {
+	targetId, err := rel.relModel.Save(target)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	target.Id = targetId
+
+	rel.source.EnterpriseId = target.Id
+	if err := rel.source.Save(); err != nil {
+		return targetId, err
+	}
+
+	return targetId, nil
+}
+
+func (rel *UserBelongsToEnterpriseRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+	builder := query.Builder().Where("id", rel.source.EnterpriseId).Merge(builders...)
+
+	return rel.relModel.Exists(builder)
+}
+
+func (rel *UserBelongsToEnterpriseRel) First(builders ...query.SQLBuilder) (Enterprise, error) {
+	builder := query.Builder().Where("id", rel.source.EnterpriseId).Limit(1).Merge(builders...)
+
+	return rel.relModel.First(builder)
+}
+
+func (rel *UserBelongsToEnterpriseRel) Associate(target Enterprise) error {
+	rel.source.EnterpriseId = target.Id
+	return rel.source.Save()
+}
+
+func (rel *UserBelongsToEnterpriseRel) Dissociate() error {
+	rel.source.EnterpriseId = 0
+	return rel.source.Save()
+}
+
+func (inst *User) UserExt() *UserHasOneUserExtRel {
+	return &UserHasOneUserExtRel{
+		source:   inst,
+		relModel: NewUserExtModel(inst.userModel.GetDB()),
+	}
+}
+
+type UserHasOneUserExtRel struct {
+	source   *User
+	relModel *UserExtModel
+}
+
+func (rel *UserHasOneUserExtRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+	builder := query.Builder().Where("user_id", rel.source.Id).Merge(builders...)
+
+	return rel.relModel.Exists(builder)
+}
+
+func (rel *UserHasOneUserExtRel) First(builders ...query.SQLBuilder) (UserExt, error) {
+	builder := query.Builder().Where("user_id", rel.source.Id).Limit(1).Merge(builders...)
+	return rel.relModel.First(builder)
+}
+
+func (rel *UserHasOneUserExtRel) Create(target UserExt) (int64, error) {
+	target.UserId = rel.source.Id
+	return rel.relModel.Save(target)
+}
+
+func (rel *UserHasOneUserExtRel) Associate(target UserExt) error {
+	_, err := rel.relModel.UpdateFields(
+		query.KV{"user_id": rel.source.Id},
+		query.Builder().Where("id", target.Id),
+	)
+	return err
+}
+
+func (rel *UserHasOneUserExtRel) Dissociate() error {
+	_, err := rel.relModel.UpdateFields(
+		query.KV{"user_id": nil},
+		query.Builder().Where("user_id", rel.source.Id),
+	)
+
+	return err
+}
+
+func (inst *User) Organizations() *UserBelongsToManyOrganizationRel {
+	return &UserBelongsToManyOrganizationRel{
+		source:     inst,
+		pivotTable: "user_organization_ref",
+		relModel:   NewOrganizationModel(inst.userModel.GetDB()),
+	}
+}
+
+type UserBelongsToManyOrganizationRel struct {
+	source     *User
+	pivotTable string
+	relModel   *OrganizationModel
+}
+
+func (rel *UserBelongsToManyOrganizationRel) Get(builders ...query.SQLBuilder) ([]Organization, error) {
+	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		query.Builder().Table(rel.pivotTable).Select("organization_id").Where("user_id", rel.source.Id),
+		func(row *sql.Rows) (interface{}, error) {
+			var k interface{}
+			if err := row.Scan(&k); err != nil {
+				return nil, err
+			}
+
+			return k, nil
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resArr, _ := res.ToArray()
+	return rel.relModel.Get(query.Builder().WhereIn("id", resArr...))
+}
+
+func (rel *UserBelongsToManyOrganizationRel) Create(target Organization, builders ...query.SQLBuilder) (int64, error) {
+	targetId, err := rel.relModel.Save(target)
+	if err != nil {
+		return 0, err
+	}
+
+	target.Id = targetId
+
+	_, err = eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV{
+		"organization_id": target.Id,
+		"user_id":         rel.source.Id,
+	})
+
+	return targetId, err
 }
 
 type userScope struct {
@@ -215,13 +371,13 @@ type userScope struct {
 var userGlobalScopes = make([]userScope, 0)
 var userLocalScopes = make([]userScope, 0)
 
-// AddUserGlobalScope assign a global scope to a model
-func AddUserGlobalScope(name string, apply func(builder query.Condition)) {
+// AddGlobalScopeForUser assign a global scope to a model
+func AddGlobalScopeForUser(name string, apply func(builder query.Condition)) {
 	userGlobalScopes = append(userGlobalScopes, userScope{name: name, apply: apply})
 }
 
-// AddUserLocalScope assign a local scope to a model
-func AddUserLocalScope(name string, apply func(builder query.Condition)) {
+// AddLocalScopeForUser assign a local scope to a model
+func AddLocalScopeForUser(name string, apply func(builder query.Condition)) {
 	userLocalScopes = append(userLocalScopes, userScope{name: name, apply: apply})
 }
 
@@ -268,6 +424,7 @@ type userWrap struct {
 	Email         null.String
 	Password      null.String
 	RoleId        null.Int
+	EnterpriseId  null.Int
 	RememberToken null.String
 	CreatedAt     null.Time
 	UpdatedAt     null.Time
@@ -282,6 +439,7 @@ func (w userWrap) ToUser() User {
 			Email:         w.Email.String,
 			Password:      w.Password.String,
 			RoleId:        w.RoleId.Int64,
+			EnterpriseId:  w.EnterpriseId.Int64,
 			RememberToken: w.RememberToken.String,
 			CreatedAt:     w.CreatedAt.Time,
 			UpdatedAt:     w.UpdatedAt.Time,
@@ -293,6 +451,7 @@ func (w userWrap) ToUser() User {
 		Email:         w.Email.String,
 		Password:      w.Password.String,
 		RoleId:        w.RoleId.Int64,
+		EnterpriseId:  w.EnterpriseId.Int64,
 		RememberToken: w.RememberToken.String,
 		CreatedAt:     w.CreatedAt.Time,
 		UpdatedAt:     w.UpdatedAt.Time,
@@ -450,6 +609,7 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 			"email",
 			"password",
 			"role_id",
+			"enterprise_id",
 			"remember_token",
 			"created_at",
 			"updated_at",
@@ -473,6 +633,7 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 			&userVar.Email,
 			&userVar.Password,
 			&userVar.RoleId,
+			&userVar.EnterpriseId,
 			&userVar.RememberToken,
 			&userVar.CreatedAt,
 			&userVar.UpdatedAt,
@@ -504,8 +665,14 @@ func (m *UserModel) First(builders ...query.SQLBuilder) (User, error) {
 
 // Create save a new User to database
 func (m *UserModel) Create(kv query.KV) (int64, error) {
-	kv["created_at"] = time.Now()
-	kv["updated_at"] = time.Now()
+
+	if _, ok := kv["created_at"]; !ok {
+		kv["created_at"] = time.Now()
+	}
+
+	if _, ok := kv["updated_at"]; !ok {
+		kv["updated_at"] = time.Now()
+	}
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
@@ -534,13 +701,7 @@ func (m *UserModel) SaveAll(users []User) ([]int64, error) {
 
 // Save save a User to database
 func (m *UserModel) Save(user User) (int64, error) {
-	return m.Create(query.KV{
-		"name":           user.Name,
-		"email":          user.Email,
-		"password":       user.Password,
-		"role_id":        user.RoleId,
-		"remember_token": user.RememberToken,
-	})
+	return m.Create(user.StaledKV())
 }
 
 // SaveOrUpdate save a new User or update it when it has a id > 0
@@ -630,10 +791,564 @@ func (m *UserModel) DeleteById(id int64) (int64, error) {
 	return m.Query(query.Builder().Where("id", "=", id)).Delete()
 }
 
+// UserExt is a UserExt object
+type UserExt struct {
+	original     *userExtOriginal
+	userExtModel *UserExtModel
+
+	Address   string
+	Qq        string
+	Wechat    string
+	UserId    int64
+	Id        int64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// SetModel set model for UserExt
+func (inst *UserExt) SetModel(userExtModel *UserExtModel) {
+	inst.userExtModel = userExtModel
+}
+
+// userExtOriginal is an object which stores original UserExt from database
+type userExtOriginal struct {
+	Address   string
+	Qq        string
+	Wechat    string
+	UserId    int64
+	Id        int64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// Staled identify whether the object has been modified
+func (inst *UserExt) Staled() bool {
+	if inst.original == nil {
+		inst.original = &userExtOriginal{}
+	}
+
+	if inst.Address != inst.original.Address {
+		return true
+	}
+	if inst.Qq != inst.original.Qq {
+		return true
+	}
+	if inst.Wechat != inst.original.Wechat {
+		return true
+	}
+	if inst.UserId != inst.original.UserId {
+		return true
+	}
+	if inst.Id != inst.original.Id {
+		return true
+	}
+	if inst.CreatedAt != inst.original.CreatedAt {
+		return true
+	}
+	if inst.UpdatedAt != inst.original.UpdatedAt {
+		return true
+	}
+
+	return false
+}
+
+// StaledKV return all fields has been modified
+func (inst *UserExt) StaledKV() query.KV {
+	kv := make(query.KV, 0)
+
+	if inst.original == nil {
+		inst.original = &userExtOriginal{}
+	}
+
+	if inst.Address != inst.original.Address {
+		kv["address"] = inst.Address
+	}
+	if inst.Qq != inst.original.Qq {
+		kv["qq"] = inst.Qq
+	}
+	if inst.Wechat != inst.original.Wechat {
+		kv["wechat"] = inst.Wechat
+	}
+	if inst.UserId != inst.original.UserId {
+		kv["user_id"] = inst.UserId
+	}
+	if inst.Id != inst.original.Id {
+		kv["id"] = inst.Id
+	}
+	if inst.CreatedAt != inst.original.CreatedAt {
+		kv["created_at"] = inst.CreatedAt
+	}
+	if inst.UpdatedAt != inst.original.UpdatedAt {
+		kv["updated_at"] = inst.UpdatedAt
+	}
+
+	return kv
+}
+
+// Save create a new model or update it
+func (inst *UserExt) Save() error {
+	if inst.userExtModel == nil {
+		return query.ErrModelNotSet
+	}
+
+	id, _, err := inst.userExtModel.SaveOrUpdate(*inst)
+	if err != nil {
+		return err
+	}
+
+	inst.Id = id
+	return nil
+}
+
+// Delete remove a UserExt
+func (inst *UserExt) Delete() error {
+	if inst.userExtModel == nil {
+		return query.ErrModelNotSet
+	}
+
+	_, err := inst.userExtModel.DeleteById(inst.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (inst *UserExt) User() *UserExtBelongsToUserRel {
+	return &UserExtBelongsToUserRel{
+		source:   inst,
+		relModel: NewUserModel(inst.userExtModel.GetDB()),
+	}
+}
+
+type UserExtBelongsToUserRel struct {
+	source   *UserExt
+	relModel *UserModel
+}
+
+func (rel *UserExtBelongsToUserRel) Create(target User) (int64, error) {
+	targetId, err := rel.relModel.Save(target)
+	if err != nil {
+		return 0, err
+	}
+
+	target.Id = targetId
+
+	rel.source.UserId = target.Id
+	if err := rel.source.Save(); err != nil {
+		return targetId, err
+	}
+
+	return targetId, nil
+}
+
+func (rel *UserExtBelongsToUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+	builder := query.Builder().Where("id", rel.source.UserId).Merge(builders...)
+
+	return rel.relModel.Exists(builder)
+}
+
+func (rel *UserExtBelongsToUserRel) First(builders ...query.SQLBuilder) (User, error) {
+	builder := query.Builder().Where("id", rel.source.UserId).Limit(1).Merge(builders...)
+
+	return rel.relModel.First(builder)
+}
+
+func (rel *UserExtBelongsToUserRel) Associate(target User) error {
+	rel.source.UserId = target.Id
+	return rel.source.Save()
+}
+
+func (rel *UserExtBelongsToUserRel) Dissociate() error {
+	rel.source.UserId = 0
+	return rel.source.Save()
+}
+
+type userExtScope struct {
+	name  string
+	apply func(builder query.Condition)
+}
+
+var userExtGlobalScopes = make([]userExtScope, 0)
+var userExtLocalScopes = make([]userExtScope, 0)
+
+// AddGlobalScopeForUserExt assign a global scope to a model
+func AddGlobalScopeForUserExt(name string, apply func(builder query.Condition)) {
+	userExtGlobalScopes = append(userExtGlobalScopes, userExtScope{name: name, apply: apply})
+}
+
+// AddLocalScopeForUserExt assign a local scope to a model
+func AddLocalScopeForUserExt(name string, apply func(builder query.Condition)) {
+	userExtLocalScopes = append(userExtLocalScopes, userExtScope{name: name, apply: apply})
+}
+
+func (m *UserExtModel) applyScope() query.Condition {
+	scopeCond := query.ConditionBuilder()
+	for _, g := range userExtGlobalScopes {
+		if m.globalScopeEnabled(g.name) {
+			g.apply(scopeCond)
+		}
+	}
+
+	for _, s := range userExtLocalScopes {
+		if m.localScopeEnabled(s.name) {
+			s.apply(scopeCond)
+		}
+	}
+
+	return scopeCond
+}
+
+func (m *UserExtModel) localScopeEnabled(name string) bool {
+	for _, n := range m.includeLocalScopes {
+		if name == n {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m *UserExtModel) globalScopeEnabled(name string) bool {
+	for _, n := range m.excludeGlobalScopes {
+		if name == n {
+			return false
+		}
+	}
+
+	return true
+}
+
+type userExtWrap struct {
+	Address   null.String
+	Qq        null.String
+	Wechat    null.String
+	UserId    null.Int
+	Id        null.Int
+	CreatedAt null.Time
+	UpdatedAt null.Time
+}
+
+func (w userExtWrap) ToUserExt() UserExt {
+	return UserExt{
+		original: &userExtOriginal{
+			Address:   w.Address.String,
+			Qq:        w.Qq.String,
+			Wechat:    w.Wechat.String,
+			UserId:    w.UserId.Int64,
+			Id:        w.Id.Int64,
+			CreatedAt: w.CreatedAt.Time,
+			UpdatedAt: w.UpdatedAt.Time,
+		},
+
+		Address:   w.Address.String,
+		Qq:        w.Qq.String,
+		Wechat:    w.Wechat.String,
+		UserId:    w.UserId.Int64,
+		Id:        w.Id.Int64,
+		CreatedAt: w.CreatedAt.Time,
+		UpdatedAt: w.UpdatedAt.Time,
+	}
+}
+
+// UserExtModel is a model which encapsulates the operations of the object
+type UserExtModel struct {
+	db        *query.DatabaseWrap
+	tableName string
+
+	excludeGlobalScopes []string
+	includeLocalScopes  []string
+
+	query query.SQLBuilder
+}
+
+var userExtTableName = "wz_userext"
+
+func SetUserExtTable(tableName string) {
+	userExtTableName = tableName
+}
+
+// NewUserExtModel create a UserExtModel
+func NewUserExtModel(db query.Database) *UserExtModel {
+	return &UserExtModel{
+		db:                  query.NewDatabaseWrap(db),
+		tableName:           userExtTableName,
+		excludeGlobalScopes: make([]string, 0),
+		includeLocalScopes:  make([]string, 0),
+		query:               query.Builder(),
+	}
+}
+
+// GetDB return database instance
+func (m *UserExtModel) GetDB() query.Database {
+	return m.db.GetDB()
+}
+
+func (m *UserExtModel) clone() *UserExtModel {
+	return &UserExtModel{
+		db:                  m.db,
+		tableName:           m.tableName,
+		excludeGlobalScopes: append([]string{}, m.excludeGlobalScopes...),
+		includeLocalScopes:  append([]string{}, m.includeLocalScopes...),
+		query:               m.query,
+	}
+}
+
+// WithoutGlobalScopes remove a global scope for given query
+func (m *UserExtModel) WithoutGlobalScopes(names ...string) *UserExtModel {
+	mc := m.clone()
+	mc.excludeGlobalScopes = append(mc.excludeGlobalScopes, names...)
+
+	return mc
+}
+
+// WithLocalScopes add a local scope for given query
+func (m *UserExtModel) WithLocalScopes(names ...string) *UserExtModel {
+	mc := m.clone()
+	mc.includeLocalScopes = append(mc.includeLocalScopes, names...)
+
+	return mc
+}
+
+// Query add query builder to model
+func (m *UserExtModel) Query(builder query.SQLBuilder) *UserExtModel {
+	mm := m.clone()
+	mm.query = mm.query.Merge(builder)
+
+	return mm
+}
+
+// Find retrieve a model by its primary key
+func (m *UserExtModel) Find(id int64) (UserExt, error) {
+	return m.First(m.query.Where("id", "=", id))
+}
+
+// Exists return whether the records exists for a given query
+func (m *UserExtModel) Exists(builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(builders...)
+	return count > 0, err
+}
+
+// Count return model count for a given query
+func (m *UserExtModel) Count(builders ...query.SQLBuilder) (int64, error) {
+	sqlStr, params := m.query.
+		Merge(builders...).
+		Table(m.tableName).
+		AppendCondition(m.applyScope()).
+		ResolveCount()
+
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	if err != nil {
+		return 0, err
+	}
+
+	defer rows.Close()
+
+	rows.Next()
+	var res int64
+	if err := rows.Scan(&res); err != nil {
+		return 0, err
+	}
+
+	return res, nil
+}
+
+func (m *UserExtModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]UserExt, query.PaginateMeta, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	if perPage <= 0 {
+		perPage = 15
+	}
+
+	meta := query.PaginateMeta{
+		PerPage: perPage,
+		Page:    page,
+	}
+
+	count, err := m.Count(builders...)
+	if err != nil {
+		return nil, meta, err
+	}
+
+	meta.Total = count
+	meta.LastPage = count / perPage
+	if count%perPage != 0 {
+		meta.LastPage += 1
+	}
+
+	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	if err != nil {
+		return res, meta, err
+	}
+
+	return res, meta, nil
+}
+
+// Get retrieve all results for given query
+func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
+	sqlStr, params := m.query.Merge(builders...).
+		Table(m.tableName).
+		Select(
+			"address",
+			"qq",
+			"wechat",
+			"user_id",
+			"id",
+			"created_at",
+			"updated_at",
+		).AppendCondition(m.applyScope()).
+		ResolveQuery()
+
+	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	userExts := make([]UserExt, 0)
+	for rows.Next() {
+		var userExtVar userExtWrap
+		if err := rows.Scan(
+			&userExtVar.Address,
+			&userExtVar.Qq,
+			&userExtVar.Wechat,
+			&userExtVar.UserId,
+			&userExtVar.Id,
+			&userExtVar.CreatedAt,
+			&userExtVar.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		userExtReal := userExtVar.ToUserExt()
+		userExtReal.SetModel(m)
+		userExts = append(userExts, userExtReal)
+	}
+
+	return userExts, nil
+}
+
+// First return first result for given query
+func (m *UserExtModel) First(builders ...query.SQLBuilder) (UserExt, error) {
+	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+	if err != nil {
+		return UserExt{}, err
+	}
+
+	if len(res) == 0 {
+		return UserExt{}, query.ErrNoResult
+	}
+
+	return res[0], nil
+}
+
+// Create save a new UserExt to database
+func (m *UserExtModel) Create(kv query.KV) (int64, error) {
+
+	if _, ok := kv["created_at"]; !ok {
+		kv["created_at"] = time.Now()
+	}
+
+	if _, ok := kv["updated_at"]; !ok {
+		kv["updated_at"] = time.Now()
+	}
+
+	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
+
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
+}
+
+// SaveAll save all UserExts to database
+func (m *UserExtModel) SaveAll(userExts []UserExt) ([]int64, error) {
+	ids := make([]int64, 0)
+	for _, userExt := range userExts {
+		id, err := m.Save(userExt)
+		if err != nil {
+			return ids, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+// Save save a UserExt to database
+func (m *UserExtModel) Save(userExt UserExt) (int64, error) {
+	return m.Create(userExt.StaledKV())
+}
+
+// SaveOrUpdate save a new UserExt or update it when it has a id > 0
+func (m *UserExtModel) SaveOrUpdate(userExt UserExt) (id int64, updated bool, err error) {
+	if userExt.Id > 0 {
+		_, _err := m.UpdateById(userExt.Id, userExt)
+		return userExt.Id, true, _err
+	}
+
+	_id, _err := m.Save(userExt)
+	return _id, false, _err
+}
+
+// UpdateFields update kv for a given query
+func (m *UserExtModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+	if len(kv) == 0 {
+		return 0, nil
+	}
+
+	kv["updated_at"] = time.Now()
+
+	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).
+		Table(m.tableName).
+		ResolveUpdate(kv)
+
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.RowsAffected()
+}
+
+// Update update a model for given query
+func (m *UserExtModel) Update(userExt UserExt) (int64, error) {
+	return m.UpdateFields(userExt.StaledKV())
+}
+
+// UpdateById update a model by id
+func (m *UserExtModel) UpdateById(id int64, userExt UserExt) (int64, error) {
+	return m.Query(query.Builder().Where("id", "=", id)).Update(userExt)
+}
+
+// Delete remove a model
+func (m *UserExtModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+
+	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
+
+	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.RowsAffected()
+
+}
+
+// DeleteById remove a model by id
+func (m *UserExtModel) DeleteById(id int64) (int64, error) {
+	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+}
+
 // PasswordReset is a PasswordReset object
 type PasswordReset struct {
-	original           *passwordresetOriginal
-	passwordresetModel *PasswordResetModel
+	original           *passwordResetOriginal
+	passwordResetModel *PasswordResetModel
 
 	Email     string
 	Token     string
@@ -642,12 +1357,12 @@ type PasswordReset struct {
 }
 
 // SetModel set model for PasswordReset
-func (passwordresetSelf *PasswordReset) SetModel(passwordresetModel *PasswordResetModel) {
-	passwordresetSelf.passwordresetModel = passwordresetModel
+func (inst *PasswordReset) SetModel(passwordResetModel *PasswordResetModel) {
+	inst.passwordResetModel = passwordResetModel
 }
 
-// passwordresetOriginal is an object which stores original PasswordReset from database
-type passwordresetOriginal struct {
+// passwordResetOriginal is an object which stores original PasswordReset from database
+type passwordResetOriginal struct {
 	Email     string
 	Token     string
 	Id        int64
@@ -655,21 +1370,21 @@ type passwordresetOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (passwordresetSelf *PasswordReset) Staled() bool {
-	if passwordresetSelf.original == nil {
-		passwordresetSelf.original = &passwordresetOriginal{}
+func (inst *PasswordReset) Staled() bool {
+	if inst.original == nil {
+		inst.original = &passwordResetOriginal{}
 	}
 
-	if passwordresetSelf.Email != passwordresetSelf.original.Email {
+	if inst.Email != inst.original.Email {
 		return true
 	}
-	if passwordresetSelf.Token != passwordresetSelf.original.Token {
+	if inst.Token != inst.original.Token {
 		return true
 	}
-	if passwordresetSelf.Id != passwordresetSelf.original.Id {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if passwordresetSelf.CreatedAt != passwordresetSelf.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
 
@@ -677,51 +1392,51 @@ func (passwordresetSelf *PasswordReset) Staled() bool {
 }
 
 // StaledKV return all fields has been modified
-func (passwordresetSelf *PasswordReset) StaledKV() query.KV {
+func (inst *PasswordReset) StaledKV() query.KV {
 	kv := make(query.KV, 0)
 
-	if passwordresetSelf.original == nil {
-		passwordresetSelf.original = &passwordresetOriginal{}
+	if inst.original == nil {
+		inst.original = &passwordResetOriginal{}
 	}
 
-	if passwordresetSelf.Email != passwordresetSelf.original.Email {
-		kv["email"] = passwordresetSelf.Email
+	if inst.Email != inst.original.Email {
+		kv["email"] = inst.Email
 	}
-	if passwordresetSelf.Token != passwordresetSelf.original.Token {
-		kv["token"] = passwordresetSelf.Token
+	if inst.Token != inst.original.Token {
+		kv["token"] = inst.Token
 	}
-	if passwordresetSelf.Id != passwordresetSelf.original.Id {
-		kv["id"] = passwordresetSelf.Id
+	if inst.Id != inst.original.Id {
+		kv["id"] = inst.Id
 	}
-	if passwordresetSelf.CreatedAt != passwordresetSelf.original.CreatedAt {
-		kv["created_at"] = passwordresetSelf.CreatedAt
+	if inst.CreatedAt != inst.original.CreatedAt {
+		kv["created_at"] = inst.CreatedAt
 	}
 
 	return kv
 }
 
 // Save create a new model or update it
-func (passwordresetSelf *PasswordReset) Save() error {
-	if passwordresetSelf.passwordresetModel == nil {
+func (inst *PasswordReset) Save() error {
+	if inst.passwordResetModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := passwordresetSelf.passwordresetModel.SaveOrUpdate(*passwordresetSelf)
+	id, _, err := inst.passwordResetModel.SaveOrUpdate(*inst)
 	if err != nil {
 		return err
 	}
 
-	passwordresetSelf.Id = id
+	inst.Id = id
 	return nil
 }
 
 // Delete remove a PasswordReset
-func (passwordresetSelf *PasswordReset) Delete() error {
-	if passwordresetSelf.passwordresetModel == nil {
+func (inst *PasswordReset) Delete() error {
+	if inst.passwordResetModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := passwordresetSelf.passwordresetModel.DeleteById(passwordresetSelf.Id)
+	_, err := inst.passwordResetModel.DeleteById(inst.Id)
 	if err != nil {
 		return err
 	}
@@ -729,33 +1444,33 @@ func (passwordresetSelf *PasswordReset) Delete() error {
 	return nil
 }
 
-type passwordresetScope struct {
+type passwordResetScope struct {
 	name  string
 	apply func(builder query.Condition)
 }
 
-var passwordresetGlobalScopes = make([]passwordresetScope, 0)
-var passwordresetLocalScopes = make([]passwordresetScope, 0)
+var passwordResetGlobalScopes = make([]passwordResetScope, 0)
+var passwordResetLocalScopes = make([]passwordResetScope, 0)
 
-// AddPasswordResetGlobalScope assign a global scope to a model
-func AddPasswordResetGlobalScope(name string, apply func(builder query.Condition)) {
-	passwordresetGlobalScopes = append(passwordresetGlobalScopes, passwordresetScope{name: name, apply: apply})
+// AddGlobalScopeForPasswordReset assign a global scope to a model
+func AddGlobalScopeForPasswordReset(name string, apply func(builder query.Condition)) {
+	passwordResetGlobalScopes = append(passwordResetGlobalScopes, passwordResetScope{name: name, apply: apply})
 }
 
-// AddPasswordResetLocalScope assign a local scope to a model
-func AddPasswordResetLocalScope(name string, apply func(builder query.Condition)) {
-	passwordresetLocalScopes = append(passwordresetLocalScopes, passwordresetScope{name: name, apply: apply})
+// AddLocalScopeForPasswordReset assign a local scope to a model
+func AddLocalScopeForPasswordReset(name string, apply func(builder query.Condition)) {
+	passwordResetLocalScopes = append(passwordResetLocalScopes, passwordResetScope{name: name, apply: apply})
 }
 
 func (m *PasswordResetModel) applyScope() query.Condition {
 	scopeCond := query.ConditionBuilder()
-	for _, g := range passwordresetGlobalScopes {
+	for _, g := range passwordResetGlobalScopes {
 		if m.globalScopeEnabled(g.name) {
 			g.apply(scopeCond)
 		}
 	}
 
-	for _, s := range passwordresetLocalScopes {
+	for _, s := range passwordResetLocalScopes {
 		if m.localScopeEnabled(s.name) {
 			s.apply(scopeCond)
 		}
@@ -793,7 +1508,7 @@ type passwordResetWrap struct {
 
 func (w passwordResetWrap) ToPasswordReset() PasswordReset {
 	return PasswordReset{
-		original: &passwordresetOriginal{
+		original: &passwordResetOriginal{
 			Email:     w.Email.String,
 			Token:     w.Token.String,
 			Id:        w.Id.Int64,
@@ -818,17 +1533,17 @@ type PasswordResetModel struct {
 	query query.SQLBuilder
 }
 
-var passwordresetTableName = "wz_passwordreset"
+var passwordResetTableName = "wz_passwordreset"
 
 func SetPasswordResetTable(tableName string) {
-	passwordresetTableName = tableName
+	passwordResetTableName = tableName
 }
 
 // NewPasswordResetModel create a PasswordResetModel
 func NewPasswordResetModel(db query.Database) *PasswordResetModel {
 	return &PasswordResetModel{
 		db:                  query.NewDatabaseWrap(db),
-		tableName:           passwordresetTableName,
+		tableName:           passwordResetTableName,
 		excludeGlobalScopes: make([]string, 0),
 		includeLocalScopes:  make([]string, 0),
 		query:               query.Builder(),
@@ -961,23 +1676,23 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 
 	defer rows.Close()
 
-	passwordresets := make([]PasswordReset, 0)
+	passwordResets := make([]PasswordReset, 0)
 	for rows.Next() {
-		var passwordresetVar passwordResetWrap
+		var passwordResetVar passwordResetWrap
 		if err := rows.Scan(
-			&passwordresetVar.Email,
-			&passwordresetVar.Token,
-			&passwordresetVar.Id,
-			&passwordresetVar.CreatedAt); err != nil {
+			&passwordResetVar.Email,
+			&passwordResetVar.Token,
+			&passwordResetVar.Id,
+			&passwordResetVar.CreatedAt); err != nil {
 			return nil, err
 		}
 
-		passwordresetReal := passwordresetVar.ToPasswordReset()
-		passwordresetReal.SetModel(m)
-		passwordresets = append(passwordresets, passwordresetReal)
+		passwordResetReal := passwordResetVar.ToPasswordReset()
+		passwordResetReal.SetModel(m)
+		passwordResets = append(passwordResets, passwordResetReal)
 	}
 
-	return passwordresets, nil
+	return passwordResets, nil
 }
 
 // First return first result for given query
@@ -996,7 +1711,10 @@ func (m *PasswordResetModel) First(builders ...query.SQLBuilder) (PasswordReset,
 
 // Create save a new PasswordReset to database
 func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
-	kv["created_at"] = time.Now()
+
+	if _, ok := kv["created_at"]; !ok {
+		kv["created_at"] = time.Now()
+	}
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
@@ -1009,10 +1727,10 @@ func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all PasswordResets to database
-func (m *PasswordResetModel) SaveAll(passwordresets []PasswordReset) ([]int64, error) {
+func (m *PasswordResetModel) SaveAll(passwordResets []PasswordReset) ([]int64, error) {
 	ids := make([]int64, 0)
-	for _, passwordreset := range passwordresets {
-		id, err := m.Save(passwordreset)
+	for _, passwordReset := range passwordResets {
+		id, err := m.Save(passwordReset)
 		if err != nil {
 			return ids, err
 		}
@@ -1024,21 +1742,18 @@ func (m *PasswordResetModel) SaveAll(passwordresets []PasswordReset) ([]int64, e
 }
 
 // Save save a PasswordReset to database
-func (m *PasswordResetModel) Save(passwordreset PasswordReset) (int64, error) {
-	return m.Create(query.KV{
-		"email": passwordreset.Email,
-		"token": passwordreset.Token,
-	})
+func (m *PasswordResetModel) Save(passwordReset PasswordReset) (int64, error) {
+	return m.Create(passwordReset.StaledKV())
 }
 
 // SaveOrUpdate save a new PasswordReset or update it when it has a id > 0
-func (m *PasswordResetModel) SaveOrUpdate(passwordreset PasswordReset) (id int64, updated bool, err error) {
-	if passwordreset.Id > 0 {
-		_, _err := m.UpdateById(passwordreset.Id, passwordreset)
-		return passwordreset.Id, true, _err
+func (m *PasswordResetModel) SaveOrUpdate(passwordReset PasswordReset) (id int64, updated bool, err error) {
+	if passwordReset.Id > 0 {
+		_, _err := m.UpdateById(passwordReset.Id, passwordReset)
+		return passwordReset.Id, true, _err
 	}
 
-	_id, _err := m.Save(passwordreset)
+	_id, _err := m.Save(passwordReset)
 	return _id, false, _err
 }
 
@@ -1061,13 +1776,13 @@ func (m *PasswordResetModel) UpdateFields(kv query.KV, builders ...query.SQLBuil
 }
 
 // Update update a model for given query
-func (m *PasswordResetModel) Update(passwordreset PasswordReset) (int64, error) {
-	return m.UpdateFields(passwordreset.StaledKV())
+func (m *PasswordResetModel) Update(passwordReset PasswordReset) (int64, error) {
+	return m.UpdateFields(passwordReset.StaledKV())
 }
 
 // UpdateById update a model by id
-func (m *PasswordResetModel) UpdateById(id int64, passwordreset PasswordReset) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(passwordreset)
+func (m *PasswordResetModel) UpdateById(id int64, passwordReset PasswordReset) (int64, error) {
+	return m.Query(query.Builder().Where("id", "=", id)).Update(passwordReset)
 }
 
 // Delete remove a model

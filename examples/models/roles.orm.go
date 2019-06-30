@@ -26,8 +26,8 @@ type Role struct {
 }
 
 // SetModel set model for Role
-func (roleSelf *Role) SetModel(roleModel *RoleModel) {
-	roleSelf.roleModel = roleModel
+func (inst *Role) SetModel(roleModel *RoleModel) {
+	inst.roleModel = roleModel
 }
 
 // roleOriginal is an object which stores original Role from database
@@ -40,24 +40,24 @@ type roleOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (roleSelf *Role) Staled() bool {
-	if roleSelf.original == nil {
-		roleSelf.original = &roleOriginal{}
+func (inst *Role) Staled() bool {
+	if inst.original == nil {
+		inst.original = &roleOriginal{}
 	}
 
-	if roleSelf.Name != roleSelf.original.Name {
+	if inst.Name != inst.original.Name {
 		return true
 	}
-	if roleSelf.Description != roleSelf.original.Description {
+	if inst.Description != inst.original.Description {
 		return true
 	}
-	if roleSelf.Id != roleSelf.original.Id {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if roleSelf.CreatedAt != roleSelf.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
-	if roleSelf.UpdatedAt != roleSelf.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		return true
 	}
 
@@ -65,36 +65,65 @@ func (roleSelf *Role) Staled() bool {
 }
 
 // StaledKV return all fields has been modified
-func (roleSelf *Role) StaledKV() query.KV {
+func (inst *Role) StaledKV() query.KV {
 	kv := make(query.KV, 0)
 
-	if roleSelf.original == nil {
-		roleSelf.original = &roleOriginal{}
+	if inst.original == nil {
+		inst.original = &roleOriginal{}
 	}
 
-	if roleSelf.Name != roleSelf.original.Name {
-		kv["name"] = roleSelf.Name
+	if inst.Name != inst.original.Name {
+		kv["name"] = inst.Name
 	}
-	if roleSelf.Description != roleSelf.original.Description {
-		kv["description"] = roleSelf.Description
+	if inst.Description != inst.original.Description {
+		kv["description"] = inst.Description
 	}
-	if roleSelf.Id != roleSelf.original.Id {
-		kv["id"] = roleSelf.Id
+	if inst.Id != inst.original.Id {
+		kv["id"] = inst.Id
 	}
-	if roleSelf.CreatedAt != roleSelf.original.CreatedAt {
-		kv["created_at"] = roleSelf.CreatedAt
+	if inst.CreatedAt != inst.original.CreatedAt {
+		kv["created_at"] = inst.CreatedAt
 	}
-	if roleSelf.UpdatedAt != roleSelf.original.UpdatedAt {
-		kv["updated_at"] = roleSelf.UpdatedAt
+	if inst.UpdatedAt != inst.original.UpdatedAt {
+		kv["updated_at"] = inst.UpdatedAt
 	}
 
 	return kv
 }
 
-func (roleSelf *Role) Users() *RoleHasManyUserRel {
+// Save create a new model or update it
+func (inst *Role) Save() error {
+	if inst.roleModel == nil {
+		return query.ErrModelNotSet
+	}
+
+	id, _, err := inst.roleModel.SaveOrUpdate(*inst)
+	if err != nil {
+		return err
+	}
+
+	inst.Id = id
+	return nil
+}
+
+// Delete remove a Role
+func (inst *Role) Delete() error {
+	if inst.roleModel == nil {
+		return query.ErrModelNotSet
+	}
+
+	_, err := inst.roleModel.DeleteById(inst.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (inst *Role) Users() *RoleHasManyUserRel {
 	return &RoleHasManyUserRel{
-		source:   roleSelf,
-		relModel: NewUserModel(roleSelf.roleModel.GetDB()),
+		source:   inst,
+		relModel: NewUserModel(inst.roleModel.GetDB()),
 	}
 }
 
@@ -131,35 +160,6 @@ func (rel *RoleHasManyUserRel) Create(target User) (int64, error) {
 	return rel.relModel.Save(target)
 }
 
-// Save create a new model or update it
-func (roleSelf *Role) Save() error {
-	if roleSelf.roleModel == nil {
-		return query.ErrModelNotSet
-	}
-
-	id, _, err := roleSelf.roleModel.SaveOrUpdate(*roleSelf)
-	if err != nil {
-		return err
-	}
-
-	roleSelf.Id = id
-	return nil
-}
-
-// Delete remove a Role
-func (roleSelf *Role) Delete() error {
-	if roleSelf.roleModel == nil {
-		return query.ErrModelNotSet
-	}
-
-	_, err := roleSelf.roleModel.DeleteById(roleSelf.Id)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type roleScope struct {
 	name  string
 	apply func(builder query.Condition)
@@ -168,13 +168,13 @@ type roleScope struct {
 var roleGlobalScopes = make([]roleScope, 0)
 var roleLocalScopes = make([]roleScope, 0)
 
-// AddRoleGlobalScope assign a global scope to a model
-func AddRoleGlobalScope(name string, apply func(builder query.Condition)) {
+// AddGlobalScopeForRole assign a global scope to a model
+func AddGlobalScopeForRole(name string, apply func(builder query.Condition)) {
 	roleGlobalScopes = append(roleGlobalScopes, roleScope{name: name, apply: apply})
 }
 
-// AddRoleLocalScope assign a local scope to a model
-func AddRoleLocalScope(name string, apply func(builder query.Condition)) {
+// AddLocalScopeForRole assign a local scope to a model
+func AddLocalScopeForRole(name string, apply func(builder query.Condition)) {
 	roleLocalScopes = append(roleLocalScopes, roleScope{name: name, apply: apply})
 }
 
@@ -432,8 +432,14 @@ func (m *RoleModel) First(builders ...query.SQLBuilder) (Role, error) {
 
 // Create save a new Role to database
 func (m *RoleModel) Create(kv query.KV) (int64, error) {
-	kv["created_at"] = time.Now()
-	kv["updated_at"] = time.Now()
+
+	if _, ok := kv["created_at"]; !ok {
+		kv["created_at"] = time.Now()
+	}
+
+	if _, ok := kv["updated_at"]; !ok {
+		kv["updated_at"] = time.Now()
+	}
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
@@ -462,10 +468,7 @@ func (m *RoleModel) SaveAll(roles []Role) ([]int64, error) {
 
 // Save save a Role to database
 func (m *RoleModel) Save(role Role) (int64, error) {
-	return m.Create(query.KV{
-		"name":        role.Name,
-		"description": role.Description,
-	})
+	return m.Create(role.StaledKV())
 }
 
 // SaveOrUpdate save a new Role or update it when it has a id > 0

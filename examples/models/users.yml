@@ -10,6 +10,14 @@ models:
         rel: belongsTo
         foreign_key: role_id
         owner_key: id
+      - model: enterprise
+        rel: belongsTo
+        foreign_key: enterprise_id
+        owner_key: id
+      - model: userExt
+        rel: hasOne
+      - model: organization
+        rel: belongsToMany
     definition:
       soft_delete: true
       fields:
@@ -26,8 +34,26 @@ models:
           tag: 'json:"password" yaml:"password"'
         - name: role_id
           type: int64
+        - name: enterprise_id
+          type: int64
         - name: remember_token
           tag: 'json:"remember_token" yaml:"remember_token"'
+
+  - name: UserExt
+    relations:
+      - model: user
+        rel: belongsTo
+    definition:
+      fields:
+        - name: address
+          type: string
+        - name: qq
+          type: string
+        - name: wechat
+          type: string
+        - name: user_id
+          type: int64
+
   - name: PasswordReset
     definition:
       without_update_time: true

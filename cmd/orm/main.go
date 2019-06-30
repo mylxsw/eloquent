@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/mylxsw/eloquent/generator"
+	"github.com/mylxsw/eloquent/generator/template"
 	"github.com/mylxsw/go-toolkit/file"
 	"gopkg.in/yaml.v2"
 )
@@ -24,7 +25,7 @@ func main() {
 		var domain generator.Domain
 		assertError(yaml.Unmarshal(input, &domain))
 
-		res, err := generator.ParseTemplate(generator.GetTemplate(), domain.Init())
+		res, err := generator.ParseTemplate(template.GetTemplate(), domain.Init())
 		assertError(err)
 
 		assertError(ioutil.WriteFile(dest, []byte(res), os.ModePerm))

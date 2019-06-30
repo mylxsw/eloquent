@@ -41,8 +41,8 @@ func modelOperationExample(db *sql.DB) {
 		userModel := models.NewUserModel(tx)
 
 		id, err := userModel.Save(models.User{
-			Name: "guan",
-			Email: "guan@aicode.cc",
+			Name:     "guan",
+			Email:    "guan@aicode.cc",
 			Password: "88959q",
 		})
 		misc.AssertError(err)
@@ -55,7 +55,7 @@ func modelOperationExample(db *sql.DB) {
 		logger.Infof("User id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
 
 		roleId, err := user.Role().Create(models.Role{
-			Name: "admin",
+			Name:        "admin",
 			Description: "root user",
 		})
 		misc.AssertError(err)
@@ -90,7 +90,6 @@ func modelOperationExample(db *sql.DB) {
 		misc.AssertError(err)
 
 		logger.Infof("After force deleted count=%d/%d", c1, c2)
-
 
 		return nil
 	})
@@ -192,6 +191,19 @@ func createMigrate(db *sql.DB) {
 		builder.SoftDeletes("deleted_at", 0)
 	})
 
+	m.Schema("2019063001").Create("wz_enterprise", func(builder *migrate.Builder) {
+		builder.Increments("id")
+		builder.String("name", 255).Comment("企业名称")
+		builder.String("address", 255).Comment("企业地址")
+		builder.TinyInteger("status", false, false).Default(migrate.StringExpr("0")).Comment("企业状态：0-未审核 1-审核未通过 2-审核通过")
+
+		builder.SoftDeletes("deleted_at", 0)
+	})
+
+	m.Schema("2019063002").Table("wz_user", func(builder *migrate.Builder) {
+		builder.Integer("enterprise_id", false, true).Nullable(true).Comment("企业ID")
+	})
+
 	if err := m.Run(); err != nil {
 		panic(err)
 	}
@@ -208,21 +220,21 @@ func createEventDispatcher() {
 
 	eventManager.Listen(func(evt event.QueryExecutedEvent) {
 		logger.WithContext(log.C{
-			"sql":      evt.SQL,
+			"sql": evt.SQL,
 			// "bindings": evt.Bindings,
 			// "elapse":   evt.Time.Seconds(),
 		}).Debugf("QueryExecutedEvent received")
 	})
 
-// 	eventManager.Listen(func(evt event.TransactionBeginningEvent) {
-// 		logger.Debugf("Transaction starting")
-// 	})
-//
-// 	eventManager.Listen(func(evt event.TransactionCommittedEvent) {
-// 		logger.Debugf("Transaction committed")
-// 	})
-//
-// 	eventManager.Listen(func(evt event.TransactionRolledBackEvent) {
-// 		logger.Debugf("Transaction rollback")
-// 	})
+	// 	eventManager.Listen(func(evt event.TransactionBeginningEvent) {
+	// 		logger.Debugf("Transaction starting")
+	// 	})
+	//
+	// 	eventManager.Listen(func(evt event.TransactionCommittedEvent) {
+	// 		logger.Debugf("Transaction committed")
+	// 	})
+	//
+	// 	eventManager.Listen(func(evt event.TransactionRolledBackEvent) {
+	// 		logger.Debugf("Transaction rollback")
+	// 	})
 }
