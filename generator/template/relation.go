@@ -1,10 +1,29 @@
 package template
 
+import "fmt"
+
 func GetRelationTemplate() string {
-	return `
-{{ range $j, $rel := $m.Relations }}
-{{ if rel $rel | eq "belongsTo" }}
-{{ $relName := rel_belongs_to_name $rel $m }}
+	temp := `{{ range $j, $rel := $m.Relations }}{{ if rel $rel | eq "belongsTo" }}
+%s
+{{ end }}{{ if rel $rel | eq "hasMany" }}
+%s
+{{ end }}{{ if rel $rel | eq "hasOne" }}
+%s
+{{ end }}{{ if rel $rel | eq "belongsToMany" }}
+%s
+{{ end }}{{ end }}
+`
+	return fmt.Sprintf(
+		temp,
+		getRelationBelongsToTemplate(),
+		getRelationHasManyTemplate(),
+		getRelationhasOneTemplate(),
+		getRelationBelongsToManyTemplate(),
+	)
+}
+
+func getRelationBelongsToTemplate() string {
+	return `{{ $relName := rel_belongs_to_name $rel $m }}
 func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
@@ -54,10 +73,11 @@ func (rel *{{ $relName }}) Dissociate() error {
 	rel.source.{{ rel_foreign_key $rel | camel }} = 0
 	return rel.source.Save()
 }
-{{ end }}
+`
+}
 
-{{ if rel $rel | eq "hasMany" }}
-{{ $relName := rel_has_many_name $rel $m }}
+func getRelationHasManyTemplate() string {
+	return `{{ $relName := rel_has_many_name $rel $m }}
 func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
@@ -97,10 +117,11 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) 
 	target.{{ rel_foreign_key_rev $rel $m | camel }} = rel.source.Id
 	return rel.relModel.Save(target)
 }
-{{ end }}
+`
+}
 
-{{ if rel $rel | eq "hasOne" }}
-{{ $relName := rel_has_one_name $rel $m }}
+func getRelationhasOneTemplate() string {
+	return `{{ $relName := rel_has_one_name $rel $m }}
 func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
@@ -145,10 +166,11 @@ func (rel *{{ $relName }}) Dissociate() error {
 
 	return err
 }
-{{ end }}
+`
+}
 
-{{ if rel $rel | eq "belongsToMany" }}
-{{ $relName := rel_belongs_to_many_name $rel $m }}
+func getRelationBelongsToManyTemplate() string {
+	return `{{ $relName := rel_belongs_to_many_name $rel $m }}
 func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
@@ -199,12 +221,5 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}, builders ...que
 
 	return targetId, err
 }
-
-{{ end }}
-
-{{ end }}
-
-
-
 `
 }
