@@ -149,6 +149,60 @@ func (rel *OrganizationBelongsToManyUserRel) Get(builders ...query.SQLBuilder) (
 	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("id", resArr...))
 }
 
+func (rel *OrganizationBelongsToManyUserRel) Count(builders ...query.SQLBuilder) (int64, error) {
+	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("organization_id", rel.source.Id),
+		func(row *sql.Rows) (interface{}, error) {
+			var k int64
+			if err := row.Scan(&k); err != nil {
+				return nil, err
+			}
+
+			return k, nil
+		},
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Index(0).(int64), nil
+}
+
+func (rel *OrganizationBelongsToManyUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+	c, err := rel.Count(builders...)
+	if err != nil {
+		return false, err
+	}
+
+	return c > 0, nil
+}
+
+func (rel *OrganizationBelongsToManyUserRel) Attach(target User) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV{
+		"user_id":         target.Id,
+		"organization_id": rel.source.Id,
+	})
+
+	return err
+}
+
+func (rel *OrganizationBelongsToManyUserRel) Detach(target User) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).
+		Delete(eloquent.Build(rel.pivotTable).
+			Where("user_id", target.Id).
+			Where("organization_id", rel.source.Id))
+
+	return err
+}
+
+func (rel *OrganizationBelongsToManyUserRel) DetachAll() error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).
+		Delete(eloquent.Build(rel.pivotTable).
+			Where("organization_id", rel.source.Id))
+	return err
+}
+
 func (rel *OrganizationBelongsToManyUserRel) Create(target User, builders ...query.SQLBuilder) (int64, error) {
 	targetId, err := rel.relModel.Save(target)
 	if err != nil {
@@ -157,10 +211,7 @@ func (rel *OrganizationBelongsToManyUserRel) Create(target User, builders ...que
 
 	target.Id = targetId
 
-	_, err = eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV{
-		"user_id":         target.Id,
-		"organization_id": rel.source.Id,
-	})
+	err = rel.Attach(target)
 
 	return targetId, err
 }

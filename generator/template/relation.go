@@ -206,6 +206,60 @@ func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Mo
 	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("{{ rel_owner_key $rel | snake }}", resArr...))
 }
 
+func (rel *{{ $relName }}) Count(builders ...query.SQLBuilder) (int64, error) {
+	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),
+		func(row *sql.Rows) (interface{}, error) {
+			var k int64
+			if err := row.Scan(&k); err != nil {
+				return nil, err
+			}
+
+			return k, nil
+		},
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Index(0).(int64), nil
+}
+
+func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
+	c, err := rel.Count(builders...)
+	if err != nil {
+		return false, err
+	}
+	
+	return c > 0, nil
+}
+
+func (rel *{{ $relName }}) Attach(target {{ camel $rel.Model }}) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV {
+		"{{ rel_foreign_key $rel | snake }}": target.{{ rel_owner_key $rel | camel }},
+		"{{ rel_foreign_key_rev $rel $m | snake }}": rel.source.{{ rel_owner_key $rel | camel }},
+	})
+
+	return err
+}
+
+func (rel *{{ $relName }}) Detach(target {{ camel $rel.Model }}) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).
+		Delete(eloquent.Build(rel.pivotTable).
+			Where("{{ rel_foreign_key $rel | snake }}", target.{{ rel_owner_key $rel | camel }}).
+			Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),)
+	
+	return err
+}
+
+func (rel *{{ $relName }}) DetachAll() error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).
+		Delete(eloquent.Build(rel.pivotTable).
+			Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),)
+	return err
+}
+
 func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}, builders ...query.SQLBuilder) (int64, error) {
 	targetId, err := rel.relModel.Save(target)
 	if err != nil {
@@ -214,10 +268,7 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}, builders ...que
 
 	target.Id = targetId
 
-	_, err = eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV {
-		"{{ rel_foreign_key $rel | snake }}": target.{{ rel_owner_key $rel | camel }},
-		"{{ rel_foreign_key_rev $rel $m | snake }}": rel.source.{{ rel_owner_key $rel | camel }},
-	})
+	err = rel.Attach(target)
 
 	return targetId, err
 }
