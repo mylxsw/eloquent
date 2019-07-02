@@ -17,7 +17,7 @@ func GetRelationTemplate() string {
 		temp,
 		getRelationBelongsToTemplate(),
 		getRelationHasManyTemplate(),
-		getRelationhasOneTemplate(),
+		getRelationHasOneTemplate(),
 		getRelationBelongsToManyTemplate(),
 	)
 }
@@ -120,7 +120,7 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) 
 `
 }
 
-func getRelationhasOneTemplate() string {
+func getRelationHasOneTemplate() string {
 	return `{{ $relName := rel_has_one_name $rel $m }}
 func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
