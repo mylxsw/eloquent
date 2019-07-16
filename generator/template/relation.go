@@ -188,7 +188,7 @@ type {{ $relName }} struct {
 func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
 		query.Builder().Table(rel.pivotTable).Select("{{ rel_foreign_key $rel | snake }}").Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),
-		func(row *sql.Rows) (interface{}, error) {
+		func(row eloquent.Scanner) (interface{}, error) {
 			var k interface{}
 			if err := row.Scan(&k); err != nil {
 				return nil, err
@@ -209,7 +209,7 @@ func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Mo
 func (rel *{{ $relName }}) Count(builders ...query.SQLBuilder) (int64, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
 		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),
-		func(row *sql.Rows) (interface{}, error) {
+		func(row eloquent.Scanner) (interface{}, error) {
 			var k int64
 			if err := row.Scan(&k); err != nil {
 				return nil, err

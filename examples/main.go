@@ -125,7 +125,7 @@ func databaseOperationExample(db *sql.DB) {
 
 		res, err := eloquent.DB(tx).Query(
 			eloquent.Build("wz_user").Select("id", "name", "email"),
-			func(row *sql.Rows) (interface{}, error) {
+			func(row eloquent.Scanner) (interface{}, error) {
 				user := models.User{}
 				err := row.Scan(&user.Id, &user.Name, &user.Email)
 

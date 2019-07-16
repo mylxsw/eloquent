@@ -4,7 +4,6 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
@@ -330,7 +329,7 @@ type UserBelongsToManyOrganizationRel struct {
 func (rel *UserBelongsToManyOrganizationRel) Get(builders ...query.SQLBuilder) ([]Organization, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
 		query.Builder().Table(rel.pivotTable).Select("organization_id").Where("user_id", rel.source.Id),
-		func(row *sql.Rows) (interface{}, error) {
+		func(row eloquent.Scanner) (interface{}, error) {
 			var k interface{}
 			if err := row.Scan(&k); err != nil {
 				return nil, err
@@ -351,7 +350,7 @@ func (rel *UserBelongsToManyOrganizationRel) Get(builders ...query.SQLBuilder) (
 func (rel *UserBelongsToManyOrganizationRel) Count(builders ...query.SQLBuilder) (int64, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
 		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("user_id", rel.source.Id),
-		func(row *sql.Rows) (interface{}, error) {
+		func(row eloquent.Scanner) (interface{}, error) {
 			var k int64
 			if err := row.Scan(&k); err != nil {
 				return nil, err

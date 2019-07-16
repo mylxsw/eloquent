@@ -25,8 +25,13 @@ func DB(db query.Database) *Database {
 	}
 }
 
+// Scanner is an interface which wraps sql.Rows's Scan method
+type Scanner interface {
+	Scan(dest ...interface{}) error
+}
+
 // Query run a basic query
-func (db *Database) Query(builder query.SQLBuilder, cb func(row *sql.Rows) (interface{}, error)) (*collection.Collection, error) {
+func (db *Database) Query(builder query.SQLBuilder, cb func(row Scanner) (interface{}, error)) (*collection.Collection, error) {
 	results := make([]interface{}, 0)
 
 	sqlStr, args := builder.ResolveQuery()
