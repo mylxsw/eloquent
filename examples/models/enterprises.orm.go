@@ -4,6 +4,7 @@ package models
 
 import (
 	"context"
+	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -410,9 +411,9 @@ func (m *EnterpriseModel) Paginate(page int64, perPage int64, builders ...query.
 
 // Get retrieve all results for given query
 func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"id",
 			"name",
 			"address",
@@ -420,8 +421,60 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 			"created_at",
 			"updated_at",
 			"deleted_at",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "id":
+			selectFields = append(selectFields, f)
+		case "name":
+			selectFields = append(selectFields, f)
+		case "address":
+			selectFields = append(selectFields, f)
+		case "status":
+			selectFields = append(selectFields, f)
+		case "created_at":
+			selectFields = append(selectFields, f)
+		case "updated_at":
+			selectFields = append(selectFields, f)
+		case "deleted_at":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*enterpriseWrap, []interface{}) {
+		var enterpriseVar enterpriseWrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "id":
+				scanFields = append(scanFields, &enterpriseVar.Id)
+			case "name":
+				scanFields = append(scanFields, &enterpriseVar.Name)
+			case "address":
+				scanFields = append(scanFields, &enterpriseVar.Address)
+			case "status":
+				scanFields = append(scanFields, &enterpriseVar.Status)
+			case "created_at":
+				scanFields = append(scanFields, &enterpriseVar.CreatedAt)
+			case "updated_at":
+				scanFields = append(scanFields, &enterpriseVar.UpdatedAt)
+			case "deleted_at":
+				scanFields = append(scanFields, &enterpriseVar.DeletedAt)
+			}
+		}
+
+		return &enterpriseVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -432,15 +485,8 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 
 	enterprises := make([]Enterprise, 0)
 	for rows.Next() {
-		var enterpriseVar enterpriseWrap
-		if err := rows.Scan(
-			&enterpriseVar.Id,
-			&enterpriseVar.Name,
-			&enterpriseVar.Address,
-			&enterpriseVar.Status,
-			&enterpriseVar.CreatedAt,
-			&enterpriseVar.UpdatedAt,
-			&enterpriseVar.DeletedAt); err != nil {
+		enterpriseVar, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 

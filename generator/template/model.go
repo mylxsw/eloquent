@@ -148,12 +148,40 @@ func (m *{{ camel $m.Name }}Model) Paginate(page int64, perPage int64, builders 
 
 // Get retrieve all results for given query
 func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel $m.Name }}, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select({{ range $j, $f := fields $m.Definition }}
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select({{ range $j, $f := fields $m.Definition }}
 			"{{ snake $f.Name }}",{{ end }}
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+		{{ range $j, $f := fields $m.Definition }} 
+		case "{{ snake $f.Name }}":
+			selectFields = append(selectFields, f){{ end }}
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*{{ lower_camel $m.Name }}Wrap, []interface{}) {
+		var {{ lower_camel $m.Name }}Var {{ lower_camel $m.Name }}Wrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+			{{ range $j, $f := fields $m.Definition }} 
+			case "{{ snake $f.Name }}":
+				scanFields = append(scanFields, &{{ lower_camel $m.Name }}Var.{{ camel $f.Name }}){{ end }}
+			}
+		}
+
+		return &{{ lower_camel $m.Name }}Var, scanFields
+	}
+	
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 	
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -164,9 +192,8 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 
 	{{ lower_camel $m.Name }}s := make([]{{ camel $m.Name }}, 0)
 	for rows.Next() {
-		var {{ lower_camel $m.Name }}Var {{ lower_camel $m.Name }}Wrap
-		if err := rows.Scan({{ range $j, $f := fields $m.Definition }} 
-			&{{ lower_camel $m.Name }}Var.{{ camel $f.Name }},{{ end }}); err != nil {
+		{{ lower_camel $m.Name }}Var, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 

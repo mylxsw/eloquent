@@ -5,6 +5,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -431,15 +432,55 @@ func (m *OrganizationModel) Paginate(page int64, perPage int64, builders ...quer
 
 // Get retrieve all results for given query
 func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"id",
 			"name",
 			"created_at",
 			"updated_at",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "id":
+			selectFields = append(selectFields, f)
+		case "name":
+			selectFields = append(selectFields, f)
+		case "created_at":
+			selectFields = append(selectFields, f)
+		case "updated_at":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*organizationWrap, []interface{}) {
+		var organizationVar organizationWrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "id":
+				scanFields = append(scanFields, &organizationVar.Id)
+			case "name":
+				scanFields = append(scanFields, &organizationVar.Name)
+			case "created_at":
+				scanFields = append(scanFields, &organizationVar.CreatedAt)
+			case "updated_at":
+				scanFields = append(scanFields, &organizationVar.UpdatedAt)
+			}
+		}
+
+		return &organizationVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -450,12 +491,8 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 
 	organizations := make([]Organization, 0)
 	for rows.Next() {
-		var organizationVar organizationWrap
-		if err := rows.Scan(
-			&organizationVar.Id,
-			&organizationVar.Name,
-			&organizationVar.CreatedAt,
-			&organizationVar.UpdatedAt); err != nil {
+		organizationVar, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 

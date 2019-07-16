@@ -53,6 +53,7 @@ func (d DomainContext) importPackages() []string {
 		"context",
 		"gopkg.in/guregu/null.v3",
 		"github.com/mylxsw/eloquent/query",
+		"github.com/iancoleman/strcase",
 	}
 
 	for _, m := range d.domain.Models {

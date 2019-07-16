@@ -5,6 +5,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -652,9 +653,9 @@ func (m *UserModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 
 // Get retrieve all results for given query
 func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"id",
 			"name",
 			"email",
@@ -665,8 +666,72 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 			"created_at",
 			"updated_at",
 			"deleted_at",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "id":
+			selectFields = append(selectFields, f)
+		case "name":
+			selectFields = append(selectFields, f)
+		case "email":
+			selectFields = append(selectFields, f)
+		case "password":
+			selectFields = append(selectFields, f)
+		case "role_id":
+			selectFields = append(selectFields, f)
+		case "enterprise_id":
+			selectFields = append(selectFields, f)
+		case "remember_token":
+			selectFields = append(selectFields, f)
+		case "created_at":
+			selectFields = append(selectFields, f)
+		case "updated_at":
+			selectFields = append(selectFields, f)
+		case "deleted_at":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*userWrap, []interface{}) {
+		var userVar userWrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "id":
+				scanFields = append(scanFields, &userVar.Id)
+			case "name":
+				scanFields = append(scanFields, &userVar.Name)
+			case "email":
+				scanFields = append(scanFields, &userVar.Email)
+			case "password":
+				scanFields = append(scanFields, &userVar.Password)
+			case "role_id":
+				scanFields = append(scanFields, &userVar.RoleId)
+			case "enterprise_id":
+				scanFields = append(scanFields, &userVar.EnterpriseId)
+			case "remember_token":
+				scanFields = append(scanFields, &userVar.RememberToken)
+			case "created_at":
+				scanFields = append(scanFields, &userVar.CreatedAt)
+			case "updated_at":
+				scanFields = append(scanFields, &userVar.UpdatedAt)
+			case "deleted_at":
+				scanFields = append(scanFields, &userVar.DeletedAt)
+			}
+		}
+
+		return &userVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -677,18 +742,8 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 
 	users := make([]User, 0)
 	for rows.Next() {
-		var userVar userWrap
-		if err := rows.Scan(
-			&userVar.Id,
-			&userVar.Name,
-			&userVar.Email,
-			&userVar.Password,
-			&userVar.RoleId,
-			&userVar.EnterpriseId,
-			&userVar.RememberToken,
-			&userVar.CreatedAt,
-			&userVar.UpdatedAt,
-			&userVar.DeletedAt); err != nil {
+		userVar, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
@@ -1239,9 +1294,9 @@ func (m *UserExtModel) Paginate(page int64, perPage int64, builders ...query.SQL
 
 // Get retrieve all results for given query
 func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"address",
 			"qq",
 			"wechat",
@@ -1249,8 +1304,60 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 			"id",
 			"created_at",
 			"updated_at",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "address":
+			selectFields = append(selectFields, f)
+		case "qq":
+			selectFields = append(selectFields, f)
+		case "wechat":
+			selectFields = append(selectFields, f)
+		case "user_id":
+			selectFields = append(selectFields, f)
+		case "id":
+			selectFields = append(selectFields, f)
+		case "created_at":
+			selectFields = append(selectFields, f)
+		case "updated_at":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*userExtWrap, []interface{}) {
+		var userExtVar userExtWrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "address":
+				scanFields = append(scanFields, &userExtVar.Address)
+			case "qq":
+				scanFields = append(scanFields, &userExtVar.Qq)
+			case "wechat":
+				scanFields = append(scanFields, &userExtVar.Wechat)
+			case "user_id":
+				scanFields = append(scanFields, &userExtVar.UserId)
+			case "id":
+				scanFields = append(scanFields, &userExtVar.Id)
+			case "created_at":
+				scanFields = append(scanFields, &userExtVar.CreatedAt)
+			case "updated_at":
+				scanFields = append(scanFields, &userExtVar.UpdatedAt)
+			}
+		}
+
+		return &userExtVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -1261,15 +1368,8 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 
 	userExts := make([]UserExt, 0)
 	for rows.Next() {
-		var userExtVar userExtWrap
-		if err := rows.Scan(
-			&userExtVar.Address,
-			&userExtVar.Qq,
-			&userExtVar.Wechat,
-			&userExtVar.UserId,
-			&userExtVar.Id,
-			&userExtVar.CreatedAt,
-			&userExtVar.UpdatedAt); err != nil {
+		userExtVar, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
@@ -1710,15 +1810,55 @@ func (m *PasswordResetModel) Paginate(page int64, perPage int64, builders ...que
 
 // Get retrieve all results for given query
 func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"email",
 			"token",
 			"id",
 			"created_at",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "email":
+			selectFields = append(selectFields, f)
+		case "token":
+			selectFields = append(selectFields, f)
+		case "id":
+			selectFields = append(selectFields, f)
+		case "created_at":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*passwordResetWrap, []interface{}) {
+		var passwordResetVar passwordResetWrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "email":
+				scanFields = append(scanFields, &passwordResetVar.Email)
+			case "token":
+				scanFields = append(scanFields, &passwordResetVar.Token)
+			case "id":
+				scanFields = append(scanFields, &passwordResetVar.Id)
+			case "created_at":
+				scanFields = append(scanFields, &passwordResetVar.CreatedAt)
+			}
+		}
+
+		return &passwordResetVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -1729,12 +1869,8 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 
 	passwordResets := make([]PasswordReset, 0)
 	for rows.Next() {
-		var passwordResetVar passwordResetWrap
-		if err := rows.Scan(
-			&passwordResetVar.Email,
-			&passwordResetVar.Token,
-			&passwordResetVar.Id,
-			&passwordResetVar.CreatedAt); err != nil {
+		passwordResetVar, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 

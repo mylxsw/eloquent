@@ -8,7 +8,7 @@ import (
 type SQLBuilder struct {
 	tableName  string
 	conditions Condition
-	fields     []expr
+	fields     []Expr
 	limit      int64
 	offset     int64
 	orders     orderBys
@@ -23,7 +23,7 @@ type sqlUnion struct {
 	SubQuery SubQuery
 }
 
-type expr struct {
+type Expr struct {
 	Value    string
 	Type     exprType
 	Bindings []interface{}
@@ -36,8 +36,8 @@ const (
 	exprTypeRaw
 )
 
-func Raw(rawStr string, bindings ...interface{}) expr {
-	return expr{
+func Raw(rawStr string, bindings ...interface{}) Expr {
+	return Expr{
 		Type:     exprTypeRaw,
 		Value:    rawStr,
 		Bindings: bindings,
@@ -47,7 +47,7 @@ func Raw(rawStr string, bindings ...interface{}) expr {
 func Builder() SQLBuilder {
 	return SQLBuilder{
 		conditions: ConditionBuilder(),
-		fields:     make([]expr, 0),
+		fields:     make([]Expr, 0),
 		orders:     make([]sqlOrderBy, 0),
 		groups:     make([]string, 0),
 		joins:      make([]sqlJoin, 0),
@@ -56,7 +56,6 @@ func Builder() SQLBuilder {
 		offset:     -1,
 	}
 }
-
 
 func (builder SQLBuilder) Merge(b2s ...SQLBuilder) SQLBuilder {
 	b := builder.Clone()
@@ -87,7 +86,7 @@ func (builder SQLBuilder) Clone() SQLBuilder {
 		limit:      builder.limit,
 		offset:     builder.offset,
 		having:     builder.having,
-		fields:     append([]expr{}, builder.fields...),
+		fields:     append([]Expr{}, builder.fields...),
 		orders:     append([]sqlOrderBy{}, builder.orders...),
 		groups:     append([]string{}, builder.groups...),
 		joins:      append([]sqlJoin{}, builder.joins...),
@@ -142,7 +141,7 @@ func (builder SQLBuilder) resolveKvPairsForUpdate(kvPairs KV) ([]string, []inter
 	values := make([]interface{}, 0)
 	var i = 0
 	for k, v := range kvPairs {
-		vv, ok := v.(expr)
+		vv, ok := v.(Expr)
 		if ok {
 			switch vv.Type {
 			case exprTypeString:
@@ -169,7 +168,7 @@ func (builder SQLBuilder) resolveKvPairsForInsert(kvPairs KV) ([]string, []inter
 	for k, v := range kvPairs {
 		fields[i] = "`" + k + "`"
 
-		vv, ok := v.(expr)
+		vv, ok := v.(Expr)
 		if ok {
 			values = append(values, vv.Value)
 			if vv.Bindings != nil && len(vv.Bindings) > 0 {
@@ -195,7 +194,7 @@ func (builder SQLBuilder) ResolveInsert(kvPairs KV) (string, []interface{}) {
 
 func (builder SQLBuilder) ResolveCount() (string, []interface{}) {
 	b := builder.Clone()
-	b.fields = make([]expr, 1)
+	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw("COUNT(1) as count")
 
 	return b.ResolveQuery()
@@ -203,7 +202,7 @@ func (builder SQLBuilder) ResolveCount() (string, []interface{}) {
 
 func (builder SQLBuilder) ResolveMax(field string) (string, []interface{}) {
 	b := builder.Clone()
-	b.fields = make([]expr, 1)
+	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("MAX(%s) as max", field))
 
 	return b.ResolveQuery()
@@ -211,7 +210,7 @@ func (builder SQLBuilder) ResolveMax(field string) (string, []interface{}) {
 
 func (builder SQLBuilder) ResolveMin(field string) (string, []interface{}) {
 	b := builder.Clone()
-	b.fields = make([]expr, 1)
+	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("MIN(%s) as min", field))
 
 	return b.ResolveQuery()
@@ -219,7 +218,7 @@ func (builder SQLBuilder) ResolveMin(field string) (string, []interface{}) {
 
 func (builder SQLBuilder) ResolveAvg(field string) (string, []interface{}) {
 	b := builder.Clone()
-	b.fields = make([]expr, 1)
+	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("AVG(%s) as avg", field))
 
 	return b.ResolveQuery()
@@ -227,7 +226,7 @@ func (builder SQLBuilder) ResolveAvg(field string) (string, []interface{}) {
 
 func (builder SQLBuilder) ResolveSum(field string) (string, []interface{}) {
 	b := builder.Clone()
-	b.fields = make([]expr, 1)
+	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("SUM(%s) as sum", field))
 
 	return b.ResolveQuery()
@@ -296,6 +295,19 @@ func (builder SQLBuilder) ResolveQuery() (string, []interface{}) {
 	}
 
 	return sqlStr, params
+}
+
+// GetFields return all fields for query
+func (builder SQLBuilder) GetFields() []Expr {
+	return builder.fields
+}
+
+// Fields set fields for query
+func (builder SQLBuilder) Fields(fields ...Expr) SQLBuilder {
+	b := builder.Clone()
+	b.fields = fields
+
+	return b
 }
 
 func (builder SQLBuilder) Condition(where Condition) SQLBuilder {
@@ -370,11 +382,11 @@ func (builder SQLBuilder) Union(b2 SubQuery, distinct bool) SQLBuilder {
 func (builder SQLBuilder) Select(fields ...interface{}) SQLBuilder {
 	b := builder.Clone()
 	for _, f := range fields {
-		f1, ok := f.(expr)
+		f1, ok := f.(Expr)
 		if ok {
 			b.fields = append(b.fields, f1)
 		} else {
-			b.fields = append(b.fields, expr{
+			b.fields = append(b.fields, Expr{
 				Type:  exprTypeString,
 				Value: f.(string),
 			})

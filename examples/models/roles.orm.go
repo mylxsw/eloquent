@@ -4,6 +4,7 @@ package models
 
 import (
 	"context"
+	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -378,16 +379,60 @@ func (m *RoleModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 
 // Get retrieve all results for given query
 func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"name",
 			"description",
 			"id",
 			"created_at",
 			"updated_at",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
+
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "name":
+			selectFields = append(selectFields, f)
+		case "description":
+			selectFields = append(selectFields, f)
+		case "id":
+			selectFields = append(selectFields, f)
+		case "created_at":
+			selectFields = append(selectFields, f)
+		case "updated_at":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*roleWrap, []interface{}) {
+		var roleVar roleWrap
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "name":
+				scanFields = append(scanFields, &roleVar.Name)
+			case "description":
+				scanFields = append(scanFields, &roleVar.Description)
+			case "id":
+				scanFields = append(scanFields, &roleVar.Id)
+			case "created_at":
+				scanFields = append(scanFields, &roleVar.CreatedAt)
+			case "updated_at":
+				scanFields = append(scanFields, &roleVar.UpdatedAt)
+			}
+		}
+
+		return &roleVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
 	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
 	if err != nil {
@@ -398,13 +443,8 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 
 	roles := make([]Role, 0)
 	for rows.Next() {
-		var roleVar roleWrap
-		if err := rows.Scan(
-			&roleVar.Name,
-			&roleVar.Description,
-			&roleVar.Id,
-			&roleVar.CreatedAt,
-			&roleVar.UpdatedAt); err != nil {
+		roleVar, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
