@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
-	"github.com/mylxsw/go-toolkit/collection"
 )
 
 // Build create a SQLBuilder with table name
@@ -31,13 +31,13 @@ type Scanner interface {
 }
 
 // Query run a basic query
-func (db *Database) Query(builder query.SQLBuilder, cb func(row Scanner) (interface{}, error)) (*collection.Collection, error) {
+func (db *Database) Query(builder query.SQLBuilder, cb func(row Scanner) (interface{}, error)) (*coll.Collection, error) {
 	results := make([]interface{}, 0)
 
 	sqlStr, args := builder.ResolveQuery()
 	rows, err := db.db.QueryContext(context.TODO(), sqlStr, args...)
 	if err != nil {
-		return collection.MustNew(results), err
+		return coll.MustNew(results), err
 	}
 
 	defer rows.Close()
@@ -45,13 +45,13 @@ func (db *Database) Query(builder query.SQLBuilder, cb func(row Scanner) (interf
 	for rows.Next() {
 		r, err := cb(rows)
 		if err != nil {
-			return collection.MustNew(results), err
+			return coll.MustNew(results), err
 		}
 
 		results = append(results, r)
 	}
 
-	return collection.MustNew(results), nil
+	return coll.MustNew(results), nil
 }
 
 // Insert to execute an insert statement
