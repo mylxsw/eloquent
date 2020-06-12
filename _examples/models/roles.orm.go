@@ -5,6 +5,7 @@ package models
 import (
 	"context"
 	"github.com/iancoleman/strcase"
+	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -24,6 +25,12 @@ type Role struct {
 	Id          int64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *Role) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for Role
@@ -301,8 +308,8 @@ func (m *RoleModel) WithLocalScopes(names ...string) *RoleModel {
 	return mc
 }
 
-// Query add query builder to model
-func (m *RoleModel) Query(builder query.SQLBuilder) *RoleModel {
+// Condition add query builder to model
+func (m *RoleModel) Condition(builder query.SQLBuilder) *RoleModel {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -543,13 +550,13 @@ func (m *RoleModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 }
 
 // Update update a model for given query
-func (m *RoleModel) Update(role Role) (int64, error) {
-	return m.UpdateFields(role.StaledKV())
+func (m *RoleModel) Update(role Role, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(role.StaledKV(), builders...)
 }
 
 // UpdateById update a model by id
 func (m *RoleModel) UpdateById(id int64, role Role) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(role)
+	return m.Condition(query.Builder().Where("id", "=", id)).Update(role)
 }
 
 // Delete remove a model
@@ -568,5 +575,5 @@ func (m *RoleModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 
 // DeleteById remove a model by id
 func (m *RoleModel) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
 }

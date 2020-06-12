@@ -13,25 +13,33 @@ func Build(tableName string) query.SQLBuilder {
 	return query.Builder().Table(tableName)
 }
 
-// Database is a basic database query handler
-type Database struct {
+// databaseImpl is a basic database query handler
+type databaseImpl struct {
 	db *query.DatabaseWrap
 }
 
-// DB create a Database
-func DB(db query.Database) *Database {
-	return &Database{
+// DB create a databaseImpl
+func DB(db query.Database) Database {
+	return &databaseImpl{
 		db: query.NewDatabaseWrap(db),
 	}
 }
 
-// Scanner is an interface which wraps sql.Rows's Scan method
-type Scanner interface {
-	Scan(dest ...interface{}) error
+type rawQueryBuilder struct {
+	sql  string
+	args []interface{}
+}
+
+func Raw(sqlStr string, args ...interface{}) QueryBuilder {
+	return &rawQueryBuilder{sql: sqlStr, args: args}
+}
+
+func (r *rawQueryBuilder) ResolveQuery() (sqlStr string, args []interface{}) {
+	return r.sql, r.args
 }
 
 // Query run a basic query
-func (db *Database) Query(builder query.SQLBuilder, cb func(row Scanner) (interface{}, error)) (*coll.Collection, error) {
+func (db *databaseImpl) Query(builder QueryBuilder, cb func(row Scanner) (interface{}, error)) (*coll.Collection, error) {
 	results := make([]interface{}, 0)
 
 	sqlStr, args := builder.ResolveQuery()
@@ -55,7 +63,7 @@ func (db *Database) Query(builder query.SQLBuilder, cb func(row Scanner) (interf
 }
 
 // Insert to execute an insert statement
-func (db *Database) Insert(tableName string, kv query.KV) (int64, error) {
+func (db *databaseImpl) Insert(tableName string, kv query.KV) (int64, error) {
 	sqlStr, args := query.Builder().Table(tableName).ResolveInsert(kv)
 	res, err := db.db.ExecContext(context.TODO(), sqlStr, args...)
 	if err != nil {
@@ -66,7 +74,7 @@ func (db *Database) Insert(tableName string, kv query.KV) (int64, error) {
 }
 
 // Delete to execute an delete statement
-func (db *Database) Delete(builder query.SQLBuilder) (int64, error) {
+func (db *databaseImpl) Delete(builder query.SQLBuilder) (int64, error) {
 	sqlStr, args := builder.ResolveDelete()
 	res, err := db.db.ExecContext(context.TODO(), sqlStr, args...)
 	if err != nil {
@@ -77,7 +85,7 @@ func (db *Database) Delete(builder query.SQLBuilder) (int64, error) {
 }
 
 // Update to execute an update statement
-func (db *Database) Update(builder query.SQLBuilder, kv query.KV) (int64, error) {
+func (db *databaseImpl) Update(builder query.SQLBuilder, kv query.KV) (int64, error) {
 	sqlStr, args := builder.ResolveUpdate(kv)
 	res, err := db.db.ExecContext(context.TODO(), sqlStr, args...)
 	if err != nil {
@@ -88,7 +96,7 @@ func (db *Database) Update(builder query.SQLBuilder, kv query.KV) (int64, error)
 }
 
 // Statement running a general statement which return no value
-func (db *Database) Statement(raw string, args ...interface{}) error {
+func (db *databaseImpl) Statement(raw string, args ...interface{}) error {
 	_, err := db.db.ExecContext(context.TODO(), raw, args...)
 	return err
 }

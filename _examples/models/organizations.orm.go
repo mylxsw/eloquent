@@ -5,6 +5,7 @@ package models
 import (
 	"context"
 	"github.com/iancoleman/strcase"
+	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -24,6 +25,12 @@ type Organization struct {
 	Name      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *Organization) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for Organization
@@ -353,8 +360,8 @@ func (m *OrganizationModel) WithLocalScopes(names ...string) *OrganizationModel 
 	return mc
 }
 
-// Query add query builder to model
-func (m *OrganizationModel) Query(builder query.SQLBuilder) *OrganizationModel {
+// Condition add query builder to model
+func (m *OrganizationModel) Condition(builder query.SQLBuilder) *OrganizationModel {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -590,13 +597,13 @@ func (m *OrganizationModel) UpdateFields(kv query.KV, builders ...query.SQLBuild
 }
 
 // Update update a model for given query
-func (m *OrganizationModel) Update(organization Organization) (int64, error) {
-	return m.UpdateFields(organization.StaledKV())
+func (m *OrganizationModel) Update(organization Organization, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(organization.StaledKV(), builders...)
 }
 
 // UpdateById update a model by id
 func (m *OrganizationModel) UpdateById(id int64, organization Organization) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(organization)
+	return m.Condition(query.Builder().Where("id", "=", id)).Update(organization)
 }
 
 // Delete remove a model
@@ -615,5 +622,5 @@ func (m *OrganizationModel) Delete(builders ...query.SQLBuilder) (int64, error) 
 
 // DeleteById remove a model by id
 func (m *OrganizationModel) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
 }

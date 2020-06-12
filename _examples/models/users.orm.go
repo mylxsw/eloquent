@@ -5,6 +5,7 @@ package models
 import (
 	"context"
 	"github.com/iancoleman/strcase"
+	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -35,6 +36,12 @@ type User struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     null.Time
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *User) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for User
@@ -574,8 +581,8 @@ func (m *UserModel) WithLocalScopes(names ...string) *UserModel {
 	return mc
 }
 
-// Query add query builder to model
-func (m *UserModel) Query(builder query.SQLBuilder) *UserModel {
+// Condition add query builder to model
+func (m *UserModel) Condition(builder query.SQLBuilder) *UserModel {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -841,13 +848,13 @@ func (m *UserModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 }
 
 // Update update a model for given query
-func (m *UserModel) Update(user User) (int64, error) {
-	return m.UpdateFields(user.StaledKV())
+func (m *UserModel) Update(user User, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(user.StaledKV(), builders...)
 }
 
 // UpdateById update a model by id
 func (m *UserModel) UpdateById(id int64, user User) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(user)
+	return m.Condition(query.Builder().Where("id", "=", id)).Update(user)
 }
 
 // ForceDelete permanently remove a soft deleted model from the database
@@ -866,7 +873,7 @@ func (m *UserModel) ForceDelete(builders ...query.SQLBuilder) (int64, error) {
 
 // ForceDeleteById permanently remove a soft deleted model from the database by id
 func (m *UserModel) ForceDeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).ForceDelete()
+	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete()
 }
 
 // Restore restore a soft deleted model into an active state
@@ -879,7 +886,7 @@ func (m *UserModel) Restore(builders ...query.SQLBuilder) (int64, error) {
 
 // RestoreById restore a soft deleted model into an active state by id
 func (m *UserModel) RestoreById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Restore()
+	return m.Condition(query.Builder().Where("id", "=", id)).Restore()
 }
 
 // Delete remove a model
@@ -893,7 +900,7 @@ func (m *UserModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 
 // DeleteById remove a model by id
 func (m *UserModel) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
 }
 
 // UserExt is a UserExt object
@@ -908,6 +915,12 @@ type UserExt struct {
 	Id        int64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *UserExt) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for UserExt
@@ -1215,8 +1228,8 @@ func (m *UserExtModel) WithLocalScopes(names ...string) *UserExtModel {
 	return mc
 }
 
-// Query add query builder to model
-func (m *UserExtModel) Query(builder query.SQLBuilder) *UserExtModel {
+// Condition add query builder to model
+func (m *UserExtModel) Condition(builder query.SQLBuilder) *UserExtModel {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -1467,13 +1480,13 @@ func (m *UserExtModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (
 }
 
 // Update update a model for given query
-func (m *UserExtModel) Update(userExt UserExt) (int64, error) {
-	return m.UpdateFields(userExt.StaledKV())
+func (m *UserExtModel) Update(userExt UserExt, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(userExt.StaledKV(), builders...)
 }
 
 // UpdateById update a model by id
 func (m *UserExtModel) UpdateById(id int64, userExt UserExt) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(userExt)
+	return m.Condition(query.Builder().Where("id", "=", id)).Update(userExt)
 }
 
 // Delete remove a model
@@ -1492,7 +1505,7 @@ func (m *UserExtModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 
 // DeleteById remove a model by id
 func (m *UserExtModel) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
 }
 
 // PasswordReset is a PasswordReset object
@@ -1504,6 +1517,12 @@ type PasswordReset struct {
 	Token     string
 	Id        int64
 	CreatedAt time.Time
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *PasswordReset) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for PasswordReset
@@ -1731,8 +1750,8 @@ func (m *PasswordResetModel) WithLocalScopes(names ...string) *PasswordResetMode
 	return mc
 }
 
-// Query add query builder to model
-func (m *PasswordResetModel) Query(builder query.SQLBuilder) *PasswordResetModel {
+// Condition add query builder to model
+func (m *PasswordResetModel) Condition(builder query.SQLBuilder) *PasswordResetModel {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -1962,13 +1981,13 @@ func (m *PasswordResetModel) UpdateFields(kv query.KV, builders ...query.SQLBuil
 }
 
 // Update update a model for given query
-func (m *PasswordResetModel) Update(passwordReset PasswordReset) (int64, error) {
-	return m.UpdateFields(passwordReset.StaledKV())
+func (m *PasswordResetModel) Update(passwordReset PasswordReset, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(passwordReset.StaledKV(), builders...)
 }
 
 // UpdateById update a model by id
 func (m *PasswordResetModel) UpdateById(id int64, passwordReset PasswordReset) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(passwordReset)
+	return m.Condition(query.Builder().Where("id", "=", id)).Update(passwordReset)
 }
 
 // Delete remove a model
@@ -1987,5 +2006,5 @@ func (m *PasswordResetModel) Delete(builders ...query.SQLBuilder) (int64, error)
 
 // DeleteById remove a model by id
 func (m *PasswordResetModel) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
 }

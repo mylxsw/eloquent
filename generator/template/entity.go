@@ -11,6 +11,12 @@ type {{ camel $m.Name }} struct {
 	{{ camel $f.Name }} {{ $f.Type }} {{ tag $f }}{{ end }}
 }
 
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *{{ camel $m.Name }}) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
+}
+
 // SetModel set model for {{ camel $m.Name }}
 func (inst *{{ camel $m.Name }}) SetModel({{ lower_camel $m.Name }}Model *{{ camel $m.Name }}Model) {
 	inst.{{ lower_camel $m.Name }}Model = {{ lower_camel $m.Name }}Model

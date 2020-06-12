@@ -69,8 +69,8 @@ func (m *{{ camel $m.Name }}Model) WithLocalScopes(names ...string) *{{ camel $m
 	return mc
 }
 
-// Query add query builder to model
-func (m *{{ camel $m.Name }}Model) Query(builder query.SQLBuilder) *{{ camel $m.Name }}Model {
+// Condition add query builder to model
+func (m *{{ camel $m.Name }}Model) Condition(builder query.SQLBuilder) *{{ camel $m.Name }}Model {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -296,13 +296,13 @@ func (m *{{ camel $m.Name }}Model) UpdateFields(kv query.KV, builders ...query.S
 }
 
 // Update update a model for given query
-func (m *{{ camel $m.Name }}Model) Update({{ lower_camel $m.Name }} {{ camel $m.Name }}) (int64, error) {
-	return m.UpdateFields({{ lower_camel $m.Name }}.StaledKV())
+func (m *{{ camel $m.Name }}Model) Update({{ lower_camel $m.Name }} {{ camel $m.Name }}, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields({{ lower_camel $m.Name }}.StaledKV(), builders...)
 }
 
 // UpdateById update a model by id
 func (m *{{ camel $m.Name }}Model) UpdateById(id int64, {{ lower_camel $m.Name }} {{ camel $m.Name }}) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update({{ lower_camel $m.Name }})
+	return m.Condition(query.Builder().Where("id", "=", id)).Update({{ lower_camel $m.Name }})
 }
 
 {{ if $m.Definition.SoftDelete }}
@@ -322,7 +322,7 @@ func (m *{{ camel $m.Name }}Model) ForceDelete(builders ...query.SQLBuilder) (in
 
 // ForceDeleteById permanently remove a soft deleted model from the database by id
 func (m *{{ camel $m.Name }}Model) ForceDeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).ForceDelete()
+	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete()
 }
 
 // Restore restore a soft deleted model into an active state
@@ -335,7 +335,7 @@ func (m *{{ camel $m.Name }}Model) Restore(builders ...query.SQLBuilder) (int64,
 
 // RestoreById restore a soft deleted model into an active state by id
 func (m *{{ camel $m.Name }}Model) RestoreById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Restore()
+	return m.Condition(query.Builder().Where("id", "=", id)).Restore()
 }
 {{ end }}
 
@@ -359,7 +359,7 @@ func (m *{{ camel $m.Name }}Model) Delete(builders ...query.SQLBuilder) (int64, 
 
 // DeleteById remove a model by id
 func (m *{{ camel $m.Name }}Model) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
 }
 `
 }

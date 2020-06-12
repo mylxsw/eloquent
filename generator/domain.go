@@ -42,7 +42,7 @@ func (rel Relation) ImportPackages() []string {
 	}
 
 	if relationRel(rel) == "belongsToMany" {
-		internalPackages = append(internalPackages, "github.com/mylxsw/eloquent", )
+		internalPackages = append(internalPackages, "github.com/mylxsw/eloquent")
 	}
 
 	return unique(internalPackages)

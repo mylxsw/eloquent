@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/mylxsw/asteria"
+	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/_examples/models"
 	"github.com/mylxsw/eloquent/event"
@@ -14,9 +14,10 @@ import (
 	"github.com/mylxsw/go-toolkit/misc"
 )
 
-var logger = asteria.Module("example").WithFileLine(true)
-
 func main() {
+
+	//log.All().WithFileLine(true)
+
 	createEventDispatcher()
 
 	connURI := "root:@tcp(127.0.0.1:3306)/eloquent_example?parseTime=true"
@@ -32,6 +33,11 @@ func main() {
 	modelOperationExample(db)
 }
 
+type UserView struct {
+	Name  string
+	Email string
+}
+
 func modelOperationExample(db *sql.DB) {
 	err := eloquent.Transaction(db, func(tx query.Database) error {
 		userModel := models.NewUserModel(tx)
@@ -43,12 +49,12 @@ func modelOperationExample(db *sql.DB) {
 		})
 		misc.AssertError(err)
 
-		logger.Infof("Insert User ID=%d", id)
+		log.Infof("Insert User ID=%d", id)
 
 		user, err := userModel.Find(id)
 		misc.AssertError(err)
 
-		logger.Infof("User id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
+		log.Infof("User id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
 
 		roleId, err := user.Role().Create(models.Role{
 			Name:        "admin",
@@ -56,13 +62,25 @@ func modelOperationExample(db *sql.DB) {
 		})
 		misc.AssertError(err)
 
-		logger.Infof("Insert Role ID=%d", roleId)
+		log.Infof("Insert Role ID=%d", roleId)
 
 		users, err := userModel.Get()
 		misc.AssertError(err)
 
 		for _, user := range users {
-			logger.Infof("User id=%d, name=%s, email=%s, role_id=%d", user.Id, user.Name, user.Email, user.RoleId)
+			log.Infof("User id=%d, name=%s, email=%s, role_id=%d", user.Id, user.Name, user.Email, user.RoleId)
+			var userView UserView
+			misc.AssertError(user.As(&userView))
+
+			log.Infof("UserView name=%s, email=%s", userView.Name, userView.Email)
+		}
+
+		// only specified fields
+		users, err = userModel.Get(query.Builder().Select("id", "name"))
+		misc.AssertError(err)
+
+		for _, user := range users {
+			log.Infof("User With Only id/name, id=%d, name=%s, email=%v(must be null)", user.Id, user.Name, user.Email)
 		}
 
 		_, err = userModel.DeleteById(user.Id)
@@ -74,7 +92,7 @@ func modelOperationExample(db *sql.DB) {
 		c2, err := userModel.WithTrashed().Count()
 		misc.AssertError(err)
 
-		logger.Infof("After soft deleted count=%d/%d", c1, c2)
+		log.Infof("After soft deleted count=%d/%d", c1, c2)
 
 		_, err = userModel.ForceDeleteById(user.Id)
 		misc.AssertError(err)
@@ -85,7 +103,7 @@ func modelOperationExample(db *sql.DB) {
 		c2, err = userModel.WithTrashed().Count()
 		misc.AssertError(err)
 
-		logger.Infof("After force deleted count=%d/%d", c1, c2)
+		log.Infof("After force deleted count=%d/%d", c1, c2)
 
 		return nil
 	})
@@ -105,7 +123,7 @@ func databaseOperationExample(db *sql.DB) {
 		)
 		misc.AssertError(err)
 
-		logger.Infof("Insert ID=%d", id)
+		log.Infof("Insert ID=%d", id)
 
 		id, err = eloquent.DB(tx).Insert(
 			"wz_user",
@@ -117,7 +135,7 @@ func databaseOperationExample(db *sql.DB) {
 		)
 		misc.AssertError(err)
 
-		logger.Infof("Insert ID=%d", id)
+		log.Infof("Insert ID=%d", id)
 
 		res, err := eloquent.DB(tx).Query(
 			eloquent.Build("wz_user").Select("id", "name", "email"),
@@ -131,13 +149,22 @@ func databaseOperationExample(db *sql.DB) {
 		misc.AssertError(err)
 
 		res.Each(func(user models.User) {
-			logger.Infof("user_id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
+			log.Infof("user_id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
 		})
+
+		res, err = eloquent.DB(tx).Query(eloquent.Raw("select count(*) from wz_user"), func(row eloquent.Scanner) (interface{}, error) {
+			var count int64
+			err := row.Scan(&count)
+			return count, err
+		})
+		misc.AssertError(err)
+
+		log.Infof("user_count=%d", res.Index(0).(int64))
 
 		affected, err := eloquent.DB(tx).Delete(eloquent.Build("wz_user"))
 		misc.AssertError(err)
 
-		logger.Infof("Deleted rows %d", affected)
+		log.Infof("Deleted rows %d", affected)
 
 		return nil
 	})
@@ -210,27 +237,27 @@ func createEventDispatcher() {
 	eventManager := events.NewEventManager(events.NewMemoryEventStore(false))
 	event.SetDispatcher(eventManager)
 
-	// eventManager.Listen(func(evt event.MigrationStartedEvent) {
-	// 	logger.Debugf("MigrationStartedEvent received: %s", evt.SQL)
-	// })
+	eventManager.Listen(func(evt event.MigrationStartedEvent) {
+		log.Debugf("MigrationStartedEvent received: %s", evt.SQL)
+	})
 
 	eventManager.Listen(func(evt event.QueryExecutedEvent) {
-		logger.WithContext(asteria.C{
-			"sql": evt.SQL,
-			// "bindings": evt.Bindings,
-			// "elapse":   evt.Time.Seconds(),
+		log.WithFields(log.Fields{
+			"sql":      evt.SQL,
+			"bindings": evt.Bindings,
+			"elapse":   evt.Time.String(),
 		}).Debugf("QueryExecutedEvent received")
 	})
 
-	// 	eventManager.Listen(func(evt event.TransactionBeginningEvent) {
-	// 		logger.Debugf("Transaction starting")
-	// 	})
-	//
-	// 	eventManager.Listen(func(evt event.TransactionCommittedEvent) {
-	// 		logger.Debugf("Transaction committed")
-	// 	})
-	//
-	// 	eventManager.Listen(func(evt event.TransactionRolledBackEvent) {
-	// 		logger.Debugf("Transaction rollback")
-	// 	})
+	eventManager.Listen(func(evt event.TransactionBeginningEvent) {
+		log.Debugf("Transaction starting")
+	})
+
+	eventManager.Listen(func(evt event.TransactionCommittedEvent) {
+		log.Debugf("Transaction committed")
+	})
+
+	eventManager.Listen(func(evt event.TransactionRolledBackEvent) {
+		log.Debugf("Transaction rollback")
+	})
 }

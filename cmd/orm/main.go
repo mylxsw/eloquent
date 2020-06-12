@@ -14,6 +14,10 @@ import (
 
 func main() {
 	source := os.Args[1]
+	if source == "" {
+		return
+	}
+
 	matches, err := filepath.Glob(source)
 	assertError(err)
 	for _, m := range matches {
