@@ -5,7 +5,7 @@ import (
 )
 
 func TestSQLBuilder_ResolveCount(t *testing.T) {
-	builder := Builder().Table("users").Where("status", "=", 1).Select("name", "id")
+	builder := Builder().Table("users").Where("status", EQ, 1).Select("name", "id")
 
 	sqlStr, _ := builder.ResolveCount()
 	if sqlStr != "SELECT COUNT(1) as count FROM users WHERE users.`status` = ?" {
@@ -24,7 +24,7 @@ func TestSQLBuilder_Where(t *testing.T) {
 		t.Error("test failed")
 	}
 
-	sqlStr, _ = Builder().Table("users").Where("status", ">", 1).ResolveSum("age")
+	sqlStr, _ = Builder().Table("users").Where("status", GT, 1).ResolveSum("age")
 	if sqlStr != "SELECT SUM(age) as sum FROM users WHERE users.`status` > ?" {
 		t.Error("test failed")
 	}

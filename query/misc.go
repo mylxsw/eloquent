@@ -12,6 +12,16 @@ var (
 	ErrNoResult = errors.New("no result")
 )
 
+const (
+	EQ   = "="
+	NEQ  = "!="
+	GT   = ">"
+	GTE  = ">="
+	LT   = "<"
+	LTE  = "<="
+	LIKE = "LIKE"
+)
+
 type PaginateMeta struct {
 	Page     int64 `json:"page"`
 	PerPage  int64 `json:"per_page"`
