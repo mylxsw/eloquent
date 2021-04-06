@@ -1,6 +1,6 @@
 
 run: generate-models
-	go run examples/main.go
+	go run _examples/main.go
 
 generate-models: build
 	./bin/orm "./_examples/models/*.yml"

@@ -4,6 +4,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
@@ -126,6 +127,12 @@ func (inst *Role) Delete() error {
 	}
 
 	return nil
+}
+
+// String convert instance to json string
+func (inst *Role) String() string {
+	rs, _ := json.Marshal(inst)
+	return string(rs)
 }
 
 func (inst *Role) Users() *RoleHasManyUserRel {

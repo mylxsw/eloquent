@@ -51,6 +51,7 @@ func (d DomainContext) assignableFields(def Definition) []DefinitionField {
 func (d DomainContext) importPackages() []string {
 	var internalPackages = []string{
 		"context",
+		"encoding/json",
 		"gopkg.in/guregu/null.v3",
 		"github.com/mylxsw/eloquent/query",
 		"github.com/mylxsw/coll",

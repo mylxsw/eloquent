@@ -87,5 +87,10 @@ func (inst *{{ camel $m.Name }}) Delete() error {
 	return nil
 }
 
+// String convert instance to json string
+func (inst *{{ camel $m.Name }}) String() string {
+	rs, _ := json.Marshal(inst)
+	return string(rs)
+}
 `
 }

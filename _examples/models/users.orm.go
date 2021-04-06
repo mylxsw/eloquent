@@ -4,6 +4,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent"
@@ -172,6 +173,12 @@ func (inst *User) Delete() error {
 	}
 
 	return nil
+}
+
+// String convert instance to json string
+func (inst *User) String() string {
+	rs, _ := json.Marshal(inst)
+	return string(rs)
 }
 
 func (inst *User) Role() *UserBelongsToRoleRel {
@@ -1032,6 +1039,12 @@ func (inst *UserExt) Delete() error {
 	return nil
 }
 
+// String convert instance to json string
+func (inst *UserExt) String() string {
+	rs, _ := json.Marshal(inst)
+	return string(rs)
+}
+
 func (inst *UserExt) User() *UserExtBelongsToUserRel {
 	return &UserExtBelongsToUserRel{
 		source:   inst,
@@ -1611,6 +1624,12 @@ func (inst *PasswordReset) Delete() error {
 	}
 
 	return nil
+}
+
+// String convert instance to json string
+func (inst *PasswordReset) String() string {
+	rs, _ := json.Marshal(inst)
+	return string(rs)
 }
 
 type passwordResetScope struct {
