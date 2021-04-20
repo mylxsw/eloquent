@@ -10,16 +10,16 @@ import (
 )
 
 var funcMap = template.FuncMap{
-	"implode":                  strings.Join,
-	"trim":                     strings.Trim,
-	"trim_right":               strings.TrimRight,
-	"trim_left":                strings.TrimLeft,
-	"trim_space":               strings.TrimSpace,
-	"lowercase":                strings.ToLower,
-	"format":                   fmt.Sprintf,
-	"snake":                    strcase.ToSnake,
-	"camel":                    strcase.ToCamel,
-	"lower_camel":              strcase.ToLowerCamel,
+	"implode":        strings.Join,
+	"trim":           strings.Trim,
+	"trim_right":     strings.TrimRight,
+	"trim_left":      strings.TrimLeft,
+	"trim_space":     strings.TrimSpace,
+	"lowercase":      strings.ToLower,
+	"format":         fmt.Sprintf,
+	"snake":          strcase.ToSnake,
+	"camel":          strcase.ToCamel,
+	"lower_camel":    strcase.ToLowerCamel,
 }
 
 func AddFunc(name string, f interface{}) {

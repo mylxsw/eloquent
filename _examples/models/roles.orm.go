@@ -21,11 +21,11 @@ type Role struct {
 	original  *roleOriginal
 	roleModel *RoleModel
 
-	Name        string
-	Description string
-	Id          int64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Name        null.String
+	Description null.String
+	Id          null.Int
+	CreatedAt   null.Time
+	UpdatedAt   null.Time
 }
 
 // As convert object to other type
@@ -41,11 +41,11 @@ func (inst *Role) SetModel(roleModel *RoleModel) {
 
 // roleOriginal is an object which stores original Role from database
 type roleOriginal struct {
-	Name        string
-	Description string
-	Id          int64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Name        null.String
+	Description null.String
+	Id          null.Int
+	CreatedAt   null.Time
+	UpdatedAt   null.Time
 }
 
 // Staled identify whether the object has been modified
@@ -54,19 +54,19 @@ func (inst *Role) Staled() bool {
 		inst.original = &roleOriginal{}
 	}
 
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		return true
 	}
-	if inst.Description != inst.original.Description {
+	if inst.Description != inst.original.Description || inst.Description.ValueOrZero() != inst.original.Description.ValueOrZero() || inst.Description.IsZero() != inst.original.Description.IsZero() {
 		return true
 	}
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		return true
 	}
 
@@ -81,19 +81,19 @@ func (inst *Role) StaledKV() query.KV {
 		inst.original = &roleOriginal{}
 	}
 
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		kv["name"] = inst.Name
 	}
-	if inst.Description != inst.original.Description {
+	if inst.Description != inst.original.Description || inst.Description.ValueOrZero() != inst.original.Description.ValueOrZero() || inst.Description.IsZero() != inst.original.Description.IsZero() {
 		kv["description"] = inst.Description
 	}
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		kv["id"] = inst.Id
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		kv["updated_at"] = inst.UpdatedAt
 	}
 
@@ -111,7 +111,7 @@ func (inst *Role) Save() error {
 		return err
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -121,7 +121,7 @@ func (inst *Role) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.roleModel.DeleteById(inst.Id)
+	_, err := inst.roleModel.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -230,23 +230,33 @@ func (m *RoleModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type roleWrap struct {
-	Name        null.String
-	Description null.String
-	Id          null.Int
-	CreatedAt   null.Time
-	UpdatedAt   null.Time
+type RolePlain struct {
+	Name        string
+	Description string
+	Id          int64
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
-func (w roleWrap) ToRole() Role {
+func (w RolePlain) ToRole() Role {
 	return Role{
-		original: &roleOriginal{
-			Name:        w.Name.String,
-			Description: w.Description.String,
-			Id:          w.Id.Int64,
-			CreatedAt:   w.CreatedAt.Time,
-			UpdatedAt:   w.UpdatedAt.Time,
-		},
+
+		Name:        null.StringFrom(w.Name),
+		Description: null.StringFrom(w.Description),
+		Id:          null.IntFrom(int64(w.Id)),
+		CreatedAt:   null.TimeFrom(w.CreatedAt),
+		UpdatedAt:   null.TimeFrom(w.UpdatedAt),
+	}
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w RolePlain) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *Role) ToRolePlain() RolePlain {
+	return RolePlain{
 
 		Name:        w.Name.String,
 		Description: w.Description.String,
@@ -423,8 +433,8 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*roleWrap, []interface{}) {
-		var roleVar roleWrap
+	var createScanVar = func(fields []query.Expr) (*Role, []interface{}) {
+		var roleVar Role
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -457,14 +467,13 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 
 	roles := make([]Role, 0)
 	for rows.Next() {
-		roleVar, scanFields := createScanVar(fields)
+		roleReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		roleReal := roleVar.ToRole()
 		roleReal.SetModel(m)
-		roles = append(roles, roleReal)
+		roles = append(roles, *roleReal)
 	}
 
 	return roles, nil
@@ -527,9 +536,9 @@ func (m *RoleModel) Save(role Role) (int64, error) {
 
 // SaveOrUpdate save a new Role or update it when it has a id > 0
 func (m *RoleModel) SaveOrUpdate(role Role) (id int64, updated bool, err error) {
-	if role.Id > 0 {
-		_, _err := m.UpdateById(role.Id, role)
-		return role.Id, true, _err
+	if role.Id.Int64 > 0 {
+		_, _err := m.UpdateById(role.Id.Int64, role)
+		return role.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save(role)

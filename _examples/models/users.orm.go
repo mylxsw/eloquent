@@ -27,15 +27,15 @@ type User struct {
 	original  *userOriginal
 	userModel *UserModel
 
-	Id            int64 `json:"id"`
-	Name          string
-	Email         string `json:"email"`
-	Password      string `json:"password" yaml:"password"`
-	RoleId        int64
-	EnterpriseId  int64
-	RememberToken string `json:"remember_token" yaml:"remember_token"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Id            null.Int `json:"id"`
+	Name          null.String
+	Email         null.String `json:"email"`
+	Password      null.String `json:"password" yaml:"password"`
+	RoleId        null.Int
+	EnterpriseId  null.Int
+	RememberToken null.String `json:"remember_token" yaml:"remember_token"`
+	CreatedAt     null.Time
+	UpdatedAt     null.Time
 	DeletedAt     null.Time
 }
 
@@ -52,15 +52,15 @@ func (inst *User) SetModel(userModel *UserModel) {
 
 // userOriginal is an object which stores original User from database
 type userOriginal struct {
-	Id            int64
-	Name          string
-	Email         string
-	Password      string
-	RoleId        int64
-	EnterpriseId  int64
-	RememberToken string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Id            null.Int
+	Name          null.String
+	Email         null.String
+	Password      null.String
+	RoleId        null.Int
+	EnterpriseId  null.Int
+	RememberToken null.String
+	CreatedAt     null.Time
+	UpdatedAt     null.Time
 	DeletedAt     null.Time
 }
 
@@ -70,34 +70,34 @@ func (inst *User) Staled() bool {
 		inst.original = &userOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		return true
 	}
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		return true
 	}
-	if inst.Email != inst.original.Email {
+	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
 		return true
 	}
-	if inst.Password != inst.original.Password {
+	if inst.Password != inst.original.Password || inst.Password.ValueOrZero() != inst.original.Password.ValueOrZero() || inst.Password.IsZero() != inst.original.Password.IsZero() {
 		return true
 	}
-	if inst.RoleId != inst.original.RoleId {
+	if inst.RoleId != inst.original.RoleId || inst.RoleId.ValueOrZero() != inst.original.RoleId.ValueOrZero() || inst.RoleId.IsZero() != inst.original.RoleId.IsZero() {
 		return true
 	}
-	if inst.EnterpriseId != inst.original.EnterpriseId {
+	if inst.EnterpriseId != inst.original.EnterpriseId || inst.EnterpriseId.ValueOrZero() != inst.original.EnterpriseId.ValueOrZero() || inst.EnterpriseId.IsZero() != inst.original.EnterpriseId.IsZero() {
 		return true
 	}
-	if inst.RememberToken != inst.original.RememberToken {
+	if inst.RememberToken != inst.original.RememberToken || inst.RememberToken.ValueOrZero() != inst.original.RememberToken.ValueOrZero() || inst.RememberToken.IsZero() != inst.original.RememberToken.IsZero() {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		return true
 	}
-	if inst.DeletedAt != inst.original.DeletedAt {
+	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
 		return true
 	}
 
@@ -112,34 +112,34 @@ func (inst *User) StaledKV() query.KV {
 		inst.original = &userOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		kv["id"] = inst.Id
 	}
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		kv["name"] = inst.Name
 	}
-	if inst.Email != inst.original.Email {
+	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
 		kv["email"] = inst.Email
 	}
-	if inst.Password != inst.original.Password {
+	if inst.Password != inst.original.Password || inst.Password.ValueOrZero() != inst.original.Password.ValueOrZero() || inst.Password.IsZero() != inst.original.Password.IsZero() {
 		kv["password"] = inst.Password
 	}
-	if inst.RoleId != inst.original.RoleId {
+	if inst.RoleId != inst.original.RoleId || inst.RoleId.ValueOrZero() != inst.original.RoleId.ValueOrZero() || inst.RoleId.IsZero() != inst.original.RoleId.IsZero() {
 		kv["role_id"] = inst.RoleId
 	}
-	if inst.EnterpriseId != inst.original.EnterpriseId {
+	if inst.EnterpriseId != inst.original.EnterpriseId || inst.EnterpriseId.ValueOrZero() != inst.original.EnterpriseId.ValueOrZero() || inst.EnterpriseId.IsZero() != inst.original.EnterpriseId.IsZero() {
 		kv["enterprise_id"] = inst.EnterpriseId
 	}
-	if inst.RememberToken != inst.original.RememberToken {
+	if inst.RememberToken != inst.original.RememberToken || inst.RememberToken.ValueOrZero() != inst.original.RememberToken.ValueOrZero() || inst.RememberToken.IsZero() != inst.original.RememberToken.IsZero() {
 		kv["remember_token"] = inst.RememberToken
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		kv["updated_at"] = inst.UpdatedAt
 	}
-	if inst.DeletedAt != inst.original.DeletedAt {
+	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
 		kv["deleted_at"] = inst.DeletedAt
 	}
 
@@ -157,7 +157,7 @@ func (inst *User) Save() error {
 		return err
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -167,7 +167,7 @@ func (inst *User) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.userModel.DeleteById(inst.Id)
+	_, err := inst.userModel.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (rel *UserBelongsToRoleRel) Create(target Role) (int64, error) {
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	rel.source.RoleId = target.Id
 	if err := rel.source.Save(); err != nil {
@@ -227,7 +227,7 @@ func (rel *UserBelongsToRoleRel) Associate(target Role) error {
 }
 
 func (rel *UserBelongsToRoleRel) Dissociate() error {
-	rel.source.RoleId = 0
+	rel.source.RoleId = null.IntFrom(0)
 	return rel.source.Save()
 }
 
@@ -249,7 +249,7 @@ func (rel *UserBelongsToEnterpriseRel) Create(target Enterprise) (int64, error) 
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	rel.source.EnterpriseId = target.Id
 	if err := rel.source.Save(); err != nil {
@@ -277,7 +277,7 @@ func (rel *UserBelongsToEnterpriseRel) Associate(target Enterprise) error {
 }
 
 func (rel *UserBelongsToEnterpriseRel) Dissociate() error {
-	rel.source.EnterpriseId = 0
+	rel.source.EnterpriseId = null.IntFrom(0)
 	return rel.source.Save()
 }
 
@@ -421,7 +421,7 @@ func (rel *UserBelongsToManyOrganizationRel) Create(target Organization, builder
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	err = rel.Attach(target)
 
@@ -483,33 +483,43 @@ func (m *UserModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type userWrap struct {
-	Id            null.Int
-	Name          null.String
-	Email         null.String
-	Password      null.String
-	RoleId        null.Int
-	EnterpriseId  null.Int
-	RememberToken null.String
-	CreatedAt     null.Time
-	UpdatedAt     null.Time
-	DeletedAt     null.Time
+type UserPlain struct {
+	Id            int64
+	Name          string
+	Email         string
+	Password      string
+	RoleId        int64
+	EnterpriseId  int64
+	RememberToken string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     time.Time
 }
 
-func (w userWrap) ToUser() User {
+func (w UserPlain) ToUser() User {
 	return User{
-		original: &userOriginal{
-			Id:            w.Id.Int64,
-			Name:          w.Name.String,
-			Email:         w.Email.String,
-			Password:      w.Password.String,
-			RoleId:        w.RoleId.Int64,
-			EnterpriseId:  w.EnterpriseId.Int64,
-			RememberToken: w.RememberToken.String,
-			CreatedAt:     w.CreatedAt.Time,
-			UpdatedAt:     w.UpdatedAt.Time,
-			DeletedAt:     w.DeletedAt,
-		},
+
+		Id:            null.IntFrom(int64(w.Id)),
+		Name:          null.StringFrom(w.Name),
+		Email:         null.StringFrom(w.Email),
+		Password:      null.StringFrom(w.Password),
+		RoleId:        null.IntFrom(int64(w.RoleId)),
+		EnterpriseId:  null.IntFrom(int64(w.EnterpriseId)),
+		RememberToken: null.StringFrom(w.RememberToken),
+		CreatedAt:     null.TimeFrom(w.CreatedAt),
+		UpdatedAt:     null.TimeFrom(w.UpdatedAt),
+		DeletedAt:     null.TimeFrom(w.DeletedAt),
+	}
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w UserPlain) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *User) ToUserPlain() UserPlain {
+	return UserPlain{
 
 		Id:            w.Id.Int64,
 		Name:          w.Name.String,
@@ -520,7 +530,7 @@ func (w userWrap) ToUser() User {
 		RememberToken: w.RememberToken.String,
 		CreatedAt:     w.CreatedAt.Time,
 		UpdatedAt:     w.UpdatedAt.Time,
-		DeletedAt:     w.DeletedAt,
+		DeletedAt:     w.DeletedAt.Time,
 	}
 }
 
@@ -711,8 +721,8 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*userWrap, []interface{}) {
-		var userVar userWrap
+	var createScanVar = func(fields []query.Expr) (*User, []interface{}) {
+		var userVar User
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -755,14 +765,13 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 
 	users := make([]User, 0)
 	for rows.Next() {
-		userVar, scanFields := createScanVar(fields)
+		userReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		userReal := userVar.ToUser()
 		userReal.SetModel(m)
-		users = append(users, userReal)
+		users = append(users, *userReal)
 	}
 
 	return users, nil
@@ -825,9 +834,9 @@ func (m *UserModel) Save(user User) (int64, error) {
 
 // SaveOrUpdate save a new User or update it when it has a id > 0
 func (m *UserModel) SaveOrUpdate(user User) (id int64, updated bool, err error) {
-	if user.Id > 0 {
-		_, _err := m.UpdateById(user.Id, user)
-		return user.Id, true, _err
+	if user.Id.Int64 > 0 {
+		_, _err := m.UpdateById(user.Id.Int64, user)
+		return user.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save(user)
@@ -915,13 +924,13 @@ type UserExt struct {
 	original     *userExtOriginal
 	userExtModel *UserExtModel
 
-	Address   string
-	Qq        string
-	Wechat    string
-	UserId    int64
-	Id        int64
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Address   null.String
+	Qq        null.String
+	Wechat    null.String
+	UserId    null.Int
+	Id        null.Int
+	CreatedAt null.Time
+	UpdatedAt null.Time
 }
 
 // As convert object to other type
@@ -937,13 +946,13 @@ func (inst *UserExt) SetModel(userExtModel *UserExtModel) {
 
 // userExtOriginal is an object which stores original UserExt from database
 type userExtOriginal struct {
-	Address   string
-	Qq        string
-	Wechat    string
-	UserId    int64
-	Id        int64
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Address   null.String
+	Qq        null.String
+	Wechat    null.String
+	UserId    null.Int
+	Id        null.Int
+	CreatedAt null.Time
+	UpdatedAt null.Time
 }
 
 // Staled identify whether the object has been modified
@@ -952,25 +961,25 @@ func (inst *UserExt) Staled() bool {
 		inst.original = &userExtOriginal{}
 	}
 
-	if inst.Address != inst.original.Address {
+	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
 		return true
 	}
-	if inst.Qq != inst.original.Qq {
+	if inst.Qq != inst.original.Qq || inst.Qq.ValueOrZero() != inst.original.Qq.ValueOrZero() || inst.Qq.IsZero() != inst.original.Qq.IsZero() {
 		return true
 	}
-	if inst.Wechat != inst.original.Wechat {
+	if inst.Wechat != inst.original.Wechat || inst.Wechat.ValueOrZero() != inst.original.Wechat.ValueOrZero() || inst.Wechat.IsZero() != inst.original.Wechat.IsZero() {
 		return true
 	}
-	if inst.UserId != inst.original.UserId {
+	if inst.UserId != inst.original.UserId || inst.UserId.ValueOrZero() != inst.original.UserId.ValueOrZero() || inst.UserId.IsZero() != inst.original.UserId.IsZero() {
 		return true
 	}
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		return true
 	}
 
@@ -985,25 +994,25 @@ func (inst *UserExt) StaledKV() query.KV {
 		inst.original = &userExtOriginal{}
 	}
 
-	if inst.Address != inst.original.Address {
+	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
 		kv["address"] = inst.Address
 	}
-	if inst.Qq != inst.original.Qq {
+	if inst.Qq != inst.original.Qq || inst.Qq.ValueOrZero() != inst.original.Qq.ValueOrZero() || inst.Qq.IsZero() != inst.original.Qq.IsZero() {
 		kv["qq"] = inst.Qq
 	}
-	if inst.Wechat != inst.original.Wechat {
+	if inst.Wechat != inst.original.Wechat || inst.Wechat.ValueOrZero() != inst.original.Wechat.ValueOrZero() || inst.Wechat.IsZero() != inst.original.Wechat.IsZero() {
 		kv["wechat"] = inst.Wechat
 	}
-	if inst.UserId != inst.original.UserId {
+	if inst.UserId != inst.original.UserId || inst.UserId.ValueOrZero() != inst.original.UserId.ValueOrZero() || inst.UserId.IsZero() != inst.original.UserId.IsZero() {
 		kv["user_id"] = inst.UserId
 	}
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		kv["id"] = inst.Id
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		kv["updated_at"] = inst.UpdatedAt
 	}
 
@@ -1021,7 +1030,7 @@ func (inst *UserExt) Save() error {
 		return err
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -1031,7 +1040,7 @@ func (inst *UserExt) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.userExtModel.DeleteById(inst.Id)
+	_, err := inst.userExtModel.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -1063,7 +1072,7 @@ func (rel *UserExtBelongsToUserRel) Create(target User) (int64, error) {
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	rel.source.UserId = target.Id
 	if err := rel.source.Save(); err != nil {
@@ -1091,7 +1100,7 @@ func (rel *UserExtBelongsToUserRel) Associate(target User) error {
 }
 
 func (rel *UserExtBelongsToUserRel) Dissociate() error {
-	rel.source.UserId = 0
+	rel.source.UserId = null.IntFrom(0)
 	return rel.source.Save()
 }
 
@@ -1150,27 +1159,37 @@ func (m *UserExtModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type userExtWrap struct {
-	Address   null.String
-	Qq        null.String
-	Wechat    null.String
-	UserId    null.Int
-	Id        null.Int
-	CreatedAt null.Time
-	UpdatedAt null.Time
+type UserExtPlain struct {
+	Address   string
+	Qq        string
+	Wechat    string
+	UserId    int64
+	Id        int64
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-func (w userExtWrap) ToUserExt() UserExt {
+func (w UserExtPlain) ToUserExt() UserExt {
 	return UserExt{
-		original: &userExtOriginal{
-			Address:   w.Address.String,
-			Qq:        w.Qq.String,
-			Wechat:    w.Wechat.String,
-			UserId:    w.UserId.Int64,
-			Id:        w.Id.Int64,
-			CreatedAt: w.CreatedAt.Time,
-			UpdatedAt: w.UpdatedAt.Time,
-		},
+
+		Address:   null.StringFrom(w.Address),
+		Qq:        null.StringFrom(w.Qq),
+		Wechat:    null.StringFrom(w.Wechat),
+		UserId:    null.IntFrom(int64(w.UserId)),
+		Id:        null.IntFrom(int64(w.Id)),
+		CreatedAt: null.TimeFrom(w.CreatedAt),
+		UpdatedAt: null.TimeFrom(w.UpdatedAt),
+	}
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w UserExtPlain) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *UserExt) ToUserExtPlain() UserExtPlain {
+	return UserExtPlain{
 
 		Address:   w.Address.String,
 		Qq:        w.Qq.String,
@@ -1355,8 +1374,8 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*userExtWrap, []interface{}) {
-		var userExtVar userExtWrap
+	var createScanVar = func(fields []query.Expr) (*UserExt, []interface{}) {
+		var userExtVar UserExt
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -1393,14 +1412,13 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 
 	userExts := make([]UserExt, 0)
 	for rows.Next() {
-		userExtVar, scanFields := createScanVar(fields)
+		userExtReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		userExtReal := userExtVar.ToUserExt()
 		userExtReal.SetModel(m)
-		userExts = append(userExts, userExtReal)
+		userExts = append(userExts, *userExtReal)
 	}
 
 	return userExts, nil
@@ -1463,9 +1481,9 @@ func (m *UserExtModel) Save(userExt UserExt) (int64, error) {
 
 // SaveOrUpdate save a new UserExt or update it when it has a id > 0
 func (m *UserExtModel) SaveOrUpdate(userExt UserExt) (id int64, updated bool, err error) {
-	if userExt.Id > 0 {
-		_, _err := m.UpdateById(userExt.Id, userExt)
-		return userExt.Id, true, _err
+	if userExt.Id.Int64 > 0 {
+		_, _err := m.UpdateById(userExt.Id.Int64, userExt)
+		return userExt.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save(userExt)
@@ -1526,10 +1544,10 @@ type PasswordReset struct {
 	original           *passwordResetOriginal
 	passwordResetModel *PasswordResetModel
 
-	Email     string
-	Token     string
-	Id        int64
-	CreatedAt time.Time
+	Email     null.String
+	Token     null.String
+	Id        null.Int
+	CreatedAt null.Time
 }
 
 // As convert object to other type
@@ -1545,10 +1563,10 @@ func (inst *PasswordReset) SetModel(passwordResetModel *PasswordResetModel) {
 
 // passwordResetOriginal is an object which stores original PasswordReset from database
 type passwordResetOriginal struct {
-	Email     string
-	Token     string
-	Id        int64
-	CreatedAt time.Time
+	Email     null.String
+	Token     null.String
+	Id        null.Int
+	CreatedAt null.Time
 }
 
 // Staled identify whether the object has been modified
@@ -1557,16 +1575,16 @@ func (inst *PasswordReset) Staled() bool {
 		inst.original = &passwordResetOriginal{}
 	}
 
-	if inst.Email != inst.original.Email {
+	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
 		return true
 	}
-	if inst.Token != inst.original.Token {
+	if inst.Token != inst.original.Token || inst.Token.ValueOrZero() != inst.original.Token.ValueOrZero() || inst.Token.IsZero() != inst.original.Token.IsZero() {
 		return true
 	}
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		return true
 	}
 
@@ -1581,16 +1599,16 @@ func (inst *PasswordReset) StaledKV() query.KV {
 		inst.original = &passwordResetOriginal{}
 	}
 
-	if inst.Email != inst.original.Email {
+	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
 		kv["email"] = inst.Email
 	}
-	if inst.Token != inst.original.Token {
+	if inst.Token != inst.original.Token || inst.Token.ValueOrZero() != inst.original.Token.ValueOrZero() || inst.Token.IsZero() != inst.original.Token.IsZero() {
 		kv["token"] = inst.Token
 	}
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		kv["id"] = inst.Id
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		kv["created_at"] = inst.CreatedAt
 	}
 
@@ -1608,7 +1626,7 @@ func (inst *PasswordReset) Save() error {
 		return err
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -1618,7 +1636,7 @@ func (inst *PasswordReset) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.passwordResetModel.DeleteById(inst.Id)
+	_, err := inst.passwordResetModel.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -1687,21 +1705,31 @@ func (m *PasswordResetModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type passwordResetWrap struct {
-	Email     null.String
-	Token     null.String
-	Id        null.Int
-	CreatedAt null.Time
+type PasswordResetPlain struct {
+	Email     string
+	Token     string
+	Id        int64
+	CreatedAt time.Time
 }
 
-func (w passwordResetWrap) ToPasswordReset() PasswordReset {
+func (w PasswordResetPlain) ToPasswordReset() PasswordReset {
 	return PasswordReset{
-		original: &passwordResetOriginal{
-			Email:     w.Email.String,
-			Token:     w.Token.String,
-			Id:        w.Id.Int64,
-			CreatedAt: w.CreatedAt.Time,
-		},
+
+		Email:     null.StringFrom(w.Email),
+		Token:     null.StringFrom(w.Token),
+		Id:        null.IntFrom(int64(w.Id)),
+		CreatedAt: null.TimeFrom(w.CreatedAt),
+	}
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w PasswordResetPlain) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *PasswordReset) ToPasswordResetPlain() PasswordResetPlain {
+	return PasswordResetPlain{
 
 		Email:     w.Email.String,
 		Token:     w.Token.String,
@@ -1874,8 +1902,8 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*passwordResetWrap, []interface{}) {
-		var passwordResetVar passwordResetWrap
+	var createScanVar = func(fields []query.Expr) (*PasswordReset, []interface{}) {
+		var passwordResetVar PasswordReset
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -1906,14 +1934,13 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 
 	passwordResets := make([]PasswordReset, 0)
 	for rows.Next() {
-		passwordResetVar, scanFields := createScanVar(fields)
+		passwordResetReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		passwordResetReal := passwordResetVar.ToPasswordReset()
 		passwordResetReal.SetModel(m)
-		passwordResets = append(passwordResets, passwordResetReal)
+		passwordResets = append(passwordResets, *passwordResetReal)
 	}
 
 	return passwordResets, nil
@@ -1972,9 +1999,9 @@ func (m *PasswordResetModel) Save(passwordReset PasswordReset) (int64, error) {
 
 // SaveOrUpdate save a new PasswordReset or update it when it has a id > 0
 func (m *PasswordResetModel) SaveOrUpdate(passwordReset PasswordReset) (id int64, updated bool, err error) {
-	if passwordReset.Id > 0 {
-		_, _err := m.UpdateById(passwordReset.Id, passwordReset)
-		return passwordReset.Id, true, _err
+	if passwordReset.Id.Int64 > 0 {
+		_, _err := m.UpdateById(passwordReset.Id.Int64, passwordReset)
+		return passwordReset.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save(passwordReset)

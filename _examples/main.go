@@ -12,6 +12,7 @@ import (
 	"github.com/mylxsw/eloquent/query"
 	"github.com/mylxsw/go-toolkit/events"
 	"github.com/mylxsw/go-toolkit/misc"
+	"gopkg.in/guregu/null.v3"
 )
 
 func main() {
@@ -43,9 +44,9 @@ func modelOperationExample(db *sql.DB) {
 		userModel := models.NewUserModel(tx)
 
 		id, err := userModel.Save(models.User{
-			Name:     "guan",
-			Email:    "guan@aicode.cc",
-			Password: "88959q",
+			Name:     null.StringFrom("guan"),
+			Email:    null.StringFrom("guan@aicode.cc"),
+			Password: null.StringFrom("88959q"),
 		})
 		misc.AssertError(err)
 
@@ -54,11 +55,11 @@ func modelOperationExample(db *sql.DB) {
 		user, err := userModel.Find(id)
 		misc.AssertError(err)
 
-		log.Infof("User id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
+		log.Infof("User id=%d, name=%s, email=%s", user.Id.Int64, user.Name.String, user.Email.String)
 
 		roleId, err := user.Role().Create(models.Role{
-			Name:        "admin",
-			Description: "root user",
+			Name:        null.StringFrom("admin"),
+			Description: null.StringFrom("root user"),
 		})
 		misc.AssertError(err)
 
@@ -68,11 +69,12 @@ func modelOperationExample(db *sql.DB) {
 		misc.AssertError(err)
 
 		for _, user := range users {
-			log.Infof("User id=%d, name=%s, email=%s, role_id=%d", user.Id, user.Name, user.Email, user.RoleId)
+			log.Infof("User id=%d, name=%s, email=%s, role_id=%d", user.Id.Int64, user.Name.String, user.Email.String, user.RoleId.Int64)
 			var userView UserView
 			misc.AssertError(user.As(&userView))
 
 			log.Infof("UserView name=%s, email=%s", userView.Name, userView.Email)
+
 		}
 
 		// only specified fields
@@ -83,7 +85,7 @@ func modelOperationExample(db *sql.DB) {
 			log.Infof("User With Only id/name, id=%d, name=%s, email=%v(must be null)", user.Id, user.Name, user.Email)
 		}
 
-		_, err = userModel.DeleteById(user.Id)
+		_, err = userModel.DeleteById(user.Id.Int64)
 		misc.AssertError(err)
 
 		c1, err := userModel.Count()
@@ -94,7 +96,7 @@ func modelOperationExample(db *sql.DB) {
 
 		log.Infof("After soft deleted count=%d/%d", c1, c2)
 
-		_, err = userModel.ForceDeleteById(user.Id)
+		_, err = userModel.ForceDeleteById(user.Id.Int64)
 		misc.AssertError(err)
 
 		c1, err = userModel.Count()
@@ -149,7 +151,7 @@ func databaseOperationExample(db *sql.DB) {
 		misc.AssertError(err)
 
 		res.Each(func(user models.User) {
-			log.Infof("user_id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
+			log.Infof("user_id=%d, name=%s, email=%s", user.Id.ValueOrZero(), user.Name.ValueOrZero(), user.Email.ValueOrZero())
 		})
 
 		res, err = eloquent.DB(tx).Query(eloquent.Raw("select count(*) from wz_user"), func(row eloquent.Scanner) (interface{}, error) {

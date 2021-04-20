@@ -25,10 +25,11 @@ func init() {
 	AddFunc("rel_has_one_name", relationHasOneName)
 	AddFunc("rel_belongs_to_many_name", relationBelongsToManyName)
 	AddFunc("rel_pivot_table_name", relationPivotTable)
+	AddFunc("sql_field_type", sqlFieldType)
 }
 
-func wrapType(t string) string {
-	switch t {
+func sqlFieldType(field string) string {
+	switch field {
 	case "int64", "int", "int8", "int32":
 		return "null.Int"
 	case "string":
@@ -41,7 +42,18 @@ func wrapType(t string) string {
 		return "null.Bool"
 	}
 
-	return t
+	return field
+}
+
+func wrapType(f string, t string) string {
+	tt := sqlFieldType(t)
+	if tt == "null.Int" {
+		f = fmt.Sprintf("int64(%s)", f)
+	}
+	if tt == "null.Float" {
+		f = fmt.Sprintf("float64(%s)", f)
+	}
+	return fmt.Sprintf("%sFrom(%s)", tt, f)
 }
 
 func unWrapType(name string, t string) string {
@@ -51,7 +63,7 @@ func unWrapType(name string, t string) string {
 		return base
 	}
 
-	switch wrapType(t) {
+	switch sqlFieldType(t) {
 	case "null.Int":
 		if t == "int64" {
 			return base + ".Int64"
@@ -109,7 +121,7 @@ func entityFields(def Definition) []DefinitionField {
 	}
 
 	if def.SoftDelete {
-		fields = append(fields, DefinitionField{Name: "DeletedAt", Type: "null.Time"})
+		fields = append(fields, DefinitionField{Name: "DeletedAt", Type: "time.Time"})
 	}
 
 	return uniqueFields(fields)

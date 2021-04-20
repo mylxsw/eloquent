@@ -5,11 +5,12 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
-	"time"
 )
 
 func init() {
@@ -26,12 +27,12 @@ type Enterprise struct {
 	original        *enterpriseOriginal
 	enterpriseModel *EnterpriseModel
 
-	Id        int64
-	Name      string
-	Address   string
-	Status    int8
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id        null.Int
+	Name      null.String
+	Address   null.String
+	Status    null.Int
+	CreatedAt null.Time
+	UpdatedAt null.Time
 	DeletedAt null.Time
 }
 
@@ -48,12 +49,12 @@ func (inst *Enterprise) SetModel(enterpriseModel *EnterpriseModel) {
 
 // enterpriseOriginal is an object which stores original Enterprise from database
 type enterpriseOriginal struct {
-	Id        int64
-	Name      string
-	Address   string
-	Status    int8
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id        null.Int
+	Name      null.String
+	Address   null.String
+	Status    null.Int
+	CreatedAt null.Time
+	UpdatedAt null.Time
 	DeletedAt null.Time
 }
 
@@ -63,25 +64,25 @@ func (inst *Enterprise) Staled() bool {
 		inst.original = &enterpriseOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		return true
 	}
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		return true
 	}
-	if inst.Address != inst.original.Address {
+	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
 		return true
 	}
-	if inst.Status != inst.original.Status {
+	if inst.Status != inst.original.Status || inst.Status.ValueOrZero() != inst.original.Status.ValueOrZero() || inst.Status.IsZero() != inst.original.Status.IsZero() {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		return true
 	}
-	if inst.DeletedAt != inst.original.DeletedAt {
+	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
 		return true
 	}
 
@@ -96,25 +97,25 @@ func (inst *Enterprise) StaledKV() query.KV {
 		inst.original = &enterpriseOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		kv["id"] = inst.Id
 	}
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		kv["name"] = inst.Name
 	}
-	if inst.Address != inst.original.Address {
+	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
 		kv["address"] = inst.Address
 	}
-	if inst.Status != inst.original.Status {
+	if inst.Status != inst.original.Status || inst.Status.ValueOrZero() != inst.original.Status.ValueOrZero() || inst.Status.IsZero() != inst.original.Status.IsZero() {
 		kv["status"] = inst.Status
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		kv["updated_at"] = inst.UpdatedAt
 	}
-	if inst.DeletedAt != inst.original.DeletedAt {
+	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
 		kv["deleted_at"] = inst.DeletedAt
 	}
 
@@ -132,7 +133,7 @@ func (inst *Enterprise) Save() error {
 		return err
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -142,7 +143,7 @@ func (inst *Enterprise) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.enterpriseModel.DeleteById(inst.Id)
+	_, err := inst.enterpriseModel.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -251,27 +252,37 @@ func (m *EnterpriseModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type enterpriseWrap struct {
-	Id        null.Int
-	Name      null.String
-	Address   null.String
-	Status    null.Int
-	CreatedAt null.Time
-	UpdatedAt null.Time
-	DeletedAt null.Time
+type EnterprisePlain struct {
+	Id        int64
+	Name      string
+	Address   string
+	Status    int8
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
 }
 
-func (w enterpriseWrap) ToEnterprise() Enterprise {
+func (w EnterprisePlain) ToEnterprise() Enterprise {
 	return Enterprise{
-		original: &enterpriseOriginal{
-			Id:        w.Id.Int64,
-			Name:      w.Name.String,
-			Address:   w.Address.String,
-			Status:    int8(w.Status.Int64),
-			CreatedAt: w.CreatedAt.Time,
-			UpdatedAt: w.UpdatedAt.Time,
-			DeletedAt: w.DeletedAt,
-		},
+
+		Id:        null.IntFrom(int64(w.Id)),
+		Name:      null.StringFrom(w.Name),
+		Address:   null.StringFrom(w.Address),
+		Status:    null.IntFrom(int64(w.Status)),
+		CreatedAt: null.TimeFrom(w.CreatedAt),
+		UpdatedAt: null.TimeFrom(w.UpdatedAt),
+		DeletedAt: null.TimeFrom(w.DeletedAt),
+	}
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w EnterprisePlain) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *Enterprise) ToEnterprisePlain() EnterprisePlain {
+	return EnterprisePlain{
 
 		Id:        w.Id.Int64,
 		Name:      w.Name.String,
@@ -279,7 +290,7 @@ func (w enterpriseWrap) ToEnterprise() Enterprise {
 		Status:    int8(w.Status.Int64),
 		CreatedAt: w.CreatedAt.Time,
 		UpdatedAt: w.UpdatedAt.Time,
-		DeletedAt: w.DeletedAt,
+		DeletedAt: w.DeletedAt.Time,
 	}
 }
 
@@ -461,8 +472,8 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*enterpriseWrap, []interface{}) {
-		var enterpriseVar enterpriseWrap
+	var createScanVar = func(fields []query.Expr) (*Enterprise, []interface{}) {
+		var enterpriseVar Enterprise
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -499,14 +510,13 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 
 	enterprises := make([]Enterprise, 0)
 	for rows.Next() {
-		enterpriseVar, scanFields := createScanVar(fields)
+		enterpriseReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		enterpriseReal := enterpriseVar.ToEnterprise()
 		enterpriseReal.SetModel(m)
-		enterprises = append(enterprises, enterpriseReal)
+		enterprises = append(enterprises, *enterpriseReal)
 	}
 
 	return enterprises, nil
@@ -569,9 +579,9 @@ func (m *EnterpriseModel) Save(enterprise Enterprise) (int64, error) {
 
 // SaveOrUpdate save a new enterprise or update it when it has a id > 0
 func (m *EnterpriseModel) SaveOrUpdate(enterprise Enterprise) (id int64, updated bool, err error) {
-	if enterprise.Id > 0 {
-		_, _err := m.UpdateById(enterprise.Id, enterprise)
-		return enterprise.Id, true, _err
+	if enterprise.Id.Int64 > 0 {
+		_, _err := m.UpdateById(enterprise.Id.Int64, enterprise)
+		return enterprise.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save(enterprise)

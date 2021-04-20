@@ -166,8 +166,8 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*{{ lower_camel $m.Name }}Wrap, []interface{}) {
-		var {{ lower_camel $m.Name }}Var {{ lower_camel $m.Name }}Wrap
+	var createScanVar = func(fields []query.Expr) (*{{ camel $m.Name }}, []interface{}) {
+		var {{ lower_camel $m.Name }}Var {{ camel $m.Name }}
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -192,14 +192,13 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 
 	{{ lower_camel $m.Name }}s := make([]{{ camel $m.Name }}, 0)
 	for rows.Next() {
-		{{ lower_camel $m.Name }}Var, scanFields := createScanVar(fields)
+		{{ lower_camel $m.Name }}Real, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		{{ lower_camel $m.Name }}Real := {{ lower_camel $m.Name }}Var.To{{ camel $m.Name }}()
 		{{ lower_camel $m.Name }}Real.SetModel(m)
-		{{ lower_camel $m.Name }}s = append({{ lower_camel $m.Name }}s, {{ lower_camel $m.Name }}Real)
+		{{ lower_camel $m.Name }}s = append({{ lower_camel $m.Name }}s, *{{ lower_camel $m.Name }}Real)
 	}
 
 	return {{ lower_camel $m.Name }}s, nil
@@ -264,9 +263,9 @@ func (m *{{ camel $m.Name }}Model) Save({{ lower_camel $m.Name }} {{ camel $m.Na
 
 // SaveOrUpdate save a new {{ $m.Name }} or update it when it has a id > 0
 func (m *{{ camel $m.Name }}Model) SaveOrUpdate({{ lower_camel $m.Name }} {{ camel $m.Name }}) (id int64, updated bool, err error) {
-	if {{ lower_camel $m.Name }}.Id > 0 {
-		_, _err := m.UpdateById({{ lower_camel $m.Name }}.Id, {{ lower_camel $m.Name }})
-		return {{ lower_camel $m.Name }}.Id, true, _err
+	if {{ lower_camel $m.Name }}.Id.Int64 > 0 {
+		_, _err := m.UpdateById({{ lower_camel $m.Name }}.Id.Int64, {{ lower_camel $m.Name }})
+		return {{ lower_camel $m.Name }}.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save({{ lower_camel $m.Name }})

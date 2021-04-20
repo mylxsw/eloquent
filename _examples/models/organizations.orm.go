@@ -22,10 +22,10 @@ type Organization struct {
 	original          *organizationOriginal
 	organizationModel *OrganizationModel
 
-	Id        int64
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id        null.Int
+	Name      null.String
+	CreatedAt null.Time
+	UpdatedAt null.Time
 }
 
 // As convert object to other type
@@ -41,10 +41,10 @@ func (inst *Organization) SetModel(organizationModel *OrganizationModel) {
 
 // organizationOriginal is an object which stores original Organization from database
 type organizationOriginal struct {
-	Id        int64
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id        null.Int
+	Name      null.String
+	CreatedAt null.Time
+	UpdatedAt null.Time
 }
 
 // Staled identify whether the object has been modified
@@ -53,16 +53,16 @@ func (inst *Organization) Staled() bool {
 		inst.original = &organizationOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		return true
 	}
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		return true
 	}
 
@@ -77,16 +77,16 @@ func (inst *Organization) StaledKV() query.KV {
 		inst.original = &organizationOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
+	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
 		kv["id"] = inst.Id
 	}
-	if inst.Name != inst.original.Name {
+	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
 		kv["name"] = inst.Name
 	}
-	if inst.CreatedAt != inst.original.CreatedAt {
+	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
+	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
 		kv["updated_at"] = inst.UpdatedAt
 	}
 
@@ -104,7 +104,7 @@ func (inst *Organization) Save() error {
 		return err
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (inst *Organization) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.organizationModel.DeleteById(inst.Id)
+	_, err := inst.organizationModel.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func (rel *OrganizationBelongsToManyUserRel) Create(target User, builders ...que
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	err = rel.Attach(target)
 
@@ -285,21 +285,31 @@ func (m *OrganizationModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type organizationWrap struct {
-	Id        null.Int
-	Name      null.String
-	CreatedAt null.Time
-	UpdatedAt null.Time
+type OrganizationPlain struct {
+	Id        int64
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-func (w organizationWrap) ToOrganization() Organization {
+func (w OrganizationPlain) ToOrganization() Organization {
 	return Organization{
-		original: &organizationOriginal{
-			Id:        w.Id.Int64,
-			Name:      w.Name.String,
-			CreatedAt: w.CreatedAt.Time,
-			UpdatedAt: w.UpdatedAt.Time,
-		},
+
+		Id:        null.IntFrom(int64(w.Id)),
+		Name:      null.StringFrom(w.Name),
+		CreatedAt: null.TimeFrom(w.CreatedAt),
+		UpdatedAt: null.TimeFrom(w.UpdatedAt),
+	}
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w OrganizationPlain) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *Organization) ToOrganizationPlain() OrganizationPlain {
+	return OrganizationPlain{
 
 		Id:        w.Id.Int64,
 		Name:      w.Name.String,
@@ -472,8 +482,8 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*organizationWrap, []interface{}) {
-		var organizationVar organizationWrap
+	var createScanVar = func(fields []query.Expr) (*Organization, []interface{}) {
+		var organizationVar Organization
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -504,14 +514,13 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 
 	organizations := make([]Organization, 0)
 	for rows.Next() {
-		organizationVar, scanFields := createScanVar(fields)
+		organizationReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		organizationReal := organizationVar.ToOrganization()
 		organizationReal.SetModel(m)
-		organizations = append(organizations, organizationReal)
+		organizations = append(organizations, *organizationReal)
 	}
 
 	return organizations, nil
@@ -574,9 +583,9 @@ func (m *OrganizationModel) Save(organization Organization) (int64, error) {
 
 // SaveOrUpdate save a new organization or update it when it has a id > 0
 func (m *OrganizationModel) SaveOrUpdate(organization Organization) (id int64, updated bool, err error) {
-	if organization.Id > 0 {
-		_, _err := m.UpdateById(organization.Id, organization)
-		return organization.Id, true, _err
+	if organization.Id.Int64 > 0 {
+		_, _err := m.UpdateById(organization.Id.Int64, organization)
+		return organization.Id.Int64, true, _err
 	}
 
 	_id, _err := m.Save(organization)

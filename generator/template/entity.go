@@ -8,7 +8,7 @@ type {{ camel $m.Name }} struct {
 	{{ lower_camel $m.Name }}Model *{{ camel $m.Name }}Model
 
 	{{ range $j, $f := fields $m.Definition }}
-	{{ camel $f.Name }} {{ $f.Type }} {{ tag $f }}{{ end }}
+	{{ camel $f.Name }} {{ sql_field_type $f.Type }} {{ tag $f }}{{ end }}
 }
 
 // As convert object to other type
@@ -25,7 +25,7 @@ func (inst *{{ camel $m.Name }}) SetModel({{ lower_camel $m.Name }}Model *{{ cam
 // {{ lower_camel $m.Name }}Original is an object which stores original {{ camel $m.Name }} from database
 type {{ lower_camel $m.Name }}Original struct {
 	{{ range $j, $f := fields $m.Definition }}
-	{{ camel $f.Name }} {{ $f.Type }}{{ end }}
+	{{ camel $f.Name }} {{ sql_field_type $f.Type }}{{ end }}
 }
 
 // Staled identify whether the object has been modified
@@ -35,7 +35,7 @@ func (inst *{{ camel $m.Name }}) Staled() bool {
 	}
 
 	{{ range $j, $f := fields $m.Definition }}
-	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} || inst.{{ camel $f.Name }}.ValueOrZero() != inst.original.{{ camel $f.Name }}.ValueOrZero() || inst.{{ camel $f.Name }}.IsZero() != inst.original.{{ camel $f.Name }}.IsZero() {
 		return true
 	}{{ end }}
 
@@ -51,7 +51,7 @@ func (inst *{{ camel $m.Name }}) StaledKV() query.KV {
 	}
 
 	{{ range $j, $f := fields $m.Definition }}
-	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} || inst.{{ camel $f.Name }}.ValueOrZero() != inst.original.{{ camel $f.Name }}.ValueOrZero() || inst.{{ camel $f.Name }}.IsZero() != inst.original.{{ camel $f.Name }}.IsZero() {
 		kv["{{ snake $f.Name }}"] = inst.{{ camel $f.Name }}
 	}{{ end }}
 
@@ -69,7 +69,7 @@ func (inst *{{ camel $m.Name }}) Save() error {
 		return err 
 	}
 
-	inst.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
@@ -79,7 +79,7 @@ func (inst *{{ camel $m.Name }}) Delete() error {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.{{ lower_camel $m.Name }}Model.DeleteById(inst.Id)
+	_, err := inst.{{ lower_camel $m.Name }}Model.DeleteById(inst.Id.Int64)
 	if err != nil {
 		return err 
 	}

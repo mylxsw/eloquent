@@ -38,7 +38,7 @@ func GetTemplate() string {
 		GetEntityTemplate(),
 		GetRelationTemplate(),
 		GetScopeTemplate(),
-		GetEntityWrapTemplate(),
+		GetEntityPlainTemplate(),
 		GetModelTemplate(),
 	)
 }

@@ -42,7 +42,7 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) 
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	rel.source.{{ rel_foreign_key $rel | camel }} = target.{{ rel_owner_key $rel | camel }}
 	if err := rel.source.Save(); err != nil {
@@ -70,7 +70,7 @@ func (rel *{{ $relName }}) Associate(target {{ camel $rel.Model }}) error {
 }
 
 func (rel *{{ $relName }}) Dissociate() error {
-	rel.source.{{ rel_foreign_key $rel | camel }} = 0
+	rel.source.{{ rel_foreign_key $rel | camel }} = null.IntFrom(0)
 	return rel.source.Save()
 }
 `
@@ -266,7 +266,7 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}, builders ...que
 		return 0, err
 	}
 
-	target.Id = targetId
+	target.Id = null.IntFrom(targetId)
 
 	err = rel.Attach(target)
 
