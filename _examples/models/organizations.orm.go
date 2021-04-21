@@ -53,16 +53,16 @@ func (inst *Organization) Staled() bool {
 		inst.original = &organizationOriginal{}
 	}
 
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
+	if inst.Name != inst.original.Name {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		return true
 	}
 
@@ -77,16 +77,16 @@ func (inst *Organization) StaledKV() query.KV {
 		inst.original = &organizationOriginal{}
 	}
 
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		kv["id"] = inst.Id
 	}
-	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
+	if inst.Name != inst.original.Name {
 		kv["name"] = inst.Name
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		kv["updated_at"] = inst.UpdatedAt
 	}
 

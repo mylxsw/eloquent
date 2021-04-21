@@ -70,34 +70,34 @@ func (inst *User) Staled() bool {
 		inst.original = &userOriginal{}
 	}
 
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
+	if inst.Name != inst.original.Name {
 		return true
 	}
-	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
+	if inst.Email != inst.original.Email {
 		return true
 	}
-	if inst.Password != inst.original.Password || inst.Password.ValueOrZero() != inst.original.Password.ValueOrZero() || inst.Password.IsZero() != inst.original.Password.IsZero() {
+	if inst.Password != inst.original.Password {
 		return true
 	}
-	if inst.RoleId != inst.original.RoleId || inst.RoleId.ValueOrZero() != inst.original.RoleId.ValueOrZero() || inst.RoleId.IsZero() != inst.original.RoleId.IsZero() {
+	if inst.RoleId != inst.original.RoleId {
 		return true
 	}
-	if inst.EnterpriseId != inst.original.EnterpriseId || inst.EnterpriseId.ValueOrZero() != inst.original.EnterpriseId.ValueOrZero() || inst.EnterpriseId.IsZero() != inst.original.EnterpriseId.IsZero() {
+	if inst.EnterpriseId != inst.original.EnterpriseId {
 		return true
 	}
-	if inst.RememberToken != inst.original.RememberToken || inst.RememberToken.ValueOrZero() != inst.original.RememberToken.ValueOrZero() || inst.RememberToken.IsZero() != inst.original.RememberToken.IsZero() {
+	if inst.RememberToken != inst.original.RememberToken {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		return true
 	}
-	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
+	if inst.DeletedAt != inst.original.DeletedAt {
 		return true
 	}
 
@@ -112,34 +112,34 @@ func (inst *User) StaledKV() query.KV {
 		inst.original = &userOriginal{}
 	}
 
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		kv["id"] = inst.Id
 	}
-	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
+	if inst.Name != inst.original.Name {
 		kv["name"] = inst.Name
 	}
-	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
+	if inst.Email != inst.original.Email {
 		kv["email"] = inst.Email
 	}
-	if inst.Password != inst.original.Password || inst.Password.ValueOrZero() != inst.original.Password.ValueOrZero() || inst.Password.IsZero() != inst.original.Password.IsZero() {
+	if inst.Password != inst.original.Password {
 		kv["password"] = inst.Password
 	}
-	if inst.RoleId != inst.original.RoleId || inst.RoleId.ValueOrZero() != inst.original.RoleId.ValueOrZero() || inst.RoleId.IsZero() != inst.original.RoleId.IsZero() {
+	if inst.RoleId != inst.original.RoleId {
 		kv["role_id"] = inst.RoleId
 	}
-	if inst.EnterpriseId != inst.original.EnterpriseId || inst.EnterpriseId.ValueOrZero() != inst.original.EnterpriseId.ValueOrZero() || inst.EnterpriseId.IsZero() != inst.original.EnterpriseId.IsZero() {
+	if inst.EnterpriseId != inst.original.EnterpriseId {
 		kv["enterprise_id"] = inst.EnterpriseId
 	}
-	if inst.RememberToken != inst.original.RememberToken || inst.RememberToken.ValueOrZero() != inst.original.RememberToken.ValueOrZero() || inst.RememberToken.IsZero() != inst.original.RememberToken.IsZero() {
+	if inst.RememberToken != inst.original.RememberToken {
 		kv["remember_token"] = inst.RememberToken
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		kv["updated_at"] = inst.UpdatedAt
 	}
-	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
+	if inst.DeletedAt != inst.original.DeletedAt {
 		kv["deleted_at"] = inst.DeletedAt
 	}
 
@@ -961,25 +961,25 @@ func (inst *UserExt) Staled() bool {
 		inst.original = &userExtOriginal{}
 	}
 
-	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
+	if inst.Address != inst.original.Address {
 		return true
 	}
-	if inst.Qq != inst.original.Qq || inst.Qq.ValueOrZero() != inst.original.Qq.ValueOrZero() || inst.Qq.IsZero() != inst.original.Qq.IsZero() {
+	if inst.Qq != inst.original.Qq {
 		return true
 	}
-	if inst.Wechat != inst.original.Wechat || inst.Wechat.ValueOrZero() != inst.original.Wechat.ValueOrZero() || inst.Wechat.IsZero() != inst.original.Wechat.IsZero() {
+	if inst.Wechat != inst.original.Wechat {
 		return true
 	}
-	if inst.UserId != inst.original.UserId || inst.UserId.ValueOrZero() != inst.original.UserId.ValueOrZero() || inst.UserId.IsZero() != inst.original.UserId.IsZero() {
+	if inst.UserId != inst.original.UserId {
 		return true
 	}
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		return true
 	}
 
@@ -994,25 +994,25 @@ func (inst *UserExt) StaledKV() query.KV {
 		inst.original = &userExtOriginal{}
 	}
 
-	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
+	if inst.Address != inst.original.Address {
 		kv["address"] = inst.Address
 	}
-	if inst.Qq != inst.original.Qq || inst.Qq.ValueOrZero() != inst.original.Qq.ValueOrZero() || inst.Qq.IsZero() != inst.original.Qq.IsZero() {
+	if inst.Qq != inst.original.Qq {
 		kv["qq"] = inst.Qq
 	}
-	if inst.Wechat != inst.original.Wechat || inst.Wechat.ValueOrZero() != inst.original.Wechat.ValueOrZero() || inst.Wechat.IsZero() != inst.original.Wechat.IsZero() {
+	if inst.Wechat != inst.original.Wechat {
 		kv["wechat"] = inst.Wechat
 	}
-	if inst.UserId != inst.original.UserId || inst.UserId.ValueOrZero() != inst.original.UserId.ValueOrZero() || inst.UserId.IsZero() != inst.original.UserId.IsZero() {
+	if inst.UserId != inst.original.UserId {
 		kv["user_id"] = inst.UserId
 	}
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		kv["id"] = inst.Id
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		kv["updated_at"] = inst.UpdatedAt
 	}
 
@@ -1575,16 +1575,16 @@ func (inst *PasswordReset) Staled() bool {
 		inst.original = &passwordResetOriginal{}
 	}
 
-	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
+	if inst.Email != inst.original.Email {
 		return true
 	}
-	if inst.Token != inst.original.Token || inst.Token.ValueOrZero() != inst.original.Token.ValueOrZero() || inst.Token.IsZero() != inst.original.Token.IsZero() {
+	if inst.Token != inst.original.Token {
 		return true
 	}
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
 
@@ -1599,16 +1599,16 @@ func (inst *PasswordReset) StaledKV() query.KV {
 		inst.original = &passwordResetOriginal{}
 	}
 
-	if inst.Email != inst.original.Email || inst.Email.ValueOrZero() != inst.original.Email.ValueOrZero() || inst.Email.IsZero() != inst.original.Email.IsZero() {
+	if inst.Email != inst.original.Email {
 		kv["email"] = inst.Email
 	}
-	if inst.Token != inst.original.Token || inst.Token.ValueOrZero() != inst.original.Token.ValueOrZero() || inst.Token.IsZero() != inst.original.Token.IsZero() {
+	if inst.Token != inst.original.Token {
 		kv["token"] = inst.Token
 	}
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		kv["id"] = inst.Id
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		kv["created_at"] = inst.CreatedAt
 	}
 

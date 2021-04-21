@@ -35,7 +35,7 @@ func (inst *{{ camel $m.Name }}) Staled() bool {
 	}
 
 	{{ range $j, $f := fields $m.Definition }}
-	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} || inst.{{ camel $f.Name }}.ValueOrZero() != inst.original.{{ camel $f.Name }}.ValueOrZero() || inst.{{ camel $f.Name }}.IsZero() != inst.original.{{ camel $f.Name }}.IsZero() {
+	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
 		return true
 	}{{ end }}
 
@@ -51,7 +51,7 @@ func (inst *{{ camel $m.Name }}) StaledKV() query.KV {
 	}
 
 	{{ range $j, $f := fields $m.Definition }}
-	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} || inst.{{ camel $f.Name }}.ValueOrZero() != inst.original.{{ camel $f.Name }}.ValueOrZero() || inst.{{ camel $f.Name }}.IsZero() != inst.original.{{ camel $f.Name }}.IsZero() {
+	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
 		kv["{{ snake $f.Name }}"] = inst.{{ camel $f.Name }}
 	}{{ end }}
 

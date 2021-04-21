@@ -5,12 +5,11 @@ package models
 import (
 	"context"
 	"encoding/json"
-	"time"
-
 	"github.com/iancoleman/strcase"
 	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
+	"time"
 )
 
 func init() {
@@ -64,25 +63,25 @@ func (inst *Enterprise) Staled() bool {
 		inst.original = &enterpriseOriginal{}
 	}
 
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		return true
 	}
-	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
+	if inst.Name != inst.original.Name {
 		return true
 	}
-	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
+	if inst.Address != inst.original.Address {
 		return true
 	}
-	if inst.Status != inst.original.Status || inst.Status.ValueOrZero() != inst.original.Status.ValueOrZero() || inst.Status.IsZero() != inst.original.Status.IsZero() {
+	if inst.Status != inst.original.Status {
 		return true
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		return true
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		return true
 	}
-	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
+	if inst.DeletedAt != inst.original.DeletedAt {
 		return true
 	}
 
@@ -97,25 +96,25 @@ func (inst *Enterprise) StaledKV() query.KV {
 		inst.original = &enterpriseOriginal{}
 	}
 
-	if inst.Id != inst.original.Id || inst.Id.ValueOrZero() != inst.original.Id.ValueOrZero() || inst.Id.IsZero() != inst.original.Id.IsZero() {
+	if inst.Id != inst.original.Id {
 		kv["id"] = inst.Id
 	}
-	if inst.Name != inst.original.Name || inst.Name.ValueOrZero() != inst.original.Name.ValueOrZero() || inst.Name.IsZero() != inst.original.Name.IsZero() {
+	if inst.Name != inst.original.Name {
 		kv["name"] = inst.Name
 	}
-	if inst.Address != inst.original.Address || inst.Address.ValueOrZero() != inst.original.Address.ValueOrZero() || inst.Address.IsZero() != inst.original.Address.IsZero() {
+	if inst.Address != inst.original.Address {
 		kv["address"] = inst.Address
 	}
-	if inst.Status != inst.original.Status || inst.Status.ValueOrZero() != inst.original.Status.ValueOrZero() || inst.Status.IsZero() != inst.original.Status.IsZero() {
+	if inst.Status != inst.original.Status {
 		kv["status"] = inst.Status
 	}
-	if inst.CreatedAt != inst.original.CreatedAt || inst.CreatedAt.ValueOrZero() != inst.original.CreatedAt.ValueOrZero() || inst.CreatedAt.IsZero() != inst.original.CreatedAt.IsZero() {
+	if inst.CreatedAt != inst.original.CreatedAt {
 		kv["created_at"] = inst.CreatedAt
 	}
-	if inst.UpdatedAt != inst.original.UpdatedAt || inst.UpdatedAt.ValueOrZero() != inst.original.UpdatedAt.ValueOrZero() || inst.UpdatedAt.IsZero() != inst.original.UpdatedAt.IsZero() {
+	if inst.UpdatedAt != inst.original.UpdatedAt {
 		kv["updated_at"] = inst.UpdatedAt
 	}
-	if inst.DeletedAt != inst.original.DeletedAt || inst.DeletedAt.ValueOrZero() != inst.original.DeletedAt.ValueOrZero() || inst.DeletedAt.IsZero() != inst.original.DeletedAt.IsZero() {
+	if inst.DeletedAt != inst.original.DeletedAt {
 		kv["deleted_at"] = inst.DeletedAt
 	}
 
