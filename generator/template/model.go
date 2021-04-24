@@ -319,7 +319,7 @@ func (m *{{ camel $m.Name }}Model) UpdatePart({{ lower_camel $m.Name }} {{ camel
 
 // UpdateById update a model by id
 func (m *{{ camel $m.Name }}Model) UpdateById(id int64, {{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields({{ lower_camel $m.Name }}.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields({{ lower_camel $m.Name }}.StaledKV(onlyFields...))
 }
 
 {{ if $m.Definition.SoftDelete }}
