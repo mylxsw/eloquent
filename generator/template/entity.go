@@ -40,13 +40,15 @@ func (inst *{{ camel $m.Name }}) Staled(onlyFields ...string) bool {
 			return true
 		}{{ end }}
 	} else {
-		switch strcase.ToSnake(f) {
-		{{ range $j, $f := fields $m.Definition }}
-		case "{{ snake $f.Name }}":
-			if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
-				return true
-			}{{ end }}
-		default:
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+			{{ range $j, $f := fields $m.Definition }}
+			case "{{ snake $f.Name }}":
+				if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+					return true
+				}{{ end }}
+			default:
+			}
 		}
 	}
 

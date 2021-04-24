@@ -87,37 +87,39 @@ func (inst *Enterprise) Staled(onlyFields ...string) bool {
 			return true
 		}
 	} else {
-		switch strcase.ToSnake(f) {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
 
-		case "id":
-			if inst.Id != inst.original.Id {
-				return true
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			case "name":
+				if inst.Name != inst.original.Name {
+					return true
+				}
+			case "address":
+				if inst.Address != inst.original.Address {
+					return true
+				}
+			case "status":
+				if inst.Status != inst.original.Status {
+					return true
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					return true
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					return true
+				}
+			case "deleted_at":
+				if inst.DeletedAt != inst.original.DeletedAt {
+					return true
+				}
+			default:
 			}
-		case "name":
-			if inst.Name != inst.original.Name {
-				return true
-			}
-		case "address":
-			if inst.Address != inst.original.Address {
-				return true
-			}
-		case "status":
-			if inst.Status != inst.original.Status {
-				return true
-			}
-		case "created_at":
-			if inst.CreatedAt != inst.original.CreatedAt {
-				return true
-			}
-		case "updated_at":
-			if inst.UpdatedAt != inst.original.UpdatedAt {
-				return true
-			}
-		case "deleted_at":
-			if inst.DeletedAt != inst.original.DeletedAt {
-				return true
-			}
-		default:
 		}
 	}
 
@@ -416,14 +418,17 @@ const (
 	EnterpriseFieldDeletedAt = "deleted_at"
 )
 
-const EnterpriseFields = []string{
-	"id",
-	"name",
-	"address",
-	"status",
-	"created_at",
-	"updated_at",
-	"deleted_at",
+// EnterpriseFields return all fields in Enterprise model
+func EnterpriseFields() []string {
+	return []string{
+		"id",
+		"name",
+		"address",
+		"status",
+		"created_at",
+		"updated_at",
+		"deleted_at",
+	}
 }
 
 func SetEnterpriseTable(tableName string) {
@@ -733,8 +738,8 @@ func (m *EnterpriseModel) Update(enterprise Enterprise, builders ...query.SQLBui
 }
 
 // UpdatePart update a model for given query
-func (m *EnterpriseModel) UpdatePart(enterprise Enterprise, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(enterprise.StaledKV(onlyFields...), builders...)
+func (m *EnterpriseModel) UpdatePart(enterprise Enterprise, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(enterprise.StaledKV(onlyFields...))
 }
 
 // UpdateById update a model by id

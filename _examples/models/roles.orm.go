@@ -72,29 +72,31 @@ func (inst *Role) Staled(onlyFields ...string) bool {
 			return true
 		}
 	} else {
-		switch strcase.ToSnake(f) {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
 
-		case "name":
-			if inst.Name != inst.original.Name {
-				return true
+			case "name":
+				if inst.Name != inst.original.Name {
+					return true
+				}
+			case "description":
+				if inst.Description != inst.original.Description {
+					return true
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					return true
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					return true
+				}
+			default:
 			}
-		case "description":
-			if inst.Description != inst.original.Description {
-				return true
-			}
-		case "id":
-			if inst.Id != inst.original.Id {
-				return true
-			}
-		case "created_at":
-			if inst.CreatedAt != inst.original.CreatedAt {
-				return true
-			}
-		case "updated_at":
-			if inst.UpdatedAt != inst.original.UpdatedAt {
-				return true
-			}
-		default:
 		}
 	}
 
@@ -367,12 +369,15 @@ const (
 	RoleFieldUpdatedAt   = "updated_at"
 )
 
-const RoleFields = []string{
-	"name",
-	"description",
-	"id",
-	"created_at",
-	"updated_at",
+// RoleFields return all fields in Role model
+func RoleFields() []string {
+	return []string{
+		"name",
+		"description",
+		"id",
+		"created_at",
+		"updated_at",
+	}
 }
 
 func SetRoleTable(tableName string) {
@@ -667,8 +672,8 @@ func (m *RoleModel) Update(role Role, builders ...query.SQLBuilder) (int64, erro
 }
 
 // UpdatePart update a model for given query
-func (m *RoleModel) UpdatePart(role Role, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(role.StaledKV(onlyFields...), builders...)
+func (m *RoleModel) UpdatePart(role Role, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(role.StaledKV(onlyFields...))
 }
 
 // UpdateById update a model by id

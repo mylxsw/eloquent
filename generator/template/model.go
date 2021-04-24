@@ -21,8 +21,12 @@ const (
 	{{ camel $m.Name }}Field{{ camel $f.Name }} = "{{ snake $f.Name }}"{{ end }}
 )
 
-const {{ camel $m.Name }}Fields = []string{ {{ range $j, $f := fields $m.Definition }}
-	"{{ snake $f.Name }}",{{ end }}
+
+// {{ camel $m.Name }}Fields return all fields in {{ camel $m.Name }} model
+func {{ camel $m.Name }}Fields() []string {
+	return []string{ {{ range $j, $f := fields $m.Definition }}
+	"{{ snake $f.Name }}",{{ end }} 
+	}
 }
 
 func Set{{ camel $m.Name }}Table (tableName string) {

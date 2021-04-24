@@ -68,25 +68,27 @@ func (inst *Organization) Staled(onlyFields ...string) bool {
 			return true
 		}
 	} else {
-		switch strcase.ToSnake(f) {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
 
-		case "id":
-			if inst.Id != inst.original.Id {
-				return true
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			case "name":
+				if inst.Name != inst.original.Name {
+					return true
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					return true
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					return true
+				}
+			default:
 			}
-		case "name":
-			if inst.Name != inst.original.Name {
-				return true
-			}
-		case "created_at":
-			if inst.CreatedAt != inst.original.CreatedAt {
-				return true
-			}
-		case "updated_at":
-			if inst.UpdatedAt != inst.original.UpdatedAt {
-				return true
-			}
-		default:
 		}
 	}
 
@@ -408,11 +410,14 @@ const (
 	OrganizationFieldUpdatedAt = "updated_at"
 )
 
-const OrganizationFields = []string{
-	"id",
-	"name",
-	"created_at",
-	"updated_at",
+// OrganizationFields return all fields in Organization model
+func OrganizationFields() []string {
+	return []string{
+		"id",
+		"name",
+		"created_at",
+		"updated_at",
+	}
 }
 
 func SetOrganizationTable(tableName string) {
@@ -702,8 +707,8 @@ func (m *OrganizationModel) Update(organization Organization, builders ...query.
 }
 
 // UpdatePart update a model for given query
-func (m *OrganizationModel) UpdatePart(organization Organization, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(organization.StaledKV(onlyFields...), builders...)
+func (m *OrganizationModel) UpdatePart(organization Organization, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(organization.StaledKV(onlyFields...))
 }
 
 // UpdateById update a model by id

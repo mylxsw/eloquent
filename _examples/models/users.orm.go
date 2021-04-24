@@ -103,49 +103,51 @@ func (inst *User) Staled(onlyFields ...string) bool {
 			return true
 		}
 	} else {
-		switch strcase.ToSnake(f) {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
 
-		case "id":
-			if inst.Id != inst.original.Id {
-				return true
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			case "name":
+				if inst.Name != inst.original.Name {
+					return true
+				}
+			case "email":
+				if inst.Email != inst.original.Email {
+					return true
+				}
+			case "password":
+				if inst.Password != inst.original.Password {
+					return true
+				}
+			case "role_id":
+				if inst.RoleId != inst.original.RoleId {
+					return true
+				}
+			case "enterprise_id":
+				if inst.EnterpriseId != inst.original.EnterpriseId {
+					return true
+				}
+			case "remember_token":
+				if inst.RememberToken != inst.original.RememberToken {
+					return true
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					return true
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					return true
+				}
+			case "deleted_at":
+				if inst.DeletedAt != inst.original.DeletedAt {
+					return true
+				}
+			default:
 			}
-		case "name":
-			if inst.Name != inst.original.Name {
-				return true
-			}
-		case "email":
-			if inst.Email != inst.original.Email {
-				return true
-			}
-		case "password":
-			if inst.Password != inst.original.Password {
-				return true
-			}
-		case "role_id":
-			if inst.RoleId != inst.original.RoleId {
-				return true
-			}
-		case "enterprise_id":
-			if inst.EnterpriseId != inst.original.EnterpriseId {
-				return true
-			}
-		case "remember_token":
-			if inst.RememberToken != inst.original.RememberToken {
-				return true
-			}
-		case "created_at":
-			if inst.CreatedAt != inst.original.CreatedAt {
-				return true
-			}
-		case "updated_at":
-			if inst.UpdatedAt != inst.original.UpdatedAt {
-				return true
-			}
-		case "deleted_at":
-			if inst.DeletedAt != inst.original.DeletedAt {
-				return true
-			}
-		default:
 		}
 	}
 
@@ -690,17 +692,20 @@ const (
 	UserFieldDeletedAt     = "deleted_at"
 )
 
-const UserFields = []string{
-	"id",
-	"name",
-	"email",
-	"password",
-	"role_id",
-	"enterprise_id",
-	"remember_token",
-	"created_at",
-	"updated_at",
-	"deleted_at",
+// UserFields return all fields in User model
+func UserFields() []string {
+	return []string{
+		"id",
+		"name",
+		"email",
+		"password",
+		"role_id",
+		"enterprise_id",
+		"remember_token",
+		"created_at",
+		"updated_at",
+		"deleted_at",
+	}
 }
 
 func SetUserTable(tableName string) {
@@ -1025,8 +1030,8 @@ func (m *UserModel) Update(user User, builders ...query.SQLBuilder) (int64, erro
 }
 
 // UpdatePart update a model for given query
-func (m *UserModel) UpdatePart(user User, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(user.StaledKV(onlyFields...), builders...)
+func (m *UserModel) UpdatePart(user User, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(user.StaledKV(onlyFields...))
 }
 
 // UpdateById update a model by id
@@ -1146,37 +1151,39 @@ func (inst *UserExt) Staled(onlyFields ...string) bool {
 			return true
 		}
 	} else {
-		switch strcase.ToSnake(f) {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
 
-		case "address":
-			if inst.Address != inst.original.Address {
-				return true
+			case "address":
+				if inst.Address != inst.original.Address {
+					return true
+				}
+			case "qq":
+				if inst.Qq != inst.original.Qq {
+					return true
+				}
+			case "wechat":
+				if inst.Wechat != inst.original.Wechat {
+					return true
+				}
+			case "user_id":
+				if inst.UserId != inst.original.UserId {
+					return true
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					return true
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					return true
+				}
+			default:
 			}
-		case "qq":
-			if inst.Qq != inst.original.Qq {
-				return true
-			}
-		case "wechat":
-			if inst.Wechat != inst.original.Wechat {
-				return true
-			}
-		case "user_id":
-			if inst.UserId != inst.original.UserId {
-				return true
-			}
-		case "id":
-			if inst.Id != inst.original.Id {
-				return true
-			}
-		case "created_at":
-			if inst.CreatedAt != inst.original.CreatedAt {
-				return true
-			}
-		case "updated_at":
-			if inst.UpdatedAt != inst.original.UpdatedAt {
-				return true
-			}
-		default:
 		}
 	}
 
@@ -1485,14 +1492,17 @@ const (
 	UserExtFieldUpdatedAt = "updated_at"
 )
 
-const UserExtFields = []string{
-	"address",
-	"qq",
-	"wechat",
-	"user_id",
-	"id",
-	"created_at",
-	"updated_at",
+// UserExtFields return all fields in UserExt model
+func UserExtFields() []string {
+	return []string{
+		"address",
+		"qq",
+		"wechat",
+		"user_id",
+		"id",
+		"created_at",
+		"updated_at",
+	}
 }
 
 func SetUserExtTable(tableName string) {
@@ -1797,8 +1807,8 @@ func (m *UserExtModel) Update(userExt UserExt, builders ...query.SQLBuilder) (in
 }
 
 // UpdatePart update a model for given query
-func (m *UserExtModel) UpdatePart(userExt UserExt, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(userExt.StaledKV(onlyFields...), builders...)
+func (m *UserExtModel) UpdatePart(userExt UserExt, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(userExt.StaledKV(onlyFields...))
 }
 
 // UpdateById update a model by id
@@ -1876,25 +1886,27 @@ func (inst *PasswordReset) Staled(onlyFields ...string) bool {
 			return true
 		}
 	} else {
-		switch strcase.ToSnake(f) {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
 
-		case "email":
-			if inst.Email != inst.original.Email {
-				return true
+			case "email":
+				if inst.Email != inst.original.Email {
+					return true
+				}
+			case "token":
+				if inst.Token != inst.original.Token {
+					return true
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					return true
+				}
+			default:
 			}
-		case "token":
-			if inst.Token != inst.original.Token {
-				return true
-			}
-		case "id":
-			if inst.Id != inst.original.Id {
-				return true
-			}
-		case "created_at":
-			if inst.CreatedAt != inst.original.CreatedAt {
-				return true
-			}
-		default:
 		}
 	}
 
@@ -2114,11 +2126,14 @@ const (
 	PasswordResetFieldCreatedAt = "created_at"
 )
 
-const PasswordResetFields = []string{
-	"email",
-	"token",
-	"id",
-	"created_at",
+// PasswordResetFields return all fields in PasswordReset model
+func PasswordResetFields() []string {
+	return []string{
+		"email",
+		"token",
+		"id",
+		"created_at",
+	}
 }
 
 func SetPasswordResetTable(tableName string) {
@@ -2402,8 +2417,8 @@ func (m *PasswordResetModel) Update(passwordReset PasswordReset, builders ...que
 }
 
 // UpdatePart update a model for given query
-func (m *PasswordResetModel) UpdatePart(passwordReset PasswordReset, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(passwordReset.StaledKV(onlyFields...), builders...)
+func (m *PasswordResetModel) UpdatePart(passwordReset PasswordReset, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(passwordReset.StaledKV(onlyFields...))
 }
 
 // UpdateById update a model by id
