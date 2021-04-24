@@ -29,31 +29,56 @@ type {{ lower_camel $m.Name }}Original struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *{{ camel $m.Name }}) Staled() bool {
+func (inst *{{ camel $m.Name }}) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &{{ lower_camel $m.Name }}Original {}
 	}
 
-	{{ range $j, $f := fields $m.Definition }}
-	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
-		return true
-	}{{ end }}
+	if len(onlyFields) == 0 {
+		{{ range $j, $f := fields $m.Definition }}
+		if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+			return true
+		}{{ end }}
+	} else {
+		switch strcase.ToSnake(f) {
+		{{ range $j, $f := fields $m.Definition }}
+		case "{{ snake $f.Name }}":
+			if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+				return true
+			}{{ end }}
+		default:
+		}
+	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *{{ camel $m.Name }}) StaledKV() query.KV {
+func (inst *{{ camel $m.Name }}) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &{{ lower_camel $m.Name }}Original {}
 	}
 
-	{{ range $j, $f := fields $m.Definition }}
-	if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
-		kv["{{ snake $f.Name }}"] = inst.{{ camel $f.Name }}
-	}{{ end }}
+	if len(onlyFields) == 0 {
+		{{ range $j, $f := fields $m.Definition }}
+		if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+			kv["{{ snake $f.Name }}"] = inst.{{ camel $f.Name }}
+		}{{ end }}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+			{{ range $j, $f := fields $m.Definition }}
+			case "{{ snake $f.Name }}":
+				if inst.{{ camel $f.Name }} != inst.original.{{ camel $f.Name }} {
+					kv["{{ snake $f.Name }}"] = inst.{{ camel $f.Name }}
+				}{{ end }}
+			default:
+			}
+		}
+	}
+
 
 	return kv
 }

@@ -48,46 +48,96 @@ type organizationOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *Organization) Staled() bool {
+func (inst *Organization) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &organizationOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
-		return true
-	}
-	if inst.Name != inst.original.Name {
-		return true
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		return true
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Id != inst.original.Id {
+			return true
+		}
+		if inst.Name != inst.original.Name {
+			return true
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			return true
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			return true
+		}
+	} else {
+		switch strcase.ToSnake(f) {
+
+		case "id":
+			if inst.Id != inst.original.Id {
+				return true
+			}
+		case "name":
+			if inst.Name != inst.original.Name {
+				return true
+			}
+		case "created_at":
+			if inst.CreatedAt != inst.original.CreatedAt {
+				return true
+			}
+		case "updated_at":
+			if inst.UpdatedAt != inst.original.UpdatedAt {
+				return true
+			}
+		default:
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *Organization) StaledKV() query.KV {
+func (inst *Organization) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &organizationOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
-		kv["id"] = inst.Id
-	}
-	if inst.Name != inst.original.Name {
-		kv["name"] = inst.Name
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		kv["created_at"] = inst.CreatedAt
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		kv["updated_at"] = inst.UpdatedAt
+	if len(onlyFields) == 0 {
+
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+		if inst.Name != inst.original.Name {
+			kv["name"] = inst.Name
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			kv["created_at"] = inst.CreatedAt
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			kv["updated_at"] = inst.UpdatedAt
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			case "name":
+				if inst.Name != inst.original.Name {
+					kv["name"] = inst.Name
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					kv["created_at"] = inst.CreatedAt
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					kv["updated_at"] = inst.UpdatedAt
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
@@ -292,14 +342,34 @@ type OrganizationPlain struct {
 	UpdatedAt time.Time
 }
 
-func (w OrganizationPlain) ToOrganization() Organization {
-	return Organization{
+func (w OrganizationPlain) ToOrganization(allows ...string) Organization {
+	if len(allows) == 0 {
+		return Organization{
 
-		Id:        null.IntFrom(int64(w.Id)),
-		Name:      null.StringFrom(w.Name),
-		CreatedAt: null.TimeFrom(w.CreatedAt),
-		UpdatedAt: null.TimeFrom(w.UpdatedAt),
+			Id:        null.IntFrom(int64(w.Id)),
+			Name:      null.StringFrom(w.Name),
+			CreatedAt: null.TimeFrom(w.CreatedAt),
+			UpdatedAt: null.TimeFrom(w.UpdatedAt),
+		}
 	}
+
+	res := Organization{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		case "name":
+			res.Name = null.StringFrom(w.Name)
+		case "created_at":
+			res.CreatedAt = null.TimeFrom(w.CreatedAt)
+		case "updated_at":
+			res.UpdatedAt = null.TimeFrom(w.UpdatedAt)
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type
@@ -330,6 +400,20 @@ type OrganizationModel struct {
 }
 
 var organizationTableName = "wz_organization"
+
+const (
+	OrganizationFieldId        = "id"
+	OrganizationFieldName      = "name"
+	OrganizationFieldCreatedAt = "created_at"
+	OrganizationFieldUpdatedAt = "updated_at"
+)
+
+const OrganizationFields = []string{
+	"id",
+	"name",
+	"created_at",
+	"updated_at",
+}
 
 func SetOrganizationTable(tableName string) {
 	organizationTableName = tableName
@@ -577,18 +661,18 @@ func (m *OrganizationModel) SaveAll(organizations []Organization) ([]int64, erro
 }
 
 // Save save a organization to database
-func (m *OrganizationModel) Save(organization Organization) (int64, error) {
-	return m.Create(organization.StaledKV())
+func (m *OrganizationModel) Save(organization Organization, onlyFields ...string) (int64, error) {
+	return m.Create(organization.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new organization or update it when it has a id > 0
-func (m *OrganizationModel) SaveOrUpdate(organization Organization) (id int64, updated bool, err error) {
+func (m *OrganizationModel) SaveOrUpdate(organization Organization, onlyFields ...string) (id int64, updated bool, err error) {
 	if organization.Id.Int64 > 0 {
-		_, _err := m.UpdateById(organization.Id.Int64, organization)
+		_, _err := m.UpdateById(organization.Id.Int64, organization, onlyFields...)
 		return organization.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(organization)
+	_id, _err := m.Save(organization, onlyFields...)
 	return _id, false, _err
 }
 
@@ -617,9 +701,14 @@ func (m *OrganizationModel) Update(organization Organization, builders ...query.
 	return m.UpdateFields(organization.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *OrganizationModel) UpdatePart(organization Organization, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(organization.StaledKV(onlyFields...), builders...)
+}
+
 // UpdateById update a model by id
-func (m *OrganizationModel) UpdateById(id int64, organization Organization) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update(organization)
+func (m *OrganizationModel) UpdateById(id int64, organization Organization, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(organization.StaledKV(onlyFields...), builders...)
 }
 
 // Delete remove a model

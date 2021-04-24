@@ -65,82 +65,180 @@ type userOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *User) Staled() bool {
+func (inst *User) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &userOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
-		return true
-	}
-	if inst.Name != inst.original.Name {
-		return true
-	}
-	if inst.Email != inst.original.Email {
-		return true
-	}
-	if inst.Password != inst.original.Password {
-		return true
-	}
-	if inst.RoleId != inst.original.RoleId {
-		return true
-	}
-	if inst.EnterpriseId != inst.original.EnterpriseId {
-		return true
-	}
-	if inst.RememberToken != inst.original.RememberToken {
-		return true
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		return true
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		return true
-	}
-	if inst.DeletedAt != inst.original.DeletedAt {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Id != inst.original.Id {
+			return true
+		}
+		if inst.Name != inst.original.Name {
+			return true
+		}
+		if inst.Email != inst.original.Email {
+			return true
+		}
+		if inst.Password != inst.original.Password {
+			return true
+		}
+		if inst.RoleId != inst.original.RoleId {
+			return true
+		}
+		if inst.EnterpriseId != inst.original.EnterpriseId {
+			return true
+		}
+		if inst.RememberToken != inst.original.RememberToken {
+			return true
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			return true
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			return true
+		}
+		if inst.DeletedAt != inst.original.DeletedAt {
+			return true
+		}
+	} else {
+		switch strcase.ToSnake(f) {
+
+		case "id":
+			if inst.Id != inst.original.Id {
+				return true
+			}
+		case "name":
+			if inst.Name != inst.original.Name {
+				return true
+			}
+		case "email":
+			if inst.Email != inst.original.Email {
+				return true
+			}
+		case "password":
+			if inst.Password != inst.original.Password {
+				return true
+			}
+		case "role_id":
+			if inst.RoleId != inst.original.RoleId {
+				return true
+			}
+		case "enterprise_id":
+			if inst.EnterpriseId != inst.original.EnterpriseId {
+				return true
+			}
+		case "remember_token":
+			if inst.RememberToken != inst.original.RememberToken {
+				return true
+			}
+		case "created_at":
+			if inst.CreatedAt != inst.original.CreatedAt {
+				return true
+			}
+		case "updated_at":
+			if inst.UpdatedAt != inst.original.UpdatedAt {
+				return true
+			}
+		case "deleted_at":
+			if inst.DeletedAt != inst.original.DeletedAt {
+				return true
+			}
+		default:
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *User) StaledKV() query.KV {
+func (inst *User) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &userOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
-		kv["id"] = inst.Id
-	}
-	if inst.Name != inst.original.Name {
-		kv["name"] = inst.Name
-	}
-	if inst.Email != inst.original.Email {
-		kv["email"] = inst.Email
-	}
-	if inst.Password != inst.original.Password {
-		kv["password"] = inst.Password
-	}
-	if inst.RoleId != inst.original.RoleId {
-		kv["role_id"] = inst.RoleId
-	}
-	if inst.EnterpriseId != inst.original.EnterpriseId {
-		kv["enterprise_id"] = inst.EnterpriseId
-	}
-	if inst.RememberToken != inst.original.RememberToken {
-		kv["remember_token"] = inst.RememberToken
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		kv["created_at"] = inst.CreatedAt
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		kv["updated_at"] = inst.UpdatedAt
-	}
-	if inst.DeletedAt != inst.original.DeletedAt {
-		kv["deleted_at"] = inst.DeletedAt
+	if len(onlyFields) == 0 {
+
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+		if inst.Name != inst.original.Name {
+			kv["name"] = inst.Name
+		}
+		if inst.Email != inst.original.Email {
+			kv["email"] = inst.Email
+		}
+		if inst.Password != inst.original.Password {
+			kv["password"] = inst.Password
+		}
+		if inst.RoleId != inst.original.RoleId {
+			kv["role_id"] = inst.RoleId
+		}
+		if inst.EnterpriseId != inst.original.EnterpriseId {
+			kv["enterprise_id"] = inst.EnterpriseId
+		}
+		if inst.RememberToken != inst.original.RememberToken {
+			kv["remember_token"] = inst.RememberToken
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			kv["created_at"] = inst.CreatedAt
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			kv["updated_at"] = inst.UpdatedAt
+		}
+		if inst.DeletedAt != inst.original.DeletedAt {
+			kv["deleted_at"] = inst.DeletedAt
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			case "name":
+				if inst.Name != inst.original.Name {
+					kv["name"] = inst.Name
+				}
+			case "email":
+				if inst.Email != inst.original.Email {
+					kv["email"] = inst.Email
+				}
+			case "password":
+				if inst.Password != inst.original.Password {
+					kv["password"] = inst.Password
+				}
+			case "role_id":
+				if inst.RoleId != inst.original.RoleId {
+					kv["role_id"] = inst.RoleId
+				}
+			case "enterprise_id":
+				if inst.EnterpriseId != inst.original.EnterpriseId {
+					kv["enterprise_id"] = inst.EnterpriseId
+				}
+			case "remember_token":
+				if inst.RememberToken != inst.original.RememberToken {
+					kv["remember_token"] = inst.RememberToken
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					kv["created_at"] = inst.CreatedAt
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					kv["updated_at"] = inst.UpdatedAt
+				}
+			case "deleted_at":
+				if inst.DeletedAt != inst.original.DeletedAt {
+					kv["deleted_at"] = inst.DeletedAt
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
@@ -496,20 +594,52 @@ type UserPlain struct {
 	DeletedAt     time.Time
 }
 
-func (w UserPlain) ToUser() User {
-	return User{
+func (w UserPlain) ToUser(allows ...string) User {
+	if len(allows) == 0 {
+		return User{
 
-		Id:            null.IntFrom(int64(w.Id)),
-		Name:          null.StringFrom(w.Name),
-		Email:         null.StringFrom(w.Email),
-		Password:      null.StringFrom(w.Password),
-		RoleId:        null.IntFrom(int64(w.RoleId)),
-		EnterpriseId:  null.IntFrom(int64(w.EnterpriseId)),
-		RememberToken: null.StringFrom(w.RememberToken),
-		CreatedAt:     null.TimeFrom(w.CreatedAt),
-		UpdatedAt:     null.TimeFrom(w.UpdatedAt),
-		DeletedAt:     null.TimeFrom(w.DeletedAt),
+			Id:            null.IntFrom(int64(w.Id)),
+			Name:          null.StringFrom(w.Name),
+			Email:         null.StringFrom(w.Email),
+			Password:      null.StringFrom(w.Password),
+			RoleId:        null.IntFrom(int64(w.RoleId)),
+			EnterpriseId:  null.IntFrom(int64(w.EnterpriseId)),
+			RememberToken: null.StringFrom(w.RememberToken),
+			CreatedAt:     null.TimeFrom(w.CreatedAt),
+			UpdatedAt:     null.TimeFrom(w.UpdatedAt),
+			DeletedAt:     null.TimeFrom(w.DeletedAt),
+		}
 	}
+
+	res := User{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		case "name":
+			res.Name = null.StringFrom(w.Name)
+		case "email":
+			res.Email = null.StringFrom(w.Email)
+		case "password":
+			res.Password = null.StringFrom(w.Password)
+		case "role_id":
+			res.RoleId = null.IntFrom(int64(w.RoleId))
+		case "enterprise_id":
+			res.EnterpriseId = null.IntFrom(int64(w.EnterpriseId))
+		case "remember_token":
+			res.RememberToken = null.StringFrom(w.RememberToken)
+		case "created_at":
+			res.CreatedAt = null.TimeFrom(w.CreatedAt)
+		case "updated_at":
+			res.UpdatedAt = null.TimeFrom(w.UpdatedAt)
+		case "deleted_at":
+			res.DeletedAt = null.TimeFrom(w.DeletedAt)
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type
@@ -546,6 +676,32 @@ type UserModel struct {
 }
 
 var userTableName = "wz_user"
+
+const (
+	UserFieldId            = "id"
+	UserFieldName          = "name"
+	UserFieldEmail         = "email"
+	UserFieldPassword      = "password"
+	UserFieldRoleId        = "role_id"
+	UserFieldEnterpriseId  = "enterprise_id"
+	UserFieldRememberToken = "remember_token"
+	UserFieldCreatedAt     = "created_at"
+	UserFieldUpdatedAt     = "updated_at"
+	UserFieldDeletedAt     = "deleted_at"
+)
+
+const UserFields = []string{
+	"id",
+	"name",
+	"email",
+	"password",
+	"role_id",
+	"enterprise_id",
+	"remember_token",
+	"created_at",
+	"updated_at",
+	"deleted_at",
+}
 
 func SetUserTable(tableName string) {
 	userTableName = tableName
@@ -828,18 +984,18 @@ func (m *UserModel) SaveAll(users []User) ([]int64, error) {
 }
 
 // Save save a User to database
-func (m *UserModel) Save(user User) (int64, error) {
-	return m.Create(user.StaledKV())
+func (m *UserModel) Save(user User, onlyFields ...string) (int64, error) {
+	return m.Create(user.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new User or update it when it has a id > 0
-func (m *UserModel) SaveOrUpdate(user User) (id int64, updated bool, err error) {
+func (m *UserModel) SaveOrUpdate(user User, onlyFields ...string) (id int64, updated bool, err error) {
 	if user.Id.Int64 > 0 {
-		_, _err := m.UpdateById(user.Id.Int64, user)
+		_, _err := m.UpdateById(user.Id.Int64, user, onlyFields...)
 		return user.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(user)
+	_id, _err := m.Save(user, onlyFields...)
 	return _id, false, _err
 }
 
@@ -868,9 +1024,14 @@ func (m *UserModel) Update(user User, builders ...query.SQLBuilder) (int64, erro
 	return m.UpdateFields(user.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *UserModel) UpdatePart(user User, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(user.StaledKV(onlyFields...), builders...)
+}
+
 // UpdateById update a model by id
-func (m *UserModel) UpdateById(id int64, user User) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update(user)
+func (m *UserModel) UpdateById(id int64, user User, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(user.StaledKV(onlyFields...), builders...)
 }
 
 // ForceDelete permanently remove a soft deleted model from the database
@@ -956,64 +1117,138 @@ type userExtOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *UserExt) Staled() bool {
+func (inst *UserExt) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &userExtOriginal{}
 	}
 
-	if inst.Address != inst.original.Address {
-		return true
-	}
-	if inst.Qq != inst.original.Qq {
-		return true
-	}
-	if inst.Wechat != inst.original.Wechat {
-		return true
-	}
-	if inst.UserId != inst.original.UserId {
-		return true
-	}
-	if inst.Id != inst.original.Id {
-		return true
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		return true
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Address != inst.original.Address {
+			return true
+		}
+		if inst.Qq != inst.original.Qq {
+			return true
+		}
+		if inst.Wechat != inst.original.Wechat {
+			return true
+		}
+		if inst.UserId != inst.original.UserId {
+			return true
+		}
+		if inst.Id != inst.original.Id {
+			return true
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			return true
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			return true
+		}
+	} else {
+		switch strcase.ToSnake(f) {
+
+		case "address":
+			if inst.Address != inst.original.Address {
+				return true
+			}
+		case "qq":
+			if inst.Qq != inst.original.Qq {
+				return true
+			}
+		case "wechat":
+			if inst.Wechat != inst.original.Wechat {
+				return true
+			}
+		case "user_id":
+			if inst.UserId != inst.original.UserId {
+				return true
+			}
+		case "id":
+			if inst.Id != inst.original.Id {
+				return true
+			}
+		case "created_at":
+			if inst.CreatedAt != inst.original.CreatedAt {
+				return true
+			}
+		case "updated_at":
+			if inst.UpdatedAt != inst.original.UpdatedAt {
+				return true
+			}
+		default:
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *UserExt) StaledKV() query.KV {
+func (inst *UserExt) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &userExtOriginal{}
 	}
 
-	if inst.Address != inst.original.Address {
-		kv["address"] = inst.Address
-	}
-	if inst.Qq != inst.original.Qq {
-		kv["qq"] = inst.Qq
-	}
-	if inst.Wechat != inst.original.Wechat {
-		kv["wechat"] = inst.Wechat
-	}
-	if inst.UserId != inst.original.UserId {
-		kv["user_id"] = inst.UserId
-	}
-	if inst.Id != inst.original.Id {
-		kv["id"] = inst.Id
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		kv["created_at"] = inst.CreatedAt
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		kv["updated_at"] = inst.UpdatedAt
+	if len(onlyFields) == 0 {
+
+		if inst.Address != inst.original.Address {
+			kv["address"] = inst.Address
+		}
+		if inst.Qq != inst.original.Qq {
+			kv["qq"] = inst.Qq
+		}
+		if inst.Wechat != inst.original.Wechat {
+			kv["wechat"] = inst.Wechat
+		}
+		if inst.UserId != inst.original.UserId {
+			kv["user_id"] = inst.UserId
+		}
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			kv["created_at"] = inst.CreatedAt
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			kv["updated_at"] = inst.UpdatedAt
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "address":
+				if inst.Address != inst.original.Address {
+					kv["address"] = inst.Address
+				}
+			case "qq":
+				if inst.Qq != inst.original.Qq {
+					kv["qq"] = inst.Qq
+				}
+			case "wechat":
+				if inst.Wechat != inst.original.Wechat {
+					kv["wechat"] = inst.Wechat
+				}
+			case "user_id":
+				if inst.UserId != inst.original.UserId {
+					kv["user_id"] = inst.UserId
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					kv["created_at"] = inst.CreatedAt
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					kv["updated_at"] = inst.UpdatedAt
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
@@ -1169,17 +1404,43 @@ type UserExtPlain struct {
 	UpdatedAt time.Time
 }
 
-func (w UserExtPlain) ToUserExt() UserExt {
-	return UserExt{
+func (w UserExtPlain) ToUserExt(allows ...string) UserExt {
+	if len(allows) == 0 {
+		return UserExt{
 
-		Address:   null.StringFrom(w.Address),
-		Qq:        null.StringFrom(w.Qq),
-		Wechat:    null.StringFrom(w.Wechat),
-		UserId:    null.IntFrom(int64(w.UserId)),
-		Id:        null.IntFrom(int64(w.Id)),
-		CreatedAt: null.TimeFrom(w.CreatedAt),
-		UpdatedAt: null.TimeFrom(w.UpdatedAt),
+			Address:   null.StringFrom(w.Address),
+			Qq:        null.StringFrom(w.Qq),
+			Wechat:    null.StringFrom(w.Wechat),
+			UserId:    null.IntFrom(int64(w.UserId)),
+			Id:        null.IntFrom(int64(w.Id)),
+			CreatedAt: null.TimeFrom(w.CreatedAt),
+			UpdatedAt: null.TimeFrom(w.UpdatedAt),
+		}
 	}
+
+	res := UserExt{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "address":
+			res.Address = null.StringFrom(w.Address)
+		case "qq":
+			res.Qq = null.StringFrom(w.Qq)
+		case "wechat":
+			res.Wechat = null.StringFrom(w.Wechat)
+		case "user_id":
+			res.UserId = null.IntFrom(int64(w.UserId))
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		case "created_at":
+			res.CreatedAt = null.TimeFrom(w.CreatedAt)
+		case "updated_at":
+			res.UpdatedAt = null.TimeFrom(w.UpdatedAt)
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type
@@ -1213,6 +1474,26 @@ type UserExtModel struct {
 }
 
 var userExtTableName = "wz_userext"
+
+const (
+	UserExtFieldAddress   = "address"
+	UserExtFieldQq        = "qq"
+	UserExtFieldWechat    = "wechat"
+	UserExtFieldUserId    = "user_id"
+	UserExtFieldId        = "id"
+	UserExtFieldCreatedAt = "created_at"
+	UserExtFieldUpdatedAt = "updated_at"
+)
+
+const UserExtFields = []string{
+	"address",
+	"qq",
+	"wechat",
+	"user_id",
+	"id",
+	"created_at",
+	"updated_at",
+}
 
 func SetUserExtTable(tableName string) {
 	userExtTableName = tableName
@@ -1475,18 +1756,18 @@ func (m *UserExtModel) SaveAll(userExts []UserExt) ([]int64, error) {
 }
 
 // Save save a UserExt to database
-func (m *UserExtModel) Save(userExt UserExt) (int64, error) {
-	return m.Create(userExt.StaledKV())
+func (m *UserExtModel) Save(userExt UserExt, onlyFields ...string) (int64, error) {
+	return m.Create(userExt.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new UserExt or update it when it has a id > 0
-func (m *UserExtModel) SaveOrUpdate(userExt UserExt) (id int64, updated bool, err error) {
+func (m *UserExtModel) SaveOrUpdate(userExt UserExt, onlyFields ...string) (id int64, updated bool, err error) {
 	if userExt.Id.Int64 > 0 {
-		_, _err := m.UpdateById(userExt.Id.Int64, userExt)
+		_, _err := m.UpdateById(userExt.Id.Int64, userExt, onlyFields...)
 		return userExt.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(userExt)
+	_id, _err := m.Save(userExt, onlyFields...)
 	return _id, false, _err
 }
 
@@ -1515,9 +1796,14 @@ func (m *UserExtModel) Update(userExt UserExt, builders ...query.SQLBuilder) (in
 	return m.UpdateFields(userExt.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *UserExtModel) UpdatePart(userExt UserExt, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(userExt.StaledKV(onlyFields...), builders...)
+}
+
 // UpdateById update a model by id
-func (m *UserExtModel) UpdateById(id int64, userExt UserExt) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update(userExt)
+func (m *UserExtModel) UpdateById(id int64, userExt UserExt, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(userExt.StaledKV(onlyFields...), builders...)
 }
 
 // Delete remove a model
@@ -1570,46 +1856,96 @@ type passwordResetOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *PasswordReset) Staled() bool {
+func (inst *PasswordReset) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &passwordResetOriginal{}
 	}
 
-	if inst.Email != inst.original.Email {
-		return true
-	}
-	if inst.Token != inst.original.Token {
-		return true
-	}
-	if inst.Id != inst.original.Id {
-		return true
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Email != inst.original.Email {
+			return true
+		}
+		if inst.Token != inst.original.Token {
+			return true
+		}
+		if inst.Id != inst.original.Id {
+			return true
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			return true
+		}
+	} else {
+		switch strcase.ToSnake(f) {
+
+		case "email":
+			if inst.Email != inst.original.Email {
+				return true
+			}
+		case "token":
+			if inst.Token != inst.original.Token {
+				return true
+			}
+		case "id":
+			if inst.Id != inst.original.Id {
+				return true
+			}
+		case "created_at":
+			if inst.CreatedAt != inst.original.CreatedAt {
+				return true
+			}
+		default:
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *PasswordReset) StaledKV() query.KV {
+func (inst *PasswordReset) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &passwordResetOriginal{}
 	}
 
-	if inst.Email != inst.original.Email {
-		kv["email"] = inst.Email
-	}
-	if inst.Token != inst.original.Token {
-		kv["token"] = inst.Token
-	}
-	if inst.Id != inst.original.Id {
-		kv["id"] = inst.Id
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		kv["created_at"] = inst.CreatedAt
+	if len(onlyFields) == 0 {
+
+		if inst.Email != inst.original.Email {
+			kv["email"] = inst.Email
+		}
+		if inst.Token != inst.original.Token {
+			kv["token"] = inst.Token
+		}
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			kv["created_at"] = inst.CreatedAt
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "email":
+				if inst.Email != inst.original.Email {
+					kv["email"] = inst.Email
+				}
+			case "token":
+				if inst.Token != inst.original.Token {
+					kv["token"] = inst.Token
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					kv["created_at"] = inst.CreatedAt
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
@@ -1712,14 +2048,34 @@ type PasswordResetPlain struct {
 	CreatedAt time.Time
 }
 
-func (w PasswordResetPlain) ToPasswordReset() PasswordReset {
-	return PasswordReset{
+func (w PasswordResetPlain) ToPasswordReset(allows ...string) PasswordReset {
+	if len(allows) == 0 {
+		return PasswordReset{
 
-		Email:     null.StringFrom(w.Email),
-		Token:     null.StringFrom(w.Token),
-		Id:        null.IntFrom(int64(w.Id)),
-		CreatedAt: null.TimeFrom(w.CreatedAt),
+			Email:     null.StringFrom(w.Email),
+			Token:     null.StringFrom(w.Token),
+			Id:        null.IntFrom(int64(w.Id)),
+			CreatedAt: null.TimeFrom(w.CreatedAt),
+		}
 	}
+
+	res := PasswordReset{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "email":
+			res.Email = null.StringFrom(w.Email)
+		case "token":
+			res.Token = null.StringFrom(w.Token)
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		case "created_at":
+			res.CreatedAt = null.TimeFrom(w.CreatedAt)
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type
@@ -1750,6 +2106,20 @@ type PasswordResetModel struct {
 }
 
 var passwordResetTableName = "wz_passwordreset"
+
+const (
+	PasswordResetFieldEmail     = "email"
+	PasswordResetFieldToken     = "token"
+	PasswordResetFieldId        = "id"
+	PasswordResetFieldCreatedAt = "created_at"
+)
+
+const PasswordResetFields = []string{
+	"email",
+	"token",
+	"id",
+	"created_at",
+}
 
 func SetPasswordResetTable(tableName string) {
 	passwordResetTableName = tableName
@@ -1993,18 +2363,18 @@ func (m *PasswordResetModel) SaveAll(passwordResets []PasswordReset) ([]int64, e
 }
 
 // Save save a PasswordReset to database
-func (m *PasswordResetModel) Save(passwordReset PasswordReset) (int64, error) {
-	return m.Create(passwordReset.StaledKV())
+func (m *PasswordResetModel) Save(passwordReset PasswordReset, onlyFields ...string) (int64, error) {
+	return m.Create(passwordReset.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new PasswordReset or update it when it has a id > 0
-func (m *PasswordResetModel) SaveOrUpdate(passwordReset PasswordReset) (id int64, updated bool, err error) {
+func (m *PasswordResetModel) SaveOrUpdate(passwordReset PasswordReset, onlyFields ...string) (id int64, updated bool, err error) {
 	if passwordReset.Id.Int64 > 0 {
-		_, _err := m.UpdateById(passwordReset.Id.Int64, passwordReset)
+		_, _err := m.UpdateById(passwordReset.Id.Int64, passwordReset, onlyFields...)
 		return passwordReset.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(passwordReset)
+	_id, _err := m.Save(passwordReset, onlyFields...)
 	return _id, false, _err
 }
 
@@ -2031,9 +2401,14 @@ func (m *PasswordResetModel) Update(passwordReset PasswordReset, builders ...que
 	return m.UpdateFields(passwordReset.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *PasswordResetModel) UpdatePart(passwordReset PasswordReset, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(passwordReset.StaledKV(onlyFields...), builders...)
+}
+
 // UpdateById update a model by id
-func (m *PasswordResetModel) UpdateById(id int64, passwordReset PasswordReset) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update(passwordReset)
+func (m *PasswordResetModel) UpdateById(id int64, passwordReset PasswordReset, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(passwordReset.StaledKV(onlyFields...), builders...)
 }
 
 // Delete remove a model

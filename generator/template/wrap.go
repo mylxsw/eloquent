@@ -6,11 +6,25 @@ type {{ camel $m.Name }}Plain struct { {{ range $j, $f := fields $m.Definition }
 	{{ camel $f.Name }} {{ $f.Type }}{{ end }}
 }
 
-func (w {{ camel $m.Name }}Plain) To{{ camel $m.Name }}() {{ camel $m.Name }} {
-	return {{ camel $m.Name }} {
-		{{ range $j, $f := fields $m.Definition }}
-		{{ camel $f.Name }}: {{ wrap_type (printf "w.%s" $f.Name) $f.Type }},{{ end }}
+func (w {{ camel $m.Name }}Plain) To{{ camel $m.Name }}(allows ...string) {{ camel $m.Name }} {
+	if len(allows) == 0 {
+		return {{ camel $m.Name }} {
+			{{ range $j, $f := fields $m.Definition }}
+			{{ camel $f.Name }}: {{ wrap_type (printf "w.%s" $f.Name) $f.Type }},{{ end }}
+		}	
 	}
+
+	res := {{ camel $m.Name }}{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+		{{ range $j, $f := fields $m.Definition }}
+		case "{{ snake $f.Name }}":
+			res.{{ camel $f.Name }} = {{ wrap_type (printf "w.%s" $f.Name) $f.Type }}{{ end }}
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type

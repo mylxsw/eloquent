@@ -16,6 +16,15 @@ type {{ camel $m.Name }}Model struct {
 
 var {{ lower_camel $m.Name }}TableName = "{{ table $i }}"
 
+const (
+{{ range $j, $f := fields $m.Definition }}
+	{{ camel $m.Name }}Field{{ camel $f.Name }} = "{{ snake $f.Name }}"{{ end }}
+)
+
+const {{ camel $m.Name }}Fields = []string{ {{ range $j, $f := fields $m.Definition }}
+	"{{ snake $f.Name }}",{{ end }}
+}
+
 func Set{{ camel $m.Name }}Table (tableName string) {
 	{{ lower_camel $m.Name }}TableName = tableName
 }
@@ -257,18 +266,18 @@ func (m *{{ camel $m.Name }}Model) SaveAll({{ lower_camel $m.Name }}s []{{ camel
 }
 
 // Save save a {{ $m.Name }} to database
-func (m *{{ camel $m.Name }}Model) Save({{ lower_camel $m.Name }} {{ camel $m.Name }}) (int64, error) {
-	return m.Create({{ lower_camel $m.Name }}.StaledKV())
+func (m *{{ camel $m.Name }}Model) Save({{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
+	return m.Create({{ lower_camel $m.Name }}.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new {{ $m.Name }} or update it when it has a id > 0
-func (m *{{ camel $m.Name }}Model) SaveOrUpdate({{ lower_camel $m.Name }} {{ camel $m.Name }}) (id int64, updated bool, err error) {
+func (m *{{ camel $m.Name }}Model) SaveOrUpdate({{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (id int64, updated bool, err error) {
 	if {{ lower_camel $m.Name }}.Id.Int64 > 0 {
-		_, _err := m.UpdateById({{ lower_camel $m.Name }}.Id.Int64, {{ lower_camel $m.Name }})
+		_, _err := m.UpdateById({{ lower_camel $m.Name }}.Id.Int64, {{ lower_camel $m.Name }}, onlyFields...)
 		return {{ lower_camel $m.Name }}.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save({{ lower_camel $m.Name }})
+	_id, _err := m.Save({{ lower_camel $m.Name }}, onlyFields...)
 	return _id, false, _err
 }
 
@@ -299,9 +308,14 @@ func (m *{{ camel $m.Name }}Model) Update({{ lower_camel $m.Name }} {{ camel $m.
 	return m.UpdateFields({{ lower_camel $m.Name }}.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *{{ camel $m.Name }}Model) UpdatePart({{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
+	return m.UpdateFields({{ lower_camel $m.Name }}.StaledKV(onlyFields...))
+}
+
 // UpdateById update a model by id
-func (m *{{ camel $m.Name }}Model) UpdateById(id int64, {{ lower_camel $m.Name }} {{ camel $m.Name }}) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update({{ lower_camel $m.Name }})
+func (m *{{ camel $m.Name }}Model) UpdateById(id int64, {{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields({{ lower_camel $m.Name }}.StaledKV(onlyFields...), builders...)
 }
 
 {{ if $m.Definition.SoftDelete }}

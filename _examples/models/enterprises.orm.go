@@ -58,64 +58,138 @@ type enterpriseOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *Enterprise) Staled() bool {
+func (inst *Enterprise) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &enterpriseOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
-		return true
-	}
-	if inst.Name != inst.original.Name {
-		return true
-	}
-	if inst.Address != inst.original.Address {
-		return true
-	}
-	if inst.Status != inst.original.Status {
-		return true
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		return true
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		return true
-	}
-	if inst.DeletedAt != inst.original.DeletedAt {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Id != inst.original.Id {
+			return true
+		}
+		if inst.Name != inst.original.Name {
+			return true
+		}
+		if inst.Address != inst.original.Address {
+			return true
+		}
+		if inst.Status != inst.original.Status {
+			return true
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			return true
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			return true
+		}
+		if inst.DeletedAt != inst.original.DeletedAt {
+			return true
+		}
+	} else {
+		switch strcase.ToSnake(f) {
+
+		case "id":
+			if inst.Id != inst.original.Id {
+				return true
+			}
+		case "name":
+			if inst.Name != inst.original.Name {
+				return true
+			}
+		case "address":
+			if inst.Address != inst.original.Address {
+				return true
+			}
+		case "status":
+			if inst.Status != inst.original.Status {
+				return true
+			}
+		case "created_at":
+			if inst.CreatedAt != inst.original.CreatedAt {
+				return true
+			}
+		case "updated_at":
+			if inst.UpdatedAt != inst.original.UpdatedAt {
+				return true
+			}
+		case "deleted_at":
+			if inst.DeletedAt != inst.original.DeletedAt {
+				return true
+			}
+		default:
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *Enterprise) StaledKV() query.KV {
+func (inst *Enterprise) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &enterpriseOriginal{}
 	}
 
-	if inst.Id != inst.original.Id {
-		kv["id"] = inst.Id
-	}
-	if inst.Name != inst.original.Name {
-		kv["name"] = inst.Name
-	}
-	if inst.Address != inst.original.Address {
-		kv["address"] = inst.Address
-	}
-	if inst.Status != inst.original.Status {
-		kv["status"] = inst.Status
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		kv["created_at"] = inst.CreatedAt
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		kv["updated_at"] = inst.UpdatedAt
-	}
-	if inst.DeletedAt != inst.original.DeletedAt {
-		kv["deleted_at"] = inst.DeletedAt
+	if len(onlyFields) == 0 {
+
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+		if inst.Name != inst.original.Name {
+			kv["name"] = inst.Name
+		}
+		if inst.Address != inst.original.Address {
+			kv["address"] = inst.Address
+		}
+		if inst.Status != inst.original.Status {
+			kv["status"] = inst.Status
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			kv["created_at"] = inst.CreatedAt
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			kv["updated_at"] = inst.UpdatedAt
+		}
+		if inst.DeletedAt != inst.original.DeletedAt {
+			kv["deleted_at"] = inst.DeletedAt
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			case "name":
+				if inst.Name != inst.original.Name {
+					kv["name"] = inst.Name
+				}
+			case "address":
+				if inst.Address != inst.original.Address {
+					kv["address"] = inst.Address
+				}
+			case "status":
+				if inst.Status != inst.original.Status {
+					kv["status"] = inst.Status
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					kv["created_at"] = inst.CreatedAt
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					kv["updated_at"] = inst.UpdatedAt
+				}
+			case "deleted_at":
+				if inst.DeletedAt != inst.original.DeletedAt {
+					kv["deleted_at"] = inst.DeletedAt
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
@@ -261,17 +335,43 @@ type EnterprisePlain struct {
 	DeletedAt time.Time
 }
 
-func (w EnterprisePlain) ToEnterprise() Enterprise {
-	return Enterprise{
+func (w EnterprisePlain) ToEnterprise(allows ...string) Enterprise {
+	if len(allows) == 0 {
+		return Enterprise{
 
-		Id:        null.IntFrom(int64(w.Id)),
-		Name:      null.StringFrom(w.Name),
-		Address:   null.StringFrom(w.Address),
-		Status:    null.IntFrom(int64(w.Status)),
-		CreatedAt: null.TimeFrom(w.CreatedAt),
-		UpdatedAt: null.TimeFrom(w.UpdatedAt),
-		DeletedAt: null.TimeFrom(w.DeletedAt),
+			Id:        null.IntFrom(int64(w.Id)),
+			Name:      null.StringFrom(w.Name),
+			Address:   null.StringFrom(w.Address),
+			Status:    null.IntFrom(int64(w.Status)),
+			CreatedAt: null.TimeFrom(w.CreatedAt),
+			UpdatedAt: null.TimeFrom(w.UpdatedAt),
+			DeletedAt: null.TimeFrom(w.DeletedAt),
+		}
 	}
+
+	res := Enterprise{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		case "name":
+			res.Name = null.StringFrom(w.Name)
+		case "address":
+			res.Address = null.StringFrom(w.Address)
+		case "status":
+			res.Status = null.IntFrom(int64(w.Status))
+		case "created_at":
+			res.CreatedAt = null.TimeFrom(w.CreatedAt)
+		case "updated_at":
+			res.UpdatedAt = null.TimeFrom(w.UpdatedAt)
+		case "deleted_at":
+			res.DeletedAt = null.TimeFrom(w.DeletedAt)
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type
@@ -305,6 +405,26 @@ type EnterpriseModel struct {
 }
 
 var enterpriseTableName = "wz_enterprise"
+
+const (
+	EnterpriseFieldId        = "id"
+	EnterpriseFieldName      = "name"
+	EnterpriseFieldAddress   = "address"
+	EnterpriseFieldStatus    = "status"
+	EnterpriseFieldCreatedAt = "created_at"
+	EnterpriseFieldUpdatedAt = "updated_at"
+	EnterpriseFieldDeletedAt = "deleted_at"
+)
+
+const EnterpriseFields = []string{
+	"id",
+	"name",
+	"address",
+	"status",
+	"created_at",
+	"updated_at",
+	"deleted_at",
+}
 
 func SetEnterpriseTable(tableName string) {
 	enterpriseTableName = tableName
@@ -572,18 +692,18 @@ func (m *EnterpriseModel) SaveAll(enterprises []Enterprise) ([]int64, error) {
 }
 
 // Save save a enterprise to database
-func (m *EnterpriseModel) Save(enterprise Enterprise) (int64, error) {
-	return m.Create(enterprise.StaledKV())
+func (m *EnterpriseModel) Save(enterprise Enterprise, onlyFields ...string) (int64, error) {
+	return m.Create(enterprise.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new enterprise or update it when it has a id > 0
-func (m *EnterpriseModel) SaveOrUpdate(enterprise Enterprise) (id int64, updated bool, err error) {
+func (m *EnterpriseModel) SaveOrUpdate(enterprise Enterprise, onlyFields ...string) (id int64, updated bool, err error) {
 	if enterprise.Id.Int64 > 0 {
-		_, _err := m.UpdateById(enterprise.Id.Int64, enterprise)
+		_, _err := m.UpdateById(enterprise.Id.Int64, enterprise, onlyFields...)
 		return enterprise.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(enterprise)
+	_id, _err := m.Save(enterprise, onlyFields...)
 	return _id, false, _err
 }
 
@@ -612,9 +732,14 @@ func (m *EnterpriseModel) Update(enterprise Enterprise, builders ...query.SQLBui
 	return m.UpdateFields(enterprise.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *EnterpriseModel) UpdatePart(enterprise Enterprise, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(enterprise.StaledKV(onlyFields...), builders...)
+}
+
 // UpdateById update a model by id
-func (m *EnterpriseModel) UpdateById(id int64, enterprise Enterprise) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update(enterprise)
+func (m *EnterpriseModel) UpdateById(id int64, enterprise Enterprise, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(enterprise.StaledKV(onlyFields...), builders...)
 }
 
 // ForceDelete permanently remove a soft deleted model from the database

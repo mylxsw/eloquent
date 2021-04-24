@@ -49,52 +49,110 @@ type roleOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *Role) Staled() bool {
+func (inst *Role) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &roleOriginal{}
 	}
 
-	if inst.Name != inst.original.Name {
-		return true
-	}
-	if inst.Description != inst.original.Description {
-		return true
-	}
-	if inst.Id != inst.original.Id {
-		return true
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		return true
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Name != inst.original.Name {
+			return true
+		}
+		if inst.Description != inst.original.Description {
+			return true
+		}
+		if inst.Id != inst.original.Id {
+			return true
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			return true
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			return true
+		}
+	} else {
+		switch strcase.ToSnake(f) {
+
+		case "name":
+			if inst.Name != inst.original.Name {
+				return true
+			}
+		case "description":
+			if inst.Description != inst.original.Description {
+				return true
+			}
+		case "id":
+			if inst.Id != inst.original.Id {
+				return true
+			}
+		case "created_at":
+			if inst.CreatedAt != inst.original.CreatedAt {
+				return true
+			}
+		case "updated_at":
+			if inst.UpdatedAt != inst.original.UpdatedAt {
+				return true
+			}
+		default:
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (inst *Role) StaledKV() query.KV {
+func (inst *Role) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
 		inst.original = &roleOriginal{}
 	}
 
-	if inst.Name != inst.original.Name {
-		kv["name"] = inst.Name
-	}
-	if inst.Description != inst.original.Description {
-		kv["description"] = inst.Description
-	}
-	if inst.Id != inst.original.Id {
-		kv["id"] = inst.Id
-	}
-	if inst.CreatedAt != inst.original.CreatedAt {
-		kv["created_at"] = inst.CreatedAt
-	}
-	if inst.UpdatedAt != inst.original.UpdatedAt {
-		kv["updated_at"] = inst.UpdatedAt
+	if len(onlyFields) == 0 {
+
+		if inst.Name != inst.original.Name {
+			kv["name"] = inst.Name
+		}
+		if inst.Description != inst.original.Description {
+			kv["description"] = inst.Description
+		}
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+		if inst.CreatedAt != inst.original.CreatedAt {
+			kv["created_at"] = inst.CreatedAt
+		}
+		if inst.UpdatedAt != inst.original.UpdatedAt {
+			kv["updated_at"] = inst.UpdatedAt
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "name":
+				if inst.Name != inst.original.Name {
+					kv["name"] = inst.Name
+				}
+			case "description":
+				if inst.Description != inst.original.Description {
+					kv["description"] = inst.Description
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			case "created_at":
+				if inst.CreatedAt != inst.original.CreatedAt {
+					kv["created_at"] = inst.CreatedAt
+				}
+			case "updated_at":
+				if inst.UpdatedAt != inst.original.UpdatedAt {
+					kv["updated_at"] = inst.UpdatedAt
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
@@ -238,15 +296,37 @@ type RolePlain struct {
 	UpdatedAt   time.Time
 }
 
-func (w RolePlain) ToRole() Role {
-	return Role{
+func (w RolePlain) ToRole(allows ...string) Role {
+	if len(allows) == 0 {
+		return Role{
 
-		Name:        null.StringFrom(w.Name),
-		Description: null.StringFrom(w.Description),
-		Id:          null.IntFrom(int64(w.Id)),
-		CreatedAt:   null.TimeFrom(w.CreatedAt),
-		UpdatedAt:   null.TimeFrom(w.UpdatedAt),
+			Name:        null.StringFrom(w.Name),
+			Description: null.StringFrom(w.Description),
+			Id:          null.IntFrom(int64(w.Id)),
+			CreatedAt:   null.TimeFrom(w.CreatedAt),
+			UpdatedAt:   null.TimeFrom(w.UpdatedAt),
+		}
 	}
+
+	res := Role{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "name":
+			res.Name = null.StringFrom(w.Name)
+		case "description":
+			res.Description = null.StringFrom(w.Description)
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		case "created_at":
+			res.CreatedAt = null.TimeFrom(w.CreatedAt)
+		case "updated_at":
+			res.UpdatedAt = null.TimeFrom(w.UpdatedAt)
+		default:
+		}
+	}
+
+	return res
 }
 
 // As convert object to other type
@@ -278,6 +358,22 @@ type RoleModel struct {
 }
 
 var roleTableName = "wz_role"
+
+const (
+	RoleFieldName        = "name"
+	RoleFieldDescription = "description"
+	RoleFieldId          = "id"
+	RoleFieldCreatedAt   = "created_at"
+	RoleFieldUpdatedAt   = "updated_at"
+)
+
+const RoleFields = []string{
+	"name",
+	"description",
+	"id",
+	"created_at",
+	"updated_at",
+}
 
 func SetRoleTable(tableName string) {
 	roleTableName = tableName
@@ -530,18 +626,18 @@ func (m *RoleModel) SaveAll(roles []Role) ([]int64, error) {
 }
 
 // Save save a Role to database
-func (m *RoleModel) Save(role Role) (int64, error) {
-	return m.Create(role.StaledKV())
+func (m *RoleModel) Save(role Role, onlyFields ...string) (int64, error) {
+	return m.Create(role.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new Role or update it when it has a id > 0
-func (m *RoleModel) SaveOrUpdate(role Role) (id int64, updated bool, err error) {
+func (m *RoleModel) SaveOrUpdate(role Role, onlyFields ...string) (id int64, updated bool, err error) {
 	if role.Id.Int64 > 0 {
-		_, _err := m.UpdateById(role.Id.Int64, role)
+		_, _err := m.UpdateById(role.Id.Int64, role, onlyFields...)
 		return role.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(role)
+	_id, _err := m.Save(role, onlyFields...)
 	return _id, false, _err
 }
 
@@ -570,9 +666,14 @@ func (m *RoleModel) Update(role Role, builders ...query.SQLBuilder) (int64, erro
 	return m.UpdateFields(role.StaledKV(), builders...)
 }
 
+// UpdatePart update a model for given query
+func (m *RoleModel) UpdatePart(role Role, onlyFields []string, builders ...query.SQLBuilder) (int64, error) {
+	return m.UpdateFields(role.StaledKV(onlyFields...), builders...)
+}
+
 // UpdateById update a model by id
-func (m *RoleModel) UpdateById(id int64, role Role) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Update(role)
+func (m *RoleModel) UpdateById(id int64, role Role, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(role.StaledKV(onlyFields...), builders...)
 }
 
 // Delete remove a model
