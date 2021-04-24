@@ -1036,7 +1036,7 @@ func (m *UserModel) UpdatePart(user User, onlyFields ...string) (int64, error) {
 
 // UpdateById update a model by id
 func (m *UserModel) UpdateById(id int64, user User, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(user.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(user.StaledKV(onlyFields...))
 }
 
 // ForceDelete permanently remove a soft deleted model from the database
@@ -1813,7 +1813,7 @@ func (m *UserExtModel) UpdatePart(userExt UserExt, onlyFields ...string) (int64,
 
 // UpdateById update a model by id
 func (m *UserExtModel) UpdateById(id int64, userExt UserExt, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(userExt.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(userExt.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
@@ -2423,7 +2423,7 @@ func (m *PasswordResetModel) UpdatePart(passwordReset PasswordReset, onlyFields 
 
 // UpdateById update a model by id
 func (m *PasswordResetModel) UpdateById(id int64, passwordReset PasswordReset, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(passwordReset.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(passwordReset.StaledKV(onlyFields...))
 }
 
 // Delete remove a model

@@ -744,7 +744,7 @@ func (m *EnterpriseModel) UpdatePart(enterprise Enterprise, onlyFields ...string
 
 // UpdateById update a model by id
 func (m *EnterpriseModel) UpdateById(id int64, enterprise Enterprise, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(enterprise.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(enterprise.StaledKV(onlyFields...))
 }
 
 // ForceDelete permanently remove a soft deleted model from the database

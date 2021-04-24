@@ -713,7 +713,7 @@ func (m *OrganizationModel) UpdatePart(organization Organization, onlyFields ...
 
 // UpdateById update a model by id
 func (m *OrganizationModel) UpdateById(id int64, organization Organization, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(organization.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(organization.StaledKV(onlyFields...))
 }
 
 // Delete remove a model

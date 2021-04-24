@@ -678,7 +678,7 @@ func (m *RoleModel) UpdatePart(role Role, onlyFields ...string) (int64, error) {
 
 // UpdateById update a model by id
 func (m *RoleModel) UpdateById(id int64, role Role, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(role.StaledKV(onlyFields...), builders...)
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(role.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
