@@ -639,6 +639,9 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 			return nil, err
 		}
 
+		enterpriseReal.original = &enterpriseOriginal{}
+		_ = coll.CopyProperties(enterpriseReal, enterpriseReal.original)
+
 		enterpriseReal.SetModel(m)
 		enterprises = append(enterprises, *enterpriseReal)
 	}

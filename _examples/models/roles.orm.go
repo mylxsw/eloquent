@@ -573,6 +573,9 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 			return nil, err
 		}
 
+		roleReal.original = &roleOriginal{}
+		_ = coll.CopyProperties(roleReal, roleReal.original)
+
 		roleReal.SetModel(m)
 		roles = append(roles, *roleReal)
 	}

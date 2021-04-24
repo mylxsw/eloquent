@@ -931,6 +931,9 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 			return nil, err
 		}
 
+		userReal.original = &userOriginal{}
+		_ = coll.CopyProperties(userReal, userReal.original)
+
 		userReal.SetModel(m)
 		users = append(users, *userReal)
 	}
@@ -1708,6 +1711,9 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 			return nil, err
 		}
 
+		userExtReal.original = &userExtOriginal{}
+		_ = coll.CopyProperties(userExtReal, userExtReal.original)
+
 		userExtReal.SetModel(m)
 		userExts = append(userExts, *userExtReal)
 	}
@@ -2323,6 +2329,9 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
+
+		passwordResetReal.original = &passwordResetOriginal{}
+		_ = coll.CopyProperties(passwordResetReal, passwordResetReal.original)
 
 		passwordResetReal.SetModel(m)
 		passwordResets = append(passwordResets, *passwordResetReal)

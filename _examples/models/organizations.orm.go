@@ -608,6 +608,9 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 			return nil, err
 		}
 
+		organizationReal.original = &organizationOriginal{}
+		_ = coll.CopyProperties(organizationReal, organizationReal.original)
+
 		organizationReal.SetModel(m)
 		organizations = append(organizations, *organizationReal)
 	}

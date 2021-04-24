@@ -1,6 +1,5 @@
 package template
 
-
 func GetModelTemplate() string {
 	return `
 // {{ camel $m.Name }}Model is a model which encapsulates the operations of the object
@@ -209,6 +208,9 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
+
+		{{ lower_camel $m.Name }}Real.original = &{{ lower_camel $m.Name }}Original{}
+		_ = coll.CopyProperties({{ lower_camel $m.Name }}Real, {{ lower_camel $m.Name }}Real.original)
 
 		{{ lower_camel $m.Name }}Real.SetModel(m)
 		{{ lower_camel $m.Name }}s = append({{ lower_camel $m.Name }}s, *{{ lower_camel $m.Name }}Real)
