@@ -86,12 +86,12 @@ func (inst *{{ camel $m.Name }}) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it 
-func (inst *{{ camel $m.Name }}) Save() error {
+func (inst *{{ camel $m.Name }}) Save(onlyFields ...string) error {
 	if inst.{{ lower_camel $m.Name }}Model == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.{{ lower_camel $m.Name }}Model.SaveOrUpdate(*inst)
+	id, _, err := inst.{{ lower_camel $m.Name }}Model.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err 
 	}

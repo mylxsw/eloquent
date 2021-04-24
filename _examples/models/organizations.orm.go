@@ -146,12 +146,12 @@ func (inst *Organization) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *Organization) Save() error {
+func (inst *Organization) Save(onlyFields ...string) error {
 	if inst.organizationModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.organizationModel.SaveOrUpdate(*inst)
+	id, _, err := inst.organizationModel.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err
 	}

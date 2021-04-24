@@ -247,12 +247,12 @@ func (inst *User) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *User) Save() error {
+func (inst *User) Save(onlyFields ...string) error {
 	if inst.userModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.userModel.SaveOrUpdate(*inst)
+	id, _, err := inst.userModel.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -1262,12 +1262,12 @@ func (inst *UserExt) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *UserExt) Save() error {
+func (inst *UserExt) Save(onlyFields ...string) error {
 	if inst.userExtModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.userExtModel.SaveOrUpdate(*inst)
+	id, _, err := inst.userExtModel.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -1964,12 +1964,12 @@ func (inst *PasswordReset) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *PasswordReset) Save() error {
+func (inst *PasswordReset) Save(onlyFields ...string) error {
 	if inst.passwordResetModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.passwordResetModel.SaveOrUpdate(*inst)
+	id, _, err := inst.passwordResetModel.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err
 	}

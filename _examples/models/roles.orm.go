@@ -161,12 +161,12 @@ func (inst *Role) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *Role) Save() error {
+func (inst *Role) Save(onlyFields ...string) error {
 	if inst.roleModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.roleModel.SaveOrUpdate(*inst)
+	id, _, err := inst.roleModel.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err
 	}

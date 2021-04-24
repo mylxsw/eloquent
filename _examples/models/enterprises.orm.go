@@ -198,12 +198,12 @@ func (inst *Enterprise) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *Enterprise) Save() error {
+func (inst *Enterprise) Save(onlyFields ...string) error {
 	if inst.enterpriseModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.enterpriseModel.SaveOrUpdate(*inst)
+	id, _, err := inst.enterpriseModel.SaveOrUpdate(*inst, onlyFields...)
 	if err != nil {
 		return err
 	}
