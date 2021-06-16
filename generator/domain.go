@@ -5,10 +5,10 @@ import (
 )
 
 type Domain struct {
-	Imports     []string `yaml:"imports"`
-	PackageName string   `yaml:"package"`
-	Models      []Model  `yaml:"models"`
-	Meta        Meta     `yaml:"meta"`
+	Imports     []string `yaml:"imports,omitempty"`
+	PackageName string   `yaml:"package,omitempty"`
+	Models      []Model  `yaml:"models,omitempty"`
+	Meta        Meta     `yaml:"meta,omitempty"`
 }
 
 func (dom Domain) Init() Domain {
@@ -29,9 +29,9 @@ type Meta struct {
 }
 
 type Model struct {
-	Name       string     `yaml:"name"`
-	Relations  []Relation `yaml:"relations"`
-	Definition Definition `yaml:"definition"`
+	Name       string     `yaml:"name,omitempty"`
+	Relations  []Relation `yaml:"relations,omitempty"`
+	Definition Definition `yaml:"definition,omitempty"`
 }
 
 func (rel Relation) ImportPackages() []string {
@@ -49,30 +49,29 @@ func (rel Relation) ImportPackages() []string {
 }
 
 type Relation struct {
-	Model string `yaml:"model"`
-	Rel   string `yaml:"rel"`
+	Model string `yaml:"model,omitempty"`
+	Rel   string `yaml:"rel,omitempty"`
 
-	ForeignKey string `yaml:"foreign_key"`
-	OwnerKey   string `yaml:"owner_key"`
-	LocalKey   string `yaml:"local_key"`
+	ForeignKey string `yaml:"foreign_key,omitempty"`
+	OwnerKey   string `yaml:"owner_key,omitempty"`
+	LocalKey   string `yaml:"local_key,omitempty"`
 
-	PivotTable string `yaml:"table"`
+	PivotTable string `yaml:"table,omitempty"`
 
-	Package string `yaml:"package"`
-	Method  string `yaml:"method"`
+	Package string `yaml:"package,omitempty"`
+	Method  string `yaml:"method,omitempty"`
 }
 
 type Definition struct {
-	TableName         string            `yaml:"table_name"`
-	WithoutCreateTime bool              `yaml:"without_create_time"`
-	WithoutUpdateTime bool              `yaml:"without_update_time"`
-	SoftDelete        bool              `yaml:"soft_delete"`
-	Fields            []DefinitionField `yaml:"fields"`
+	TableName         string            `yaml:"table_name,omitempty"`
+	WithoutCreateTime bool              `yaml:"without_create_time,omitempty"`
+	WithoutUpdateTime bool              `yaml:"without_update_time,omitempty"`
+	SoftDelete        bool              `yaml:"soft_delete,omitempty"`
+	Fields            []DefinitionField `yaml:"fields,omitempty"`
 }
 
 type DefinitionField struct {
-	Name string `yaml:"name"`
-	Type string `yaml:"type"`
-	Tag  string `yaml:"tag"`
+	Name string `yaml:"name,omitempty"`
+	Type string `yaml:"type,omitempty"`
+	Tag  string `yaml:"tag,omitempty"`
 }
-

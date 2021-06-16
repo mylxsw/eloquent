@@ -1,0 +1,11 @@
+package: models
+models:
+- name: hello
+  definition:
+    table_name: hello
+    without_update_time: true
+    soft_delete: true
+    fields:
+    - name: id
+      type: int64
+      tag: json:"id"
