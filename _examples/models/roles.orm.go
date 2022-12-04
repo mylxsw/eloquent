@@ -16,8 +16,8 @@ func init() {
 
 }
 
-// Role is a Role object
-type Role struct {
+// RoleN is a Role object, all fields are nullable
+type RoleN struct {
 	original  *roleOriginal
 	roleModel *RoleModel
 
@@ -30,12 +30,12 @@ type Role struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *Role) As(dst interface{}) error {
+func (inst *RoleN) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for Role
-func (inst *Role) SetModel(roleModel *RoleModel) {
+func (inst *RoleN) SetModel(roleModel *RoleModel) {
 	inst.roleModel = roleModel
 }
 
@@ -49,7 +49,7 @@ type roleOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *Role) Staled(onlyFields ...string) bool {
+func (inst *RoleN) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &roleOriginal{}
 	}
@@ -104,7 +104,7 @@ func (inst *Role) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *Role) StaledKV(onlyFields ...string) query.KV {
+func (inst *RoleN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -161,12 +161,12 @@ func (inst *Role) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *Role) Save(onlyFields ...string) error {
+func (inst *RoleN) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.roleModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.roleModel.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.roleModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -176,12 +176,12 @@ func (inst *Role) Save(onlyFields ...string) error {
 }
 
 // Delete remove a Role
-func (inst *Role) Delete() error {
+func (inst *RoleN) Delete(ctx context.Context) error {
 	if inst.roleModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.roleModel.DeleteById(inst.Id.Int64)
+	_, err := inst.roleModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -190,12 +190,12 @@ func (inst *Role) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *Role) String() string {
+func (inst *RoleN) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }
 
-func (inst *Role) Users() *RoleHasManyUserRel {
+func (inst *RoleN) Users() *RoleHasManyUserRel {
 	return &RoleHasManyUserRel{
 		source:   inst,
 		relModel: NewUserModel(inst.roleModel.GetDB()),
@@ -203,36 +203,36 @@ func (inst *Role) Users() *RoleHasManyUserRel {
 }
 
 type RoleHasManyUserRel struct {
-	source   *Role
+	source   *RoleN
 	relModel *UserModel
 }
 
-func (rel *RoleHasManyUserRel) Get(builders ...query.SQLBuilder) ([]User, error) {
+func (rel *RoleHasManyUserRel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]UserN, error) {
 	builder := query.Builder().Where("role_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Get(builder)
+	return rel.relModel.Get(ctx, builder)
 }
 
-func (rel *RoleHasManyUserRel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (rel *RoleHasManyUserRel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	builder := query.Builder().Where("role_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Count(builder)
+	return rel.relModel.Count(ctx, builder)
 }
 
-func (rel *RoleHasManyUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *RoleHasManyUserRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("role_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *RoleHasManyUserRel) First(builders ...query.SQLBuilder) (User, error) {
+func (rel *RoleHasManyUserRel) First(ctx context.Context, builders ...query.SQLBuilder) (*UserN, error) {
 	builder := query.Builder().Where("role_id", rel.source.Id).Limit(1).Merge(builders...)
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *RoleHasManyUserRel) Create(target User) (int64, error) {
+func (rel *RoleHasManyUserRel) Create(ctx context.Context, target UserN) (int64, error) {
 	target.RoleId = rel.source.Id
-	return rel.relModel.Save(target)
+	return rel.relModel.Save(ctx, target)
 }
 
 type roleScope struct {
@@ -290,7 +290,7 @@ func (m *RoleModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type RolePlain struct {
+type Role struct {
 	Name        string
 	Description string
 	Id          int64
@@ -298,9 +298,9 @@ type RolePlain struct {
 	UpdatedAt   time.Time
 }
 
-func (w RolePlain) ToRole(allows ...string) Role {
+func (w Role) ToRoleN(allows ...string) RoleN {
 	if len(allows) == 0 {
-		return Role{
+		return RoleN{
 
 			Name:        null.StringFrom(w.Name),
 			Description: null.StringFrom(w.Description),
@@ -310,7 +310,7 @@ func (w RolePlain) ToRole(allows ...string) Role {
 		}
 	}
 
-	res := Role{}
+	res := RoleN{}
 	for _, al := range allows {
 		switch strcase.ToSnake(al) {
 
@@ -333,12 +333,12 @@ func (w RolePlain) ToRole(allows ...string) Role {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (w RolePlain) As(dst interface{}) error {
+func (w Role) As(dst interface{}) error {
 	return coll.CopyProperties(w, dst)
 }
 
-func (w *Role) ToRolePlain() RolePlain {
-	return RolePlain{
+func (w *RoleN) ToRole() Role {
+	return Role{
 
 		Name:        w.Name.String,
 		Description: w.Description.String,
@@ -361,12 +361,17 @@ type RoleModel struct {
 
 var roleTableName = "wz_role"
 
+// RoleTable return table name for Role
+func RoleTable() string {
+	return roleTableName
+}
+
 const (
-	RoleFieldName        = "name"
-	RoleFieldDescription = "description"
-	RoleFieldId          = "id"
-	RoleFieldCreatedAt   = "created_at"
-	RoleFieldUpdatedAt   = "updated_at"
+	FieldRoleName        = "name"
+	FieldRoleDescription = "description"
+	FieldRoleId          = "id"
+	FieldRoleCreatedAt   = "created_at"
+	FieldRoleUpdatedAt   = "updated_at"
 )
 
 // RoleFields return all fields in Role model
@@ -435,25 +440,25 @@ func (m *RoleModel) Condition(builder query.SQLBuilder) *RoleModel {
 }
 
 // Find retrieve a model by its primary key
-func (m *RoleModel) Find(id int64) (Role, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *RoleModel) Find(ctx context.Context, id int64) (*RoleN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *RoleModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *RoleModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *RoleModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *RoleModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -469,7 +474,7 @@ func (m *RoleModel) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
-func (m *RoleModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]Role, query.PaginateMeta, error) {
+func (m *RoleModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]RoleN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -483,7 +488,7 @@ func (m *RoleModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -494,7 +499,7 @@ func (m *RoleModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -503,7 +508,7 @@ func (m *RoleModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 }
 
 // Get retrieve all results for given query
-func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
+func (m *RoleModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]RoleN, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select(
@@ -534,8 +539,8 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*Role, []interface{}) {
-		var roleVar Role
+	var createScanVar = func(fields []query.Expr) (*RoleN, []interface{}) {
+		var roleVar RoleN
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -559,14 +564,14 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	roles := make([]Role, 0)
+	roles := make([]RoleN, 0)
 	for rows.Next() {
 		roleReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -584,21 +589,21 @@ func (m *RoleModel) Get(builders ...query.SQLBuilder) ([]Role, error) {
 }
 
 // First return first result for given query
-func (m *RoleModel) First(builders ...query.SQLBuilder) (Role, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *RoleModel) First(ctx context.Context, builders ...query.SQLBuilder) (*RoleN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return Role{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return Role{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new Role to database
-func (m *RoleModel) Create(kv query.KV) (int64, error) {
+func (m *RoleModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -610,7 +615,7 @@ func (m *RoleModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -619,10 +624,10 @@ func (m *RoleModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all Roles to database
-func (m *RoleModel) SaveAll(roles []Role) ([]int64, error) {
+func (m *RoleModel) SaveAll(ctx context.Context, roles []RoleN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, role := range roles {
-		id, err := m.Save(role)
+		id, err := m.Save(ctx, role)
 		if err != nil {
 			return ids, err
 		}
@@ -634,23 +639,23 @@ func (m *RoleModel) SaveAll(roles []Role) ([]int64, error) {
 }
 
 // Save save a Role to database
-func (m *RoleModel) Save(role Role, onlyFields ...string) (int64, error) {
-	return m.Create(role.StaledKV(onlyFields...))
+func (m *RoleModel) Save(ctx context.Context, role RoleN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, role.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new Role or update it when it has a id > 0
-func (m *RoleModel) SaveOrUpdate(role Role, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *RoleModel) SaveOrUpdate(ctx context.Context, role RoleN, onlyFields ...string) (id int64, updated bool, err error) {
 	if role.Id.Int64 > 0 {
-		_, _err := m.UpdateById(role.Id.Int64, role, onlyFields...)
+		_, _err := m.UpdateById(ctx, role.Id.Int64, role, onlyFields...)
 		return role.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(role, onlyFields...)
+	_id, _err := m.Save(ctx, role, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *RoleModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *RoleModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -661,7 +666,7 @@ func (m *RoleModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -670,26 +675,21 @@ func (m *RoleModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 }
 
 // Update update a model for given query
-func (m *RoleModel) Update(role Role, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(role.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *RoleModel) UpdatePart(role Role, onlyFields ...string) (int64, error) {
-	return m.UpdateFields(role.StaledKV(onlyFields...))
+func (m *RoleModel) Update(ctx context.Context, builder query.SQLBuilder, role RoleN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, role.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *RoleModel) UpdateById(id int64, role Role, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(role.StaledKV(onlyFields...))
+func (m *RoleModel) UpdateById(ctx context.Context, id int64, role RoleN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, role.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
-func (m *RoleModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *RoleModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -699,6 +699,6 @@ func (m *RoleModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 }
 
 // DeleteById remove a model by id
-func (m *RoleModel) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *RoleModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }

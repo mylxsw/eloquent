@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/mylxsw/eloquent/generator"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func TestDomain(t *testing.T) {

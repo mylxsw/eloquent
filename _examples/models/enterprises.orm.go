@@ -21,8 +21,8 @@ func init() {
 
 }
 
-// Enterprise is a Enterprise object
-type Enterprise struct {
+// EnterpriseN is a Enterprise object, all fields are nullable
+type EnterpriseN struct {
 	original        *enterpriseOriginal
 	enterpriseModel *EnterpriseModel
 
@@ -37,12 +37,12 @@ type Enterprise struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *Enterprise) As(dst interface{}) error {
+func (inst *EnterpriseN) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for Enterprise
-func (inst *Enterprise) SetModel(enterpriseModel *EnterpriseModel) {
+func (inst *EnterpriseN) SetModel(enterpriseModel *EnterpriseModel) {
 	inst.enterpriseModel = enterpriseModel
 }
 
@@ -58,7 +58,7 @@ type enterpriseOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *Enterprise) Staled(onlyFields ...string) bool {
+func (inst *EnterpriseN) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &enterpriseOriginal{}
 	}
@@ -127,7 +127,7 @@ func (inst *Enterprise) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *Enterprise) StaledKV(onlyFields ...string) query.KV {
+func (inst *EnterpriseN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -198,12 +198,12 @@ func (inst *Enterprise) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *Enterprise) Save(onlyFields ...string) error {
+func (inst *EnterpriseN) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.enterpriseModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.enterpriseModel.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.enterpriseModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -213,12 +213,12 @@ func (inst *Enterprise) Save(onlyFields ...string) error {
 }
 
 // Delete remove a enterprise
-func (inst *Enterprise) Delete() error {
+func (inst *EnterpriseN) Delete(ctx context.Context) error {
 	if inst.enterpriseModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.enterpriseModel.DeleteById(inst.Id.Int64)
+	_, err := inst.enterpriseModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -227,12 +227,12 @@ func (inst *Enterprise) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *Enterprise) String() string {
+func (inst *EnterpriseN) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }
 
-func (inst *Enterprise) Users() *EnterpriseHasManyUserRel {
+func (inst *EnterpriseN) Users() *EnterpriseHasManyUserRel {
 	return &EnterpriseHasManyUserRel{
 		source:   inst,
 		relModel: NewUserModel(inst.enterpriseModel.GetDB()),
@@ -240,36 +240,36 @@ func (inst *Enterprise) Users() *EnterpriseHasManyUserRel {
 }
 
 type EnterpriseHasManyUserRel struct {
-	source   *Enterprise
+	source   *EnterpriseN
 	relModel *UserModel
 }
 
-func (rel *EnterpriseHasManyUserRel) Get(builders ...query.SQLBuilder) ([]User, error) {
+func (rel *EnterpriseHasManyUserRel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]UserN, error) {
 	builder := query.Builder().Where("enterprise_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Get(builder)
+	return rel.relModel.Get(ctx, builder)
 }
 
-func (rel *EnterpriseHasManyUserRel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (rel *EnterpriseHasManyUserRel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	builder := query.Builder().Where("enterprise_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Count(builder)
+	return rel.relModel.Count(ctx, builder)
 }
 
-func (rel *EnterpriseHasManyUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *EnterpriseHasManyUserRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("enterprise_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *EnterpriseHasManyUserRel) First(builders ...query.SQLBuilder) (User, error) {
+func (rel *EnterpriseHasManyUserRel) First(ctx context.Context, builders ...query.SQLBuilder) (*UserN, error) {
 	builder := query.Builder().Where("enterprise_id", rel.source.Id).Limit(1).Merge(builders...)
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *EnterpriseHasManyUserRel) Create(target User) (int64, error) {
+func (rel *EnterpriseHasManyUserRel) Create(ctx context.Context, target UserN) (int64, error) {
 	target.EnterpriseId = rel.source.Id
-	return rel.relModel.Save(target)
+	return rel.relModel.Save(ctx, target)
 }
 
 type enterpriseScope struct {
@@ -327,7 +327,7 @@ func (m *EnterpriseModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type EnterprisePlain struct {
+type Enterprise struct {
 	Id        int64
 	Name      string
 	Address   string
@@ -337,9 +337,9 @@ type EnterprisePlain struct {
 	DeletedAt time.Time
 }
 
-func (w EnterprisePlain) ToEnterprise(allows ...string) Enterprise {
+func (w Enterprise) ToEnterpriseN(allows ...string) EnterpriseN {
 	if len(allows) == 0 {
-		return Enterprise{
+		return EnterpriseN{
 
 			Id:        null.IntFrom(int64(w.Id)),
 			Name:      null.StringFrom(w.Name),
@@ -351,7 +351,7 @@ func (w EnterprisePlain) ToEnterprise(allows ...string) Enterprise {
 		}
 	}
 
-	res := Enterprise{}
+	res := EnterpriseN{}
 	for _, al := range allows {
 		switch strcase.ToSnake(al) {
 
@@ -378,12 +378,12 @@ func (w EnterprisePlain) ToEnterprise(allows ...string) Enterprise {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (w EnterprisePlain) As(dst interface{}) error {
+func (w Enterprise) As(dst interface{}) error {
 	return coll.CopyProperties(w, dst)
 }
 
-func (w *Enterprise) ToEnterprisePlain() EnterprisePlain {
-	return EnterprisePlain{
+func (w *EnterpriseN) ToEnterprise() Enterprise {
+	return Enterprise{
 
 		Id:        w.Id.Int64,
 		Name:      w.Name.String,
@@ -408,14 +408,19 @@ type EnterpriseModel struct {
 
 var enterpriseTableName = "wz_enterprise"
 
+// EnterpriseTable return table name for Enterprise
+func EnterpriseTable() string {
+	return enterpriseTableName
+}
+
 const (
-	EnterpriseFieldId        = "id"
-	EnterpriseFieldName      = "name"
-	EnterpriseFieldAddress   = "address"
-	EnterpriseFieldStatus    = "status"
-	EnterpriseFieldCreatedAt = "created_at"
-	EnterpriseFieldUpdatedAt = "updated_at"
-	EnterpriseFieldDeletedAt = "deleted_at"
+	FieldEnterpriseId        = "id"
+	FieldEnterpriseName      = "name"
+	FieldEnterpriseAddress   = "address"
+	FieldEnterpriseStatus    = "status"
+	FieldEnterpriseCreatedAt = "created_at"
+	FieldEnterpriseUpdatedAt = "updated_at"
+	FieldEnterpriseDeletedAt = "deleted_at"
 )
 
 // EnterpriseFields return all fields in Enterprise model
@@ -491,25 +496,25 @@ func (m *EnterpriseModel) Condition(builder query.SQLBuilder) *EnterpriseModel {
 }
 
 // Find retrieve a model by its primary key
-func (m *EnterpriseModel) Find(id int64) (Enterprise, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *EnterpriseModel) Find(ctx context.Context, id int64) (*EnterpriseN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *EnterpriseModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *EnterpriseModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *EnterpriseModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *EnterpriseModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -525,7 +530,7 @@ func (m *EnterpriseModel) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
-func (m *EnterpriseModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]Enterprise, query.PaginateMeta, error) {
+func (m *EnterpriseModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]EnterpriseN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -539,7 +544,7 @@ func (m *EnterpriseModel) Paginate(page int64, perPage int64, builders ...query.
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -550,7 +555,7 @@ func (m *EnterpriseModel) Paginate(page int64, perPage int64, builders ...query.
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -559,7 +564,7 @@ func (m *EnterpriseModel) Paginate(page int64, perPage int64, builders ...query.
 }
 
 // Get retrieve all results for given query
-func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error) {
+func (m *EnterpriseModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]EnterpriseN, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select(
@@ -596,8 +601,8 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*Enterprise, []interface{}) {
-		var enterpriseVar Enterprise
+	var createScanVar = func(fields []query.Expr) (*EnterpriseN, []interface{}) {
+		var enterpriseVar EnterpriseN
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -625,14 +630,14 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	enterprises := make([]Enterprise, 0)
+	enterprises := make([]EnterpriseN, 0)
 	for rows.Next() {
 		enterpriseReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -650,21 +655,21 @@ func (m *EnterpriseModel) Get(builders ...query.SQLBuilder) ([]Enterprise, error
 }
 
 // First return first result for given query
-func (m *EnterpriseModel) First(builders ...query.SQLBuilder) (Enterprise, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *EnterpriseModel) First(ctx context.Context, builders ...query.SQLBuilder) (*EnterpriseN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return Enterprise{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return Enterprise{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new enterprise to database
-func (m *EnterpriseModel) Create(kv query.KV) (int64, error) {
+func (m *EnterpriseModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -676,7 +681,7 @@ func (m *EnterpriseModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -685,10 +690,10 @@ func (m *EnterpriseModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all enterprises to database
-func (m *EnterpriseModel) SaveAll(enterprises []Enterprise) ([]int64, error) {
+func (m *EnterpriseModel) SaveAll(ctx context.Context, enterprises []EnterpriseN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, enterprise := range enterprises {
-		id, err := m.Save(enterprise)
+		id, err := m.Save(ctx, enterprise)
 		if err != nil {
 			return ids, err
 		}
@@ -700,23 +705,23 @@ func (m *EnterpriseModel) SaveAll(enterprises []Enterprise) ([]int64, error) {
 }
 
 // Save save a enterprise to database
-func (m *EnterpriseModel) Save(enterprise Enterprise, onlyFields ...string) (int64, error) {
-	return m.Create(enterprise.StaledKV(onlyFields...))
+func (m *EnterpriseModel) Save(ctx context.Context, enterprise EnterpriseN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, enterprise.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new enterprise or update it when it has a id > 0
-func (m *EnterpriseModel) SaveOrUpdate(enterprise Enterprise, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *EnterpriseModel) SaveOrUpdate(ctx context.Context, enterprise EnterpriseN, onlyFields ...string) (id int64, updated bool, err error) {
 	if enterprise.Id.Int64 > 0 {
-		_, _err := m.UpdateById(enterprise.Id.Int64, enterprise, onlyFields...)
+		_, _err := m.UpdateById(ctx, enterprise.Id.Int64, enterprise, onlyFields...)
 		return enterprise.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(enterprise, onlyFields...)
+	_id, _err := m.Save(ctx, enterprise, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *EnterpriseModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *EnterpriseModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -727,7 +732,7 @@ func (m *EnterpriseModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -736,27 +741,22 @@ func (m *EnterpriseModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder
 }
 
 // Update update a model for given query
-func (m *EnterpriseModel) Update(enterprise Enterprise, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(enterprise.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *EnterpriseModel) UpdatePart(enterprise Enterprise, onlyFields ...string) (int64, error) {
-	return m.UpdateFields(enterprise.StaledKV(onlyFields...))
+func (m *EnterpriseModel) Update(ctx context.Context, builder query.SQLBuilder, enterprise EnterpriseN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, enterprise.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *EnterpriseModel) UpdateById(id int64, enterprise Enterprise, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(enterprise.StaledKV(onlyFields...))
+func (m *EnterpriseModel) UpdateById(ctx context.Context, id int64, enterprise EnterpriseN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, enterprise.StaledKV(onlyFields...))
 }
 
 // ForceDelete permanently remove a soft deleted model from the database
-func (m *EnterpriseModel) ForceDelete(builders ...query.SQLBuilder) (int64, error) {
+func (m *EnterpriseModel) ForceDelete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	m2 := m.WithTrashed()
 
 	sqlStr, params := m2.query.Merge(builders...).AppendCondition(m2.applyScope()).Table(m2.tableName).ResolveDelete()
 
-	res, err := m2.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m2.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -765,33 +765,33 @@ func (m *EnterpriseModel) ForceDelete(builders ...query.SQLBuilder) (int64, erro
 }
 
 // ForceDeleteById permanently remove a soft deleted model from the database by id
-func (m *EnterpriseModel) ForceDeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete()
+func (m *EnterpriseModel) ForceDeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete(ctx)
 }
 
 // Restore restore a soft deleted model into an active state
-func (m *EnterpriseModel) Restore(builders ...query.SQLBuilder) (int64, error) {
+func (m *EnterpriseModel) Restore(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	m2 := m.WithTrashed()
-	return m2.UpdateFields(query.KV{
+	return m2.UpdateFields(ctx, query.KV{
 		"deleted_at": nil,
 	}, builders...)
 }
 
 // RestoreById restore a soft deleted model into an active state by id
-func (m *EnterpriseModel) RestoreById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Restore()
+func (m *EnterpriseModel) RestoreById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Restore(ctx)
 }
 
 // Delete remove a model
-func (m *EnterpriseModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *EnterpriseModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
-	return m.UpdateFields(query.KV{
+	return m.UpdateFields(ctx, query.KV{
 		"deleted_at": time.Now(),
 	}, builders...)
 
 }
 
 // DeleteById remove a model by id
-func (m *EnterpriseModel) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *EnterpriseModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }

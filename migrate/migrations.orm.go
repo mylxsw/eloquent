@@ -4,6 +4,9 @@ package migrate
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/iancoleman/strcase"
+	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 )
@@ -12,111 +15,183 @@ func init() {
 
 }
 
-// Migrations is a Migrations object
-type Migrations struct {
+// MigrationsN is a Migrations object, all fields are nullable
+type MigrationsN struct {
 	original        *migrationsOriginal
 	migrationsModel *MigrationsModel
 
-	Version   string
-	Migration string
-	Table     string
-	Batch     int64
-	Id        int64
+	Version   null.String
+	Migration null.String
+	Table     null.String
+	Batch     null.Int
+	Id        null.Int
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (inst *MigrationsN) As(dst interface{}) error {
+	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for Migrations
-func (migrationsSelf *Migrations) SetModel(migrationsModel *MigrationsModel) {
-	migrationsSelf.migrationsModel = migrationsModel
+func (inst *MigrationsN) SetModel(migrationsModel *MigrationsModel) {
+	inst.migrationsModel = migrationsModel
 }
 
 // migrationsOriginal is an object which stores original Migrations from database
 type migrationsOriginal struct {
-	Version   string
-	Migration string
-	Table     string
-	Batch     int64
-	Id        int64
+	Version   null.String
+	Migration null.String
+	Table     null.String
+	Batch     null.Int
+	Id        null.Int
 }
 
 // Staled identify whether the object has been modified
-func (migrationsSelf *Migrations) Staled() bool {
-	if migrationsSelf.original == nil {
-		migrationsSelf.original = &migrationsOriginal{}
+func (inst *MigrationsN) Staled(onlyFields ...string) bool {
+	if inst.original == nil {
+		inst.original = &migrationsOriginal{}
 	}
 
-	if migrationsSelf.Version != migrationsSelf.original.Version {
-		return true
-	}
-	if migrationsSelf.Migration != migrationsSelf.original.Migration {
-		return true
-	}
-	if migrationsSelf.Table != migrationsSelf.original.Table {
-		return true
-	}
-	if migrationsSelf.Batch != migrationsSelf.original.Batch {
-		return true
-	}
-	if migrationsSelf.Id != migrationsSelf.original.Id {
-		return true
+	if len(onlyFields) == 0 {
+
+		if inst.Version != inst.original.Version {
+			return true
+		}
+		if inst.Migration != inst.original.Migration {
+			return true
+		}
+		if inst.Table != inst.original.Table {
+			return true
+		}
+		if inst.Batch != inst.original.Batch {
+			return true
+		}
+		if inst.Id != inst.original.Id {
+			return true
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "version":
+				if inst.Version != inst.original.Version {
+					return true
+				}
+			case "migration":
+				if inst.Migration != inst.original.Migration {
+					return true
+				}
+			case "table":
+				if inst.Table != inst.original.Table {
+					return true
+				}
+			case "batch":
+				if inst.Batch != inst.original.Batch {
+					return true
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					return true
+				}
+			default:
+			}
+		}
 	}
 
 	return false
 }
 
 // StaledKV return all fields has been modified
-func (migrationsSelf *Migrations) StaledKV() query.KV {
+func (inst *MigrationsN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
-	if migrationsSelf.original == nil {
-		migrationsSelf.original = &migrationsOriginal{}
+	if inst.original == nil {
+		inst.original = &migrationsOriginal{}
 	}
 
-	if migrationsSelf.Version != migrationsSelf.original.Version {
-		kv["version"] = migrationsSelf.Version
-	}
-	if migrationsSelf.Migration != migrationsSelf.original.Migration {
-		kv["migration"] = migrationsSelf.Migration
-	}
-	if migrationsSelf.Table != migrationsSelf.original.Table {
-		kv["table"] = migrationsSelf.Table
-	}
-	if migrationsSelf.Batch != migrationsSelf.original.Batch {
-		kv["batch"] = migrationsSelf.Batch
-	}
-	if migrationsSelf.Id != migrationsSelf.original.Id {
-		kv["id"] = migrationsSelf.Id
+	if len(onlyFields) == 0 {
+
+		if inst.Version != inst.original.Version {
+			kv["version"] = inst.Version
+		}
+		if inst.Migration != inst.original.Migration {
+			kv["migration"] = inst.Migration
+		}
+		if inst.Table != inst.original.Table {
+			kv["table"] = inst.Table
+		}
+		if inst.Batch != inst.original.Batch {
+			kv["batch"] = inst.Batch
+		}
+		if inst.Id != inst.original.Id {
+			kv["id"] = inst.Id
+		}
+	} else {
+		for _, f := range onlyFields {
+			switch strcase.ToSnake(f) {
+
+			case "version":
+				if inst.Version != inst.original.Version {
+					kv["version"] = inst.Version
+				}
+			case "migration":
+				if inst.Migration != inst.original.Migration {
+					kv["migration"] = inst.Migration
+				}
+			case "table":
+				if inst.Table != inst.original.Table {
+					kv["table"] = inst.Table
+				}
+			case "batch":
+				if inst.Batch != inst.original.Batch {
+					kv["batch"] = inst.Batch
+				}
+			case "id":
+				if inst.Id != inst.original.Id {
+					kv["id"] = inst.Id
+				}
+			default:
+			}
+		}
 	}
 
 	return kv
 }
 
 // Save create a new model or update it
-func (migrationsSelf *Migrations) Save() error {
-	if migrationsSelf.migrationsModel == nil {
+func (inst *MigrationsN) Save(ctx context.Context, onlyFields ...string) error {
+	if inst.migrationsModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := migrationsSelf.migrationsModel.SaveOrUpdate(*migrationsSelf)
+	id, _, err := inst.migrationsModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
 
-	migrationsSelf.Id = id
+	inst.Id = null.IntFrom(id)
 	return nil
 }
 
 // Delete remove a migrations
-func (migrationsSelf *Migrations) Delete() error {
-	if migrationsSelf.migrationsModel == nil {
+func (inst *MigrationsN) Delete(ctx context.Context) error {
+	if inst.migrationsModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := migrationsSelf.migrationsModel.DeleteById(migrationsSelf.Id)
+	_, err := inst.migrationsModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// String convert instance to json string
+func (inst *MigrationsN) String() string {
+	rs, _ := json.Marshal(inst)
+	return string(rs)
 }
 
 type migrationsScope struct {
@@ -127,13 +202,13 @@ type migrationsScope struct {
 var migrationsGlobalScopes = make([]migrationsScope, 0)
 var migrationsLocalScopes = make([]migrationsScope, 0)
 
-// AddMigrationsGlobalScope assign a global scope to a model
-func AddMigrationsGlobalScope(name string, apply func(builder query.Condition)) {
+// AddGlobalScopeForMigrations assign a global scope to a model
+func AddGlobalScopeForMigrations(name string, apply func(builder query.Condition)) {
 	migrationsGlobalScopes = append(migrationsGlobalScopes, migrationsScope{name: name, apply: apply})
 }
 
-// AddMigrationsLocalScope assign a local scope to a model
-func AddMigrationsLocalScope(name string, apply func(builder query.Condition)) {
+// AddLocalScopeForMigrations assign a local scope to a model
+func AddLocalScopeForMigrations(name string, apply func(builder query.Condition)) {
 	migrationsLocalScopes = append(migrationsLocalScopes, migrationsScope{name: name, apply: apply})
 }
 
@@ -174,23 +249,55 @@ func (m *MigrationsModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type migrationsWrap struct {
-	Version   null.String
-	Migration null.String
-	Table     null.String
-	Batch     null.Int
-	Id        null.Int
+type Migrations struct {
+	Version   string
+	Migration string
+	Table     string
+	Batch     int64
+	Id        int64
 }
 
-func (w migrationsWrap) ToMigrations() Migrations {
+func (w Migrations) ToMigrationsN(allows ...string) MigrationsN {
+	if len(allows) == 0 {
+		return MigrationsN{
+
+			Version:   null.StringFrom(w.Version),
+			Migration: null.StringFrom(w.Migration),
+			Table:     null.StringFrom(w.Table),
+			Batch:     null.IntFrom(int64(w.Batch)),
+			Id:        null.IntFrom(int64(w.Id)),
+		}
+	}
+
+	res := MigrationsN{}
+	for _, al := range allows {
+		switch strcase.ToSnake(al) {
+
+		case "version":
+			res.Version = null.StringFrom(w.Version)
+		case "migration":
+			res.Migration = null.StringFrom(w.Migration)
+		case "table":
+			res.Table = null.StringFrom(w.Table)
+		case "batch":
+			res.Batch = null.IntFrom(int64(w.Batch))
+		case "id":
+			res.Id = null.IntFrom(int64(w.Id))
+		default:
+		}
+	}
+
+	return res
+}
+
+// As convert object to other type
+// dst must be a pointer to struct
+func (w Migrations) As(dst interface{}) error {
+	return coll.CopyProperties(w, dst)
+}
+
+func (w *MigrationsN) ToMigrations() Migrations {
 	return Migrations{
-		original: &migrationsOriginal{
-			Version:   w.Version.String,
-			Migration: w.Migration.String,
-			Table:     w.Table.String,
-			Batch:     w.Batch.Int64,
-			Id:        w.Id.Int64,
-		},
 
 		Version:   w.Version.String,
 		Migration: w.Migration.String,
@@ -212,6 +319,30 @@ type MigrationsModel struct {
 }
 
 var migrationsTableName = "migrations"
+
+// MigrationsTable return table name for Migrations
+func MigrationsTable() string {
+	return migrationsTableName
+}
+
+const (
+	FieldMigrationsVersion   = "version"
+	FieldMigrationsMigration = "migration"
+	FieldMigrationsTable     = "table"
+	FieldMigrationsBatch     = "batch"
+	FieldMigrationsId        = "id"
+)
+
+// MigrationsFields return all fields in Migrations model
+func MigrationsFields() []string {
+	return []string{
+		"version",
+		"migration",
+		"table",
+		"batch",
+		"id",
+	}
+}
 
 func SetMigrationsTable(tableName string) {
 	migrationsTableName = tableName
@@ -259,8 +390,8 @@ func (m *MigrationsModel) WithLocalScopes(names ...string) *MigrationsModel {
 	return mc
 }
 
-// Query add query builder to model
-func (m *MigrationsModel) Query(builder query.SQLBuilder) *MigrationsModel {
+// Condition add query builder to model
+func (m *MigrationsModel) Condition(builder query.SQLBuilder) *MigrationsModel {
 	mm := m.clone()
 	mm.query = mm.query.Merge(builder)
 
@@ -268,25 +399,25 @@ func (m *MigrationsModel) Query(builder query.SQLBuilder) *MigrationsModel {
 }
 
 // Find retrieve a model by its primary key
-func (m *MigrationsModel) Find(id int64) (Migrations, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *MigrationsModel) Find(ctx context.Context, id int64) (*MigrationsN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *MigrationsModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *MigrationsModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *MigrationsModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *MigrationsModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -302,7 +433,7 @@ func (m *MigrationsModel) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
-func (m *MigrationsModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]Migrations, query.PaginateMeta, error) {
+func (m *MigrationsModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]MigrationsN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -316,7 +447,7 @@ func (m *MigrationsModel) Paginate(page int64, perPage int64, builders ...query.
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -327,7 +458,7 @@ func (m *MigrationsModel) Paginate(page int64, perPage int64, builders ...query.
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -336,65 +467,106 @@ func (m *MigrationsModel) Paginate(page int64, perPage int64, builders ...query.
 }
 
 // Get retrieve all results for given query
-func (m *MigrationsModel) Get(builders ...query.SQLBuilder) ([]Migrations, error) {
-	sqlStr, params := m.query.Merge(builders...).
-		Table(m.tableName).
-		Select(
+func (m *MigrationsModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]MigrationsN, error) {
+	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
+	if len(b.GetFields()) == 0 {
+		b = b.Select(
 			"version",
 			"migration",
 			"table",
 			"batch",
 			"id",
-		).AppendCondition(m.applyScope()).
-		ResolveQuery()
+		)
+	}
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	fields := b.GetFields()
+	selectFields := make([]query.Expr, 0)
+
+	for _, f := range fields {
+		switch strcase.ToSnake(f.Value) {
+
+		case "version":
+			selectFields = append(selectFields, f)
+		case "migration":
+			selectFields = append(selectFields, f)
+		case "table":
+			selectFields = append(selectFields, f)
+		case "batch":
+			selectFields = append(selectFields, f)
+		case "id":
+			selectFields = append(selectFields, f)
+		}
+	}
+
+	var createScanVar = func(fields []query.Expr) (*MigrationsN, []interface{}) {
+		var migrationsVar MigrationsN
+		scanFields := make([]interface{}, 0)
+
+		for _, f := range fields {
+			switch strcase.ToSnake(f.Value) {
+
+			case "version":
+				scanFields = append(scanFields, &migrationsVar.Version)
+			case "migration":
+				scanFields = append(scanFields, &migrationsVar.Migration)
+			case "table":
+				scanFields = append(scanFields, &migrationsVar.Table)
+			case "batch":
+				scanFields = append(scanFields, &migrationsVar.Batch)
+			case "id":
+				scanFields = append(scanFields, &migrationsVar.Id)
+			}
+		}
+
+		return &migrationsVar, scanFields
+	}
+
+	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
+
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	migrationss := make([]Migrations, 0)
+	migrationss := make([]MigrationsN, 0)
 	for rows.Next() {
-		var migrationsVar migrationsWrap
-		if err := rows.Scan(
-			&migrationsVar.Version,
-			&migrationsVar.Migration,
-			&migrationsVar.Table,
-			&migrationsVar.Batch,
-			&migrationsVar.Id); err != nil {
+		migrationsReal, scanFields := createScanVar(fields)
+		if err := rows.Scan(scanFields...); err != nil {
 			return nil, err
 		}
 
-		migrationsReal := migrationsVar.ToMigrations()
+		migrationsReal.original = &migrationsOriginal{}
+		_ = coll.CopyProperties(migrationsReal, migrationsReal.original)
+
 		migrationsReal.SetModel(m)
-		migrationss = append(migrationss, migrationsReal)
+		migrationss = append(migrationss, *migrationsReal)
 	}
 
 	return migrationss, nil
 }
 
 // First return first result for given query
-func (m *MigrationsModel) First(builders ...query.SQLBuilder) (Migrations, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *MigrationsModel) First(ctx context.Context, builders ...query.SQLBuilder) (*MigrationsN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return Migrations{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return Migrations{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new migrations to database
-func (m *MigrationsModel) Create(kv query.KV) (int64, error) {
+func (m *MigrationsModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -403,10 +575,10 @@ func (m *MigrationsModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all migrationss to database
-func (m *MigrationsModel) SaveAll(migrationss []Migrations) ([]int64, error) {
+func (m *MigrationsModel) SaveAll(ctx context.Context, migrationss []MigrationsN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, migrations := range migrationss {
-		id, err := m.Save(migrations)
+		id, err := m.Save(ctx, migrations)
 		if err != nil {
 			return ids, err
 		}
@@ -418,28 +590,23 @@ func (m *MigrationsModel) SaveAll(migrationss []Migrations) ([]int64, error) {
 }
 
 // Save save a migrations to database
-func (m *MigrationsModel) Save(migrations Migrations) (int64, error) {
-	return m.Create(query.KV{
-		"version":   migrations.Version,
-		"migration": migrations.Migration,
-		"table":     migrations.Table,
-		"batch":     migrations.Batch,
-	})
+func (m *MigrationsModel) Save(ctx context.Context, migrations MigrationsN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, migrations.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new migrations or update it when it has a id > 0
-func (m *MigrationsModel) SaveOrUpdate(migrations Migrations) (id int64, updated bool, err error) {
-	if migrations.Id > 0 {
-		_, _err := m.UpdateById(migrations.Id, migrations)
-		return migrations.Id, true, _err
+func (m *MigrationsModel) SaveOrUpdate(ctx context.Context, migrations MigrationsN, onlyFields ...string) (id int64, updated bool, err error) {
+	if migrations.Id.Int64 > 0 {
+		_, _err := m.UpdateById(ctx, migrations.Id.Int64, migrations, onlyFields...)
+		return migrations.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(migrations)
+	_id, _err := m.Save(ctx, migrations, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *MigrationsModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *MigrationsModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -448,7 +615,7 @@ func (m *MigrationsModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -457,21 +624,21 @@ func (m *MigrationsModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder
 }
 
 // Update update a model for given query
-func (m *MigrationsModel) Update(migrations Migrations) (int64, error) {
-	return m.UpdateFields(migrations.StaledKV())
+func (m *MigrationsModel) Update(ctx context.Context, builder query.SQLBuilder, migrations MigrationsN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, migrations.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *MigrationsModel) UpdateById(id int64, migrations Migrations) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Update(migrations)
+func (m *MigrationsModel) UpdateById(ctx context.Context, id int64, migrations MigrationsN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, migrations.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
-func (m *MigrationsModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *MigrationsModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -481,6 +648,6 @@ func (m *MigrationsModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 }
 
 // DeleteById remove a model by id
-func (m *MigrationsModel) DeleteById(id int64) (int64, error) {
-	return m.Query(query.Builder().Where("id", "=", id)).Delete()
+func (m *MigrationsModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }

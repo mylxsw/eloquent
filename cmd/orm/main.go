@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -10,7 +9,7 @@ import (
 	"github.com/mylxsw/eloquent/generator"
 	"github.com/mylxsw/eloquent/generator/template"
 	"github.com/urfave/cli"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -18,8 +17,8 @@ func main() {
 		Name: "Eloquent 命令行工具",
 		Commands: []cli.Command{
 			{
-				Name: "gen",
-                Usage: "根据模型文件定义生成模型对象",
+				Name:  "gen",
+				Usage: "根据模型文件定义生成模型对象",
 				Flags: []cli.Flag{
 					cli.StringFlag{
 						Name:     "source",
@@ -37,7 +36,7 @@ func main() {
 					for _, m := range matches {
 						dest := replaceExt(m, ".orm.go")
 
-						input, err := ioutil.ReadFile(m)
+						input, err := os.ReadFile(m)
 						assertError(err)
 
 						var domain generator.Domain
@@ -46,7 +45,7 @@ func main() {
 						res, err := generator.ParseTemplate(template.GetTemplate(), domain.Init())
 						assertError(err)
 
-						assertError(ioutil.WriteFile(dest, []byte(res), os.ModePerm))
+						assertError(os.WriteFile(dest, []byte(res), os.ModePerm))
 
 						fmt.Println(dest)
 					}
@@ -101,7 +100,7 @@ func main() {
 						return err
 					}
 
-					return ioutil.WriteFile(filepath.Join(c.String("output"), c.String("table")+".yml"), data, os.ModePerm)
+					return os.WriteFile(filepath.Join(c.String("output"), c.String("table")+".yml"), data, os.ModePerm)
 				},
 			},
 		},

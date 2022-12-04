@@ -10,7 +10,7 @@ build:
 	go build -o bin/eloquent cmd/orm/*.go
 
 init: build
-	./bin/eloquent "./migrate/*.yml"
+	./bin/eloquent gen --source "./migrate/*.yml"
 	go fmt ./migrate/migrations.orm.go
 
 .PHONY: build init generate-models run

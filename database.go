@@ -39,11 +39,11 @@ func (r *rawQueryBuilder) ResolveQuery() (sqlStr string, args []interface{}) {
 }
 
 // Query run a basic query
-func (db *databaseImpl) Query(builder QueryBuilder, cb func(row Scanner) (interface{}, error)) (*coll.Collection, error) {
+func (db *databaseImpl) Query(ctx context.Context, builder QueryBuilder, cb func(row Scanner) (interface{}, error)) (*coll.Collection, error) {
 	results := make([]interface{}, 0)
 
 	sqlStr, args := builder.ResolveQuery()
-	rows, err := db.db.QueryContext(context.TODO(), sqlStr, args...)
+	rows, err := db.db.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		return coll.MustNew(results), err
 	}
@@ -63,9 +63,9 @@ func (db *databaseImpl) Query(builder QueryBuilder, cb func(row Scanner) (interf
 }
 
 // Insert to execute an insert statement
-func (db *databaseImpl) Insert(tableName string, kv query.KV) (int64, error) {
+func (db *databaseImpl) Insert(ctx context.Context, tableName string, kv query.KV) (int64, error) {
 	sqlStr, args := query.Builder().Table(tableName).ResolveInsert(kv)
-	res, err := db.db.ExecContext(context.TODO(), sqlStr, args...)
+	res, err := db.db.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -74,9 +74,9 @@ func (db *databaseImpl) Insert(tableName string, kv query.KV) (int64, error) {
 }
 
 // Delete to execute an delete statement
-func (db *databaseImpl) Delete(builder query.SQLBuilder) (int64, error) {
+func (db *databaseImpl) Delete(ctx context.Context, builder query.SQLBuilder) (int64, error) {
 	sqlStr, args := builder.ResolveDelete()
-	res, err := db.db.ExecContext(context.TODO(), sqlStr, args...)
+	res, err := db.db.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -85,9 +85,9 @@ func (db *databaseImpl) Delete(builder query.SQLBuilder) (int64, error) {
 }
 
 // Update to execute an update statement
-func (db *databaseImpl) Update(builder query.SQLBuilder, kv query.KV) (int64, error) {
+func (db *databaseImpl) Update(ctx context.Context, builder query.SQLBuilder, kv query.KV) (int64, error) {
 	sqlStr, args := builder.ResolveUpdate(kv)
-	res, err := db.db.ExecContext(context.TODO(), sqlStr, args...)
+	res, err := db.db.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -96,8 +96,8 @@ func (db *databaseImpl) Update(builder query.SQLBuilder, kv query.KV) (int64, er
 }
 
 // Statement running a general statement which return no value
-func (db *databaseImpl) Statement(raw string, args ...interface{}) error {
-	_, err := db.db.ExecContext(context.TODO(), raw, args...)
+func (db *databaseImpl) Statement(ctx context.Context, raw string, args ...interface{}) error {
+	_, err := db.db.ExecContext(ctx, raw, args...)
 	return err
 }
 

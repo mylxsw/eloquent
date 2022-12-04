@@ -24,7 +24,7 @@ func GetRelationTemplate() string {
 
 func getRelationBelongsToTemplate() string {
 	return `{{ $relName := rel_belongs_to_name $rel $m }}
-func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
+func (inst *{{ camel $m.Name }}N) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
 		relModel: {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model(inst.{{ lower_camel $m.Name }}Model.GetDB()),
@@ -32,12 +32,12 @@ func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 }
 
 type {{ $relName }} struct {
-	source *{{ camel $m.Name }}
+	source *{{ camel $m.Name }}N
 	relModel *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model
 }
 
-func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *{{ $relName }}) Create(ctx context.Context, target {{ camel $rel.Model }}N) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -45,40 +45,40 @@ func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) 
 	target.Id = null.IntFrom(targetId)
 
 	rel.source.{{ rel_foreign_key $rel | camel }} = target.{{ rel_owner_key $rel | camel }}
-	if err := rel.source.Save(); err != nil {
+	if err := rel.source.Save(ctx); err != nil {
 		return targetId, err
 	}
 
 	return targetId, nil
 }
 
-func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *{{ $relName }}) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("{{ rel_owner_key $rel | snake }}", rel.source.{{ rel_foreign_key $rel | camel }}).Merge(builders...)
 	
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
+func (rel *{{ $relName }}) First(ctx context.Context, builders ...query.SQLBuilder) (*{{ camel $rel.Model }}N, error) {
 	builder := query.Builder().Where("{{ rel_owner_key $rel | snake }}", rel.source.{{ rel_foreign_key $rel | camel }}).Limit(1).Merge(builders...)
 
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *{{ $relName }}) Associate(target {{ camel $rel.Model }}) error {
+func (rel *{{ $relName }}) Associate(ctx context.Context, target {{ camel $rel.Model }}N) error {
 	rel.source.{{ rel_foreign_key $rel | camel }} = target.{{ rel_owner_key $rel | camel }}
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
-func (rel *{{ $relName }}) Dissociate() error {
+func (rel *{{ $relName }}) Dissociate(ctx context.Context) error {
 	rel.source.{{ rel_foreign_key $rel | camel }} = null.IntFrom(0)
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 `
 }
 
 func getRelationHasManyTemplate() string {
 	return `{{ $relName := rel_has_many_name $rel $m }}
-func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
+func (inst *{{ camel $m.Name }}N) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
 		relModel: {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model(inst.{{ lower_camel $m.Name }}Model.GetDB()),
@@ -86,43 +86,43 @@ func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 }
 
 type {{ $relName }} struct {
-	source *{{ camel $m.Name }}
+	source *{{ camel $m.Name }}N
 	relModel *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model
 }
 
-func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}, error) {
+func (rel *{{ $relName }}) Get(ctx context.Context, builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}N, error) {
 	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
 
-	return rel.relModel.Get(builder)
+	return rel.relModel.Get(ctx, builder)
 }
 
-func (rel *{{ $relName }}) Count(builders ...query.SQLBuilder) (int64, error) {
-	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
-	
-	return rel.relModel.Count(builder)
-}
-
-func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *{{ $relName }}) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
 	
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Count(ctx, builder)
 }
 
-func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
+func (rel *{{ $relName }}) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
+	
+	return rel.relModel.Exists(ctx, builder)
+}
+
+func (rel *{{ $relName }}) First(ctx context.Context, builders ...query.SQLBuilder) (*{{ camel $rel.Model }}N, error) {
 	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Limit(1).Merge(builders...)
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) {
+func (rel *{{ $relName }}) Create(ctx context.Context, target {{ camel $rel.Model }}N) (int64, error) {
 	target.{{ rel_foreign_key_rev $rel $m | camel }} = rel.source.Id
-	return rel.relModel.Save(target)
+	return rel.relModel.Save(ctx, target)
 }
 `
 }
 
 func getRelationHasOneTemplate() string {
 	return `{{ $relName := rel_has_one_name $rel $m }}
-func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
+func (inst *{{ camel $m.Name }}N) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
 		relModel: {{ rel_package_prefix $rel }}New{{ camel $rel.Model }}Model(inst.{{ lower_camel $m.Name }}Model.GetDB()),
@@ -130,36 +130,38 @@ func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 }
 
 type {{ $relName }} struct {
-	source *{{ camel $m.Name }}
+	source *{{ camel $m.Name }}N
 	relModel *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model
 }
 
-func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *{{ $relName }}) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Merge(builders...)
 	
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *{{ $relName }}) First(builders ...query.SQLBuilder) ({{ camel $rel.Model }}, error) {
+func (rel *{{ $relName }}) First(ctx context.Context, builders ...query.SQLBuilder) (*{{ camel $rel.Model }}N, error) {
 	builder := query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}).Limit(1).Merge(builders...)
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}) (int64, error) {
+func (rel *{{ $relName }}) Create(ctx context.Context, target {{ camel $rel.Model }}N) (int64, error) {
 	target.{{ rel_foreign_key_rev $rel $m | camel }} = rel.source.{{ rel_local_key $rel | camel }}
-	return rel.relModel.Save(target)
+	return rel.relModel.Save(ctx, target)
 }
 
-func (rel *{{ $relName }}) Associate(target {{ camel $rel.Model }}) error {
+func (rel *{{ $relName }}) Associate(ctx context.Context, target {{ camel $rel.Model }}N) error {
 	_, err := rel.relModel.UpdateFields(
+		ctx,
 		query.KV {"{{ rel_foreign_key_rev $rel $m | snake }}": rel.source.{{ rel_local_key $rel | camel }}, },
 		query.Builder().Where("id", target.Id), 
 	)
 	return err
 }
 
-func (rel *{{ $relName }}) Dissociate() error {
+func (rel *{{ $relName }}) Dissociate(ctx context.Context) error {
 	_, err := rel.relModel.UpdateFields(
+		ctx,
 		query.KV {"{{ rel_foreign_key_rev $rel $m | snake }}": nil,},
 		query.Builder().Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_local_key $rel | camel }}),
 	)
@@ -171,7 +173,7 @@ func (rel *{{ $relName }}) Dissociate() error {
 
 func getRelationBelongsToManyTemplate() string {
 	return `{{ $relName := rel_belongs_to_many_name $rel $m }}
-func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
+func (inst *{{ camel $m.Name }}N) {{ rel_method $rel }}() *{{ $relName }} {
 	return &{{ $relName }} {
 		source: inst,
 		pivotTable: "{{ rel_pivot_table_name $rel $m | snake }}",
@@ -180,13 +182,14 @@ func (inst *{{ camel $m.Name }}) {{ rel_method $rel }}() *{{ $relName }} {
 }
 
 type {{ $relName }} struct {
-	source *{{ camel $m.Name }}
+	source *{{ camel $m.Name }}N
 	pivotTable string
 	relModel *{{ rel_package_prefix $rel }}{{ camel $rel.Model }}Model
 }
 
-func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}, error) {
+func (rel *{{ $relName }}) Get(ctx context.Context, builders ...query.SQLBuilder) ([]{{ camel $rel.Model }}N, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		ctx,
 		query.Builder().Table(rel.pivotTable).Select("{{ rel_foreign_key $rel | snake }}").Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),
 		func(row eloquent.Scanner) (interface{}, error) {
 			var k interface{}
@@ -203,11 +206,12 @@ func (rel *{{ $relName }}) Get(builders ...query.SQLBuilder) ([]{{ camel $rel.Mo
 	}
 
 	resArr, _ := res.ToArray()
-	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("{{ rel_owner_key $rel | snake }}", resArr...))
+	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("{{ rel_owner_key $rel | snake }}", resArr...))
 }
 
-func (rel *{{ $relName }}) Count(builders ...query.SQLBuilder) (int64, error) {
+func (rel *{{ $relName }}) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		ctx,
 		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),
 		func(row eloquent.Scanner) (interface{}, error) {
 			var k int64
@@ -226,8 +230,8 @@ func (rel *{{ $relName }}) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res.Index(0).(int64), nil
 }
 
-func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
-	c, err := rel.Count(builders...)
+func (rel *{{ $relName }}) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	c, err := rel.Count(ctx, builders...)
 	if err != nil {
 		return false, err
 	}
@@ -235,8 +239,8 @@ func (rel *{{ $relName }}) Exists(builders ...query.SQLBuilder) (bool, error) {
 	return c > 0, nil
 }
 
-func (rel *{{ $relName }}) Attach(target {{ camel $rel.Model }}) error {
-	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV {
+func (rel *{{ $relName }}) Attach(ctx context.Context, target {{ camel $rel.Model }}N) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(ctx, rel.pivotTable, query.KV {
 		"{{ rel_foreign_key $rel | snake }}": target.{{ rel_owner_key $rel | camel }},
 		"{{ rel_foreign_key_rev $rel $m | snake }}": rel.source.{{ rel_owner_key $rel | camel }},
 	})
@@ -244,31 +248,31 @@ func (rel *{{ $relName }}) Attach(target {{ camel $rel.Model }}) error {
 	return err
 }
 
-func (rel *{{ $relName }}) Detach(target {{ camel $rel.Model }}) error {
+func (rel *{{ $relName }}) Detach(ctx context.Context, target {{ camel $rel.Model }}N) error {
 	_, err := eloquent.DB(rel.relModel.GetDB()).
-		Delete(eloquent.Build(rel.pivotTable).
+		Delete(ctx, eloquent.Build(rel.pivotTable).
 			Where("{{ rel_foreign_key $rel | snake }}", target.{{ rel_owner_key $rel | camel }}).
 			Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),)
 	
 	return err
 }
 
-func (rel *{{ $relName }}) DetachAll() error {
+func (rel *{{ $relName }}) DetachAll(ctx context.Context) error {
 	_, err := eloquent.DB(rel.relModel.GetDB()).
-		Delete(eloquent.Build(rel.pivotTable).
+		Delete(ctx, eloquent.Build(rel.pivotTable).
 			Where("{{ rel_foreign_key_rev $rel $m | snake }}", rel.source.{{ rel_owner_key $rel | camel }}),)
 	return err
 }
 
-func (rel *{{ $relName }}) Create(target {{ camel $rel.Model }}, builders ...query.SQLBuilder) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *{{ $relName }}) Create(ctx context.Context, target {{ camel $rel.Model }}N, builders ...query.SQLBuilder) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
 
 	target.Id = null.IntFrom(targetId)
 
-	err = rel.Attach(target)
+	err = rel.Attach(ctx, target)
 
 	return targetId, err
 }

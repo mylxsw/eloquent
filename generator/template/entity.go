@@ -2,8 +2,8 @@ package template
 
 func GetEntityTemplate() string {
 	return `
-// {{ camel $m.Name }} is a {{ camel $m.Name }} object
-type {{ camel $m.Name }} struct {
+// {{ camel $m.Name }}N is a {{ camel $m.Name }} object, all fields are nullable
+type {{ camel $m.Name }}N struct {
 	original *{{ lower_camel $m.Name }}Original
 	{{ lower_camel $m.Name }}Model *{{ camel $m.Name }}Model
 
@@ -13,12 +13,12 @@ type {{ camel $m.Name }} struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *{{ camel $m.Name }}) As(dst interface{}) error {
+func (inst *{{ camel $m.Name }}N) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for {{ camel $m.Name }}
-func (inst *{{ camel $m.Name }}) SetModel({{ lower_camel $m.Name }}Model *{{ camel $m.Name }}Model) {
+func (inst *{{ camel $m.Name }}N) SetModel({{ lower_camel $m.Name }}Model *{{ camel $m.Name }}Model) {
 	inst.{{ lower_camel $m.Name }}Model = {{ lower_camel $m.Name }}Model
 }
 
@@ -29,7 +29,7 @@ type {{ lower_camel $m.Name }}Original struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *{{ camel $m.Name }}) Staled(onlyFields ...string) bool {
+func (inst *{{ camel $m.Name }}N) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &{{ lower_camel $m.Name }}Original {}
 	}
@@ -56,7 +56,7 @@ func (inst *{{ camel $m.Name }}) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *{{ camel $m.Name }}) StaledKV(onlyFields ...string) query.KV {
+func (inst *{{ camel $m.Name }}N) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -86,12 +86,12 @@ func (inst *{{ camel $m.Name }}) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it 
-func (inst *{{ camel $m.Name }}) Save(onlyFields ...string) error {
+func (inst *{{ camel $m.Name }}N) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.{{ lower_camel $m.Name }}Model == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.{{ lower_camel $m.Name }}Model.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.{{ lower_camel $m.Name }}Model.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err 
 	}
@@ -101,12 +101,12 @@ func (inst *{{ camel $m.Name }}) Save(onlyFields ...string) error {
 }
 
 // Delete remove a {{ $m.Name }}
-func (inst *{{ camel $m.Name }}) Delete() error {
+func (inst *{{ camel $m.Name }}N) Delete(ctx context.Context) error {
 	if inst.{{ lower_camel $m.Name }}Model == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.{{ lower_camel $m.Name }}Model.DeleteById(inst.Id.Int64)
+	_, err := inst.{{ lower_camel $m.Name }}Model.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err 
 	}
@@ -115,7 +115,7 @@ func (inst *{{ camel $m.Name }}) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *{{ camel $m.Name }}) String() string {
+func (inst *{{ camel $m.Name }}N) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }

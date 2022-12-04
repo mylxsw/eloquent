@@ -15,9 +15,14 @@ type {{ camel $m.Name }}Model struct {
 
 var {{ lower_camel $m.Name }}TableName = "{{ table $i }}"
 
+// {{ camel $m.Name}}Table return table name for {{ camel $m.Name }}
+func {{ camel $m.Name}}Table() string {
+	return {{ lower_camel $m.Name }}TableName
+}
+
 const (
 {{ range $j, $f := fields $m.Definition }}
-	{{ camel $m.Name }}Field{{ camel $f.Name }} = "{{ snake $f.Name }}"{{ end }}
+	Field{{ camel $m.Name }}{{ camel $f.Name }} = "{{ snake $f.Name }}"{{ end }}
 )
 
 
@@ -90,25 +95,25 @@ func (m *{{ camel $m.Name }}Model) Condition(builder query.SQLBuilder) *{{ camel
 }
 
 // Find retrieve a model by its primary key
-func (m *{{ camel $m.Name }}Model) Find(id int64) ({{ camel $m.Name }}, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *{{ camel $m.Name }}Model) Find(ctx context.Context, id int64) (*{{ camel $m.Name }}N, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *{{ camel $m.Name }}Model) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *{{ camel $m.Name }}Model) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *{{ camel $m.Name }}Model) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *{{ camel $m.Name }}Model) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 	
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +129,7 @@ func (m *{{ camel $m.Name }}Model) Count(builders ...query.SQLBuilder) (int64, e
 	return res, nil
 }
 
-func (m *{{ camel $m.Name }}Model) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]{{ camel $m.Name }}, query.PaginateMeta, error) {
+func (m *{{ camel $m.Name }}Model) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]{{ camel $m.Name }}N, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -138,7 +143,7 @@ func (m *{{ camel $m.Name }}Model) Paginate(page int64, perPage int64, builders 
 		Page: page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -150,7 +155,7 @@ func (m *{{ camel $m.Name }}Model) Paginate(page int64, perPage int64, builders 
 	}
 
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -159,7 +164,7 @@ func (m *{{ camel $m.Name }}Model) Paginate(page int64, perPage int64, builders 
 }
 
 // Get retrieve all results for given query
-func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel $m.Name }}, error) {
+func (m *{{ camel $m.Name }}Model) Get(ctx context.Context, builders ...query.SQLBuilder) ([]{{ camel $m.Name }}N, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select({{ range $j, $f := fields $m.Definition }}
@@ -178,8 +183,8 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*{{ camel $m.Name }}, []interface{}) {
-		var {{ lower_camel $m.Name }}Var {{ camel $m.Name }}
+	var createScanVar = func(fields []query.Expr) (*{{ camel $m.Name }}N, []interface{}) {
+		var {{ lower_camel $m.Name }}Var {{ camel $m.Name }}N
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -195,14 +200,14 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 	
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 	
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	{{ lower_camel $m.Name }}s := make([]{{ camel $m.Name }}, 0)
+	{{ lower_camel $m.Name }}s := make([]{{ camel $m.Name }}N, 0)
 	for rows.Next() {
 		{{ lower_camel $m.Name }}Real, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -220,21 +225,21 @@ func (m *{{ camel $m.Name }}Model) Get(builders ...query.SQLBuilder) ([]{{ camel
 }
 
 // First return first result for given query
-func (m *{{ camel $m.Name }}Model) First(builders ...query.SQLBuilder) ({{ camel $m.Name }}, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *{{ camel $m.Name }}Model) First(ctx context.Context, builders ...query.SQLBuilder) (*{{ camel $m.Name }}N, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return {{ camel $m.Name }}{}, err 
+		return nil, err 
 	}
 
 	if len(res) == 0 {
-		return {{ camel $m.Name }}{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new {{ $m.Name }} to database
-func (m *{{ camel $m.Name }}Model) Create(kv query.KV) (int64, error) {
+func (m *{{ camel $m.Name }}Model) Create(ctx context.Context, kv query.KV) (int64, error) {
 	{{ if not $m.Definition.WithoutCreateTime }}
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -248,7 +253,7 @@ func (m *{{ camel $m.Name }}Model) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -257,10 +262,10 @@ func (m *{{ camel $m.Name }}Model) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all {{ $m.Name }}s to database
-func (m *{{ camel $m.Name }}Model) SaveAll({{ lower_camel $m.Name }}s []{{ camel $m.Name }}) ([]int64, error) {
+func (m *{{ camel $m.Name }}Model) SaveAll(ctx context.Context, {{ lower_camel $m.Name }}s []{{ camel $m.Name }}N) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, {{ lower_camel $m.Name }} := range {{ lower_camel $m.Name }}s {
-		id, err := m.Save({{ lower_camel $m.Name }})
+		id, err := m.Save(ctx, {{ lower_camel $m.Name }})
 		if err != nil {
 			return ids, err
 		}
@@ -272,23 +277,23 @@ func (m *{{ camel $m.Name }}Model) SaveAll({{ lower_camel $m.Name }}s []{{ camel
 }
 
 // Save save a {{ $m.Name }} to database
-func (m *{{ camel $m.Name }}Model) Save({{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
-	return m.Create({{ lower_camel $m.Name }}.StaledKV(onlyFields...))
+func (m *{{ camel $m.Name }}Model) Save(ctx context.Context, {{ lower_camel $m.Name }} {{ camel $m.Name }}N, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, {{ lower_camel $m.Name }}.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new {{ $m.Name }} or update it when it has a id > 0
-func (m *{{ camel $m.Name }}Model) SaveOrUpdate({{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *{{ camel $m.Name }}Model) SaveOrUpdate(ctx context.Context, {{ lower_camel $m.Name }} {{ camel $m.Name }}N, onlyFields ...string) (id int64, updated bool, err error) {
 	if {{ lower_camel $m.Name }}.Id.Int64 > 0 {
-		_, _err := m.UpdateById({{ lower_camel $m.Name }}.Id.Int64, {{ lower_camel $m.Name }}, onlyFields...)
+		_, _err := m.UpdateById(ctx, {{ lower_camel $m.Name }}.Id.Int64, {{ lower_camel $m.Name }}, onlyFields...)
 		return {{ lower_camel $m.Name }}.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save({{ lower_camel $m.Name }}, onlyFields...)
+	_id, _err := m.Save(ctx, {{ lower_camel $m.Name }}, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *{{ camel $m.Name }}Model) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *{{ camel $m.Name }}Model) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -301,7 +306,7 @@ func (m *{{ camel $m.Name }}Model) UpdateFields(kv query.KV, builders ...query.S
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -310,28 +315,23 @@ func (m *{{ camel $m.Name }}Model) UpdateFields(kv query.KV, builders ...query.S
 }
 
 // Update update a model for given query
-func (m *{{ camel $m.Name }}Model) Update({{ lower_camel $m.Name }} {{ camel $m.Name }}, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields({{ lower_camel $m.Name }}.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *{{ camel $m.Name }}Model) UpdatePart({{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
-	return m.UpdateFields({{ lower_camel $m.Name }}.StaledKV(onlyFields...))
+func (m *{{ camel $m.Name }}Model) Update(ctx context.Context, builder query.SQLBuilder, {{ lower_camel $m.Name }} {{ camel $m.Name }}N, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, {{ lower_camel $m.Name }}.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *{{ camel $m.Name }}Model) UpdateById(id int64, {{ lower_camel $m.Name }} {{ camel $m.Name }}, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields({{ lower_camel $m.Name }}.StaledKV(onlyFields...))
+func (m *{{ camel $m.Name }}Model) UpdateById(ctx context.Context, id int64, {{ lower_camel $m.Name }} {{ camel $m.Name }}N, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, {{ lower_camel $m.Name }}.StaledKV(onlyFields...))
 }
 
 {{ if $m.Definition.SoftDelete }}
 // ForceDelete permanently remove a soft deleted model from the database
-func (m *{{ camel $m.Name }}Model) ForceDelete(builders ...query.SQLBuilder) (int64, error) {
+func (m *{{ camel $m.Name }}Model) ForceDelete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	m2 := m.WithTrashed()
 
 	sqlStr, params := m2.query.Merge(builders...).AppendCondition(m2.applyScope()).Table(m2.tableName).ResolveDelete()
 
-	res, err := m2.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m2.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -340,34 +340,34 @@ func (m *{{ camel $m.Name }}Model) ForceDelete(builders ...query.SQLBuilder) (in
 }
 
 // ForceDeleteById permanently remove a soft deleted model from the database by id
-func (m *{{ camel $m.Name }}Model) ForceDeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete()
+func (m *{{ camel $m.Name }}Model) ForceDeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete(ctx)
 }
 
 // Restore restore a soft deleted model into an active state
-func (m *{{ camel $m.Name }}Model) Restore(builders ...query.SQLBuilder) (int64, error) {
+func (m *{{ camel $m.Name }}Model) Restore(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	m2 := m.WithTrashed()
-	return m2.UpdateFields(query.KV {
+	return m2.UpdateFields(ctx, query.KV {
 		"deleted_at": nil,
 	}, builders...)
 }
 
 // RestoreById restore a soft deleted model into an active state by id
-func (m *{{ camel $m.Name }}Model) RestoreById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Restore()
+func (m *{{ camel $m.Name }}Model) RestoreById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Restore(ctx)
 }
 {{ end }}
 
 // Delete remove a model
-func (m *{{ camel $m.Name }}Model) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *{{ camel $m.Name }}Model) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	{{ if $m.Definition.SoftDelete }}
-	return m.UpdateFields(query.KV {
+	return m.UpdateFields(ctx, query.KV {
 		"deleted_at": time.Now(),
 	}, builders...)
 	{{ else }}
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -377,8 +377,8 @@ func (m *{{ camel $m.Name }}Model) Delete(builders ...query.SQLBuilder) (int64, 
 }
 
 // DeleteById remove a model by id
-func (m *{{ camel $m.Name }}Model) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *{{ camel $m.Name }}Model) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }
 `
 }

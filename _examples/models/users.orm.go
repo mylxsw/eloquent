@@ -22,8 +22,8 @@ func init() {
 
 }
 
-// User is a User object
-type User struct {
+// UserN is a User object, all fields are nullable
+type UserN struct {
 	original  *userOriginal
 	userModel *UserModel
 
@@ -41,12 +41,12 @@ type User struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *User) As(dst interface{}) error {
+func (inst *UserN) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for User
-func (inst *User) SetModel(userModel *UserModel) {
+func (inst *UserN) SetModel(userModel *UserModel) {
 	inst.userModel = userModel
 }
 
@@ -65,7 +65,7 @@ type userOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *User) Staled(onlyFields ...string) bool {
+func (inst *UserN) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &userOriginal{}
 	}
@@ -155,7 +155,7 @@ func (inst *User) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *User) StaledKV(onlyFields ...string) query.KV {
+func (inst *UserN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -247,12 +247,12 @@ func (inst *User) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *User) Save(onlyFields ...string) error {
+func (inst *UserN) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.userModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.userModel.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.userModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -262,12 +262,12 @@ func (inst *User) Save(onlyFields ...string) error {
 }
 
 // Delete remove a User
-func (inst *User) Delete() error {
+func (inst *UserN) Delete(ctx context.Context) error {
 	if inst.userModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.userModel.DeleteById(inst.Id.Int64)
+	_, err := inst.userModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -276,12 +276,12 @@ func (inst *User) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *User) String() string {
+func (inst *UserN) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }
 
-func (inst *User) Role() *UserBelongsToRoleRel {
+func (inst *UserN) Role() *UserBelongsToRoleRel {
 	return &UserBelongsToRoleRel{
 		source:   inst,
 		relModel: NewRoleModel(inst.userModel.GetDB()),
@@ -289,12 +289,12 @@ func (inst *User) Role() *UserBelongsToRoleRel {
 }
 
 type UserBelongsToRoleRel struct {
-	source   *User
+	source   *UserN
 	relModel *RoleModel
 }
 
-func (rel *UserBelongsToRoleRel) Create(target Role) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *UserBelongsToRoleRel) Create(ctx context.Context, target RoleN) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -302,36 +302,36 @@ func (rel *UserBelongsToRoleRel) Create(target Role) (int64, error) {
 	target.Id = null.IntFrom(targetId)
 
 	rel.source.RoleId = target.Id
-	if err := rel.source.Save(); err != nil {
+	if err := rel.source.Save(ctx); err != nil {
 		return targetId, err
 	}
 
 	return targetId, nil
 }
 
-func (rel *UserBelongsToRoleRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *UserBelongsToRoleRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("id", rel.source.RoleId).Merge(builders...)
 
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *UserBelongsToRoleRel) First(builders ...query.SQLBuilder) (Role, error) {
+func (rel *UserBelongsToRoleRel) First(ctx context.Context, builders ...query.SQLBuilder) (*RoleN, error) {
 	builder := query.Builder().Where("id", rel.source.RoleId).Limit(1).Merge(builders...)
 
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *UserBelongsToRoleRel) Associate(target Role) error {
+func (rel *UserBelongsToRoleRel) Associate(ctx context.Context, target RoleN) error {
 	rel.source.RoleId = target.Id
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
-func (rel *UserBelongsToRoleRel) Dissociate() error {
+func (rel *UserBelongsToRoleRel) Dissociate(ctx context.Context) error {
 	rel.source.RoleId = null.IntFrom(0)
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
-func (inst *User) Enterprise() *UserBelongsToEnterpriseRel {
+func (inst *UserN) Enterprise() *UserBelongsToEnterpriseRel {
 	return &UserBelongsToEnterpriseRel{
 		source:   inst,
 		relModel: NewEnterpriseModel(inst.userModel.GetDB()),
@@ -339,12 +339,12 @@ func (inst *User) Enterprise() *UserBelongsToEnterpriseRel {
 }
 
 type UserBelongsToEnterpriseRel struct {
-	source   *User
+	source   *UserN
 	relModel *EnterpriseModel
 }
 
-func (rel *UserBelongsToEnterpriseRel) Create(target Enterprise) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *UserBelongsToEnterpriseRel) Create(ctx context.Context, target EnterpriseN) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -352,36 +352,36 @@ func (rel *UserBelongsToEnterpriseRel) Create(target Enterprise) (int64, error) 
 	target.Id = null.IntFrom(targetId)
 
 	rel.source.EnterpriseId = target.Id
-	if err := rel.source.Save(); err != nil {
+	if err := rel.source.Save(ctx); err != nil {
 		return targetId, err
 	}
 
 	return targetId, nil
 }
 
-func (rel *UserBelongsToEnterpriseRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *UserBelongsToEnterpriseRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("id", rel.source.EnterpriseId).Merge(builders...)
 
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *UserBelongsToEnterpriseRel) First(builders ...query.SQLBuilder) (Enterprise, error) {
+func (rel *UserBelongsToEnterpriseRel) First(ctx context.Context, builders ...query.SQLBuilder) (*EnterpriseN, error) {
 	builder := query.Builder().Where("id", rel.source.EnterpriseId).Limit(1).Merge(builders...)
 
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *UserBelongsToEnterpriseRel) Associate(target Enterprise) error {
+func (rel *UserBelongsToEnterpriseRel) Associate(ctx context.Context, target EnterpriseN) error {
 	rel.source.EnterpriseId = target.Id
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
-func (rel *UserBelongsToEnterpriseRel) Dissociate() error {
+func (rel *UserBelongsToEnterpriseRel) Dissociate(ctx context.Context) error {
 	rel.source.EnterpriseId = null.IntFrom(0)
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
-func (inst *User) UserExt() *UserHasOneUserExtRel {
+func (inst *UserN) UserExt() *UserHasOneUserExtRel {
 	return &UserHasOneUserExtRel{
 		source:   inst,
 		relModel: NewUserExtModel(inst.userModel.GetDB()),
@@ -389,36 +389,38 @@ func (inst *User) UserExt() *UserHasOneUserExtRel {
 }
 
 type UserHasOneUserExtRel struct {
-	source   *User
+	source   *UserN
 	relModel *UserExtModel
 }
 
-func (rel *UserHasOneUserExtRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *UserHasOneUserExtRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("user_id", rel.source.Id).Merge(builders...)
 
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *UserHasOneUserExtRel) First(builders ...query.SQLBuilder) (UserExt, error) {
+func (rel *UserHasOneUserExtRel) First(ctx context.Context, builders ...query.SQLBuilder) (*UserExtN, error) {
 	builder := query.Builder().Where("user_id", rel.source.Id).Limit(1).Merge(builders...)
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *UserHasOneUserExtRel) Create(target UserExt) (int64, error) {
+func (rel *UserHasOneUserExtRel) Create(ctx context.Context, target UserExtN) (int64, error) {
 	target.UserId = rel.source.Id
-	return rel.relModel.Save(target)
+	return rel.relModel.Save(ctx, target)
 }
 
-func (rel *UserHasOneUserExtRel) Associate(target UserExt) error {
+func (rel *UserHasOneUserExtRel) Associate(ctx context.Context, target UserExtN) error {
 	_, err := rel.relModel.UpdateFields(
+		ctx,
 		query.KV{"user_id": rel.source.Id},
 		query.Builder().Where("id", target.Id),
 	)
 	return err
 }
 
-func (rel *UserHasOneUserExtRel) Dissociate() error {
+func (rel *UserHasOneUserExtRel) Dissociate(ctx context.Context) error {
 	_, err := rel.relModel.UpdateFields(
+		ctx,
 		query.KV{"user_id": nil},
 		query.Builder().Where("user_id", rel.source.Id),
 	)
@@ -426,7 +428,7 @@ func (rel *UserHasOneUserExtRel) Dissociate() error {
 	return err
 }
 
-func (inst *User) Organizations() *UserBelongsToManyOrganizationRel {
+func (inst *UserN) Organizations() *UserBelongsToManyOrganizationRel {
 	return &UserBelongsToManyOrganizationRel{
 		source:     inst,
 		pivotTable: "user_organization_ref",
@@ -435,13 +437,14 @@ func (inst *User) Organizations() *UserBelongsToManyOrganizationRel {
 }
 
 type UserBelongsToManyOrganizationRel struct {
-	source     *User
+	source     *UserN
 	pivotTable string
 	relModel   *OrganizationModel
 }
 
-func (rel *UserBelongsToManyOrganizationRel) Get(builders ...query.SQLBuilder) ([]Organization, error) {
+func (rel *UserBelongsToManyOrganizationRel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]OrganizationN, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		ctx,
 		query.Builder().Table(rel.pivotTable).Select("organization_id").Where("user_id", rel.source.Id),
 		func(row eloquent.Scanner) (interface{}, error) {
 			var k interface{}
@@ -458,11 +461,12 @@ func (rel *UserBelongsToManyOrganizationRel) Get(builders ...query.SQLBuilder) (
 	}
 
 	resArr, _ := res.ToArray()
-	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("id", resArr...))
+	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("id", resArr...))
 }
 
-func (rel *UserBelongsToManyOrganizationRel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (rel *UserBelongsToManyOrganizationRel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		ctx,
 		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("user_id", rel.source.Id),
 		func(row eloquent.Scanner) (interface{}, error) {
 			var k int64
@@ -481,8 +485,8 @@ func (rel *UserBelongsToManyOrganizationRel) Count(builders ...query.SQLBuilder)
 	return res.Index(0).(int64), nil
 }
 
-func (rel *UserBelongsToManyOrganizationRel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	c, err := rel.Count(builders...)
+func (rel *UserBelongsToManyOrganizationRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	c, err := rel.Count(ctx, builders...)
 	if err != nil {
 		return false, err
 	}
@@ -490,8 +494,8 @@ func (rel *UserBelongsToManyOrganizationRel) Exists(builders ...query.SQLBuilder
 	return c > 0, nil
 }
 
-func (rel *UserBelongsToManyOrganizationRel) Attach(target Organization) error {
-	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV{
+func (rel *UserBelongsToManyOrganizationRel) Attach(ctx context.Context, target OrganizationN) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(ctx, rel.pivotTable, query.KV{
 		"organization_id": target.Id,
 		"user_id":         rel.source.Id,
 	})
@@ -499,31 +503,31 @@ func (rel *UserBelongsToManyOrganizationRel) Attach(target Organization) error {
 	return err
 }
 
-func (rel *UserBelongsToManyOrganizationRel) Detach(target Organization) error {
+func (rel *UserBelongsToManyOrganizationRel) Detach(ctx context.Context, target OrganizationN) error {
 	_, err := eloquent.DB(rel.relModel.GetDB()).
-		Delete(eloquent.Build(rel.pivotTable).
+		Delete(ctx, eloquent.Build(rel.pivotTable).
 			Where("organization_id", target.Id).
 			Where("user_id", rel.source.Id))
 
 	return err
 }
 
-func (rel *UserBelongsToManyOrganizationRel) DetachAll() error {
+func (rel *UserBelongsToManyOrganizationRel) DetachAll(ctx context.Context) error {
 	_, err := eloquent.DB(rel.relModel.GetDB()).
-		Delete(eloquent.Build(rel.pivotTable).
+		Delete(ctx, eloquent.Build(rel.pivotTable).
 			Where("user_id", rel.source.Id))
 	return err
 }
 
-func (rel *UserBelongsToManyOrganizationRel) Create(target Organization, builders ...query.SQLBuilder) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *UserBelongsToManyOrganizationRel) Create(ctx context.Context, target OrganizationN, builders ...query.SQLBuilder) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
 
 	target.Id = null.IntFrom(targetId)
 
-	err = rel.Attach(target)
+	err = rel.Attach(ctx, target)
 
 	return targetId, err
 }
@@ -583,7 +587,7 @@ func (m *UserModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type UserPlain struct {
+type User struct {
 	Id            int64
 	Name          string
 	Email         string
@@ -596,9 +600,9 @@ type UserPlain struct {
 	DeletedAt     time.Time
 }
 
-func (w UserPlain) ToUser(allows ...string) User {
+func (w User) ToUserN(allows ...string) UserN {
 	if len(allows) == 0 {
-		return User{
+		return UserN{
 
 			Id:            null.IntFrom(int64(w.Id)),
 			Name:          null.StringFrom(w.Name),
@@ -613,7 +617,7 @@ func (w UserPlain) ToUser(allows ...string) User {
 		}
 	}
 
-	res := User{}
+	res := UserN{}
 	for _, al := range allows {
 		switch strcase.ToSnake(al) {
 
@@ -646,12 +650,12 @@ func (w UserPlain) ToUser(allows ...string) User {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (w UserPlain) As(dst interface{}) error {
+func (w User) As(dst interface{}) error {
 	return coll.CopyProperties(w, dst)
 }
 
-func (w *User) ToUserPlain() UserPlain {
-	return UserPlain{
+func (w *UserN) ToUser() User {
+	return User{
 
 		Id:            w.Id.Int64,
 		Name:          w.Name.String,
@@ -679,17 +683,22 @@ type UserModel struct {
 
 var userTableName = "wz_user"
 
+// UserTable return table name for User
+func UserTable() string {
+	return userTableName
+}
+
 const (
-	UserFieldId            = "id"
-	UserFieldName          = "name"
-	UserFieldEmail         = "email"
-	UserFieldPassword      = "password"
-	UserFieldRoleId        = "role_id"
-	UserFieldEnterpriseId  = "enterprise_id"
-	UserFieldRememberToken = "remember_token"
-	UserFieldCreatedAt     = "created_at"
-	UserFieldUpdatedAt     = "updated_at"
-	UserFieldDeletedAt     = "deleted_at"
+	FieldUserId            = "id"
+	FieldUserName          = "name"
+	FieldUserEmail         = "email"
+	FieldUserPassword      = "password"
+	FieldUserRoleId        = "role_id"
+	FieldUserEnterpriseId  = "enterprise_id"
+	FieldUserRememberToken = "remember_token"
+	FieldUserCreatedAt     = "created_at"
+	FieldUserUpdatedAt     = "updated_at"
+	FieldUserDeletedAt     = "deleted_at"
 )
 
 // UserFields return all fields in User model
@@ -768,25 +777,25 @@ func (m *UserModel) Condition(builder query.SQLBuilder) *UserModel {
 }
 
 // Find retrieve a model by its primary key
-func (m *UserModel) Find(id int64) (User, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *UserModel) Find(ctx context.Context, id int64) (*UserN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *UserModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *UserModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *UserModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *UserModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -802,7 +811,7 @@ func (m *UserModel) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
-func (m *UserModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]User, query.PaginateMeta, error) {
+func (m *UserModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]UserN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -816,7 +825,7 @@ func (m *UserModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -827,7 +836,7 @@ func (m *UserModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -836,7 +845,7 @@ func (m *UserModel) Paginate(page int64, perPage int64, builders ...query.SQLBui
 }
 
 // Get retrieve all results for given query
-func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
+func (m *UserModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]UserN, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select(
@@ -882,8 +891,8 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*User, []interface{}) {
-		var userVar User
+	var createScanVar = func(fields []query.Expr) (*UserN, []interface{}) {
+		var userVar UserN
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -917,14 +926,14 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	users := make([]User, 0)
+	users := make([]UserN, 0)
 	for rows.Next() {
 		userReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -942,21 +951,21 @@ func (m *UserModel) Get(builders ...query.SQLBuilder) ([]User, error) {
 }
 
 // First return first result for given query
-func (m *UserModel) First(builders ...query.SQLBuilder) (User, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *UserModel) First(ctx context.Context, builders ...query.SQLBuilder) (*UserN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return User{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return User{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new User to database
-func (m *UserModel) Create(kv query.KV) (int64, error) {
+func (m *UserModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -968,7 +977,7 @@ func (m *UserModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -977,10 +986,10 @@ func (m *UserModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all Users to database
-func (m *UserModel) SaveAll(users []User) ([]int64, error) {
+func (m *UserModel) SaveAll(ctx context.Context, users []UserN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, user := range users {
-		id, err := m.Save(user)
+		id, err := m.Save(ctx, user)
 		if err != nil {
 			return ids, err
 		}
@@ -992,23 +1001,23 @@ func (m *UserModel) SaveAll(users []User) ([]int64, error) {
 }
 
 // Save save a User to database
-func (m *UserModel) Save(user User, onlyFields ...string) (int64, error) {
-	return m.Create(user.StaledKV(onlyFields...))
+func (m *UserModel) Save(ctx context.Context, user UserN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, user.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new User or update it when it has a id > 0
-func (m *UserModel) SaveOrUpdate(user User, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *UserModel) SaveOrUpdate(ctx context.Context, user UserN, onlyFields ...string) (id int64, updated bool, err error) {
 	if user.Id.Int64 > 0 {
-		_, _err := m.UpdateById(user.Id.Int64, user, onlyFields...)
+		_, _err := m.UpdateById(ctx, user.Id.Int64, user, onlyFields...)
 		return user.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(user, onlyFields...)
+	_id, _err := m.Save(ctx, user, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *UserModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *UserModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -1019,7 +1028,7 @@ func (m *UserModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -1028,27 +1037,22 @@ func (m *UserModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int
 }
 
 // Update update a model for given query
-func (m *UserModel) Update(user User, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(user.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *UserModel) UpdatePart(user User, onlyFields ...string) (int64, error) {
-	return m.UpdateFields(user.StaledKV(onlyFields...))
+func (m *UserModel) Update(ctx context.Context, builder query.SQLBuilder, user UserN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, user.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *UserModel) UpdateById(id int64, user User, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(user.StaledKV(onlyFields...))
+func (m *UserModel) UpdateById(ctx context.Context, id int64, user UserN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, user.StaledKV(onlyFields...))
 }
 
 // ForceDelete permanently remove a soft deleted model from the database
-func (m *UserModel) ForceDelete(builders ...query.SQLBuilder) (int64, error) {
+func (m *UserModel) ForceDelete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	m2 := m.WithTrashed()
 
 	sqlStr, params := m2.query.Merge(builders...).AppendCondition(m2.applyScope()).Table(m2.tableName).ResolveDelete()
 
-	res, err := m2.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m2.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -1057,39 +1061,39 @@ func (m *UserModel) ForceDelete(builders ...query.SQLBuilder) (int64, error) {
 }
 
 // ForceDeleteById permanently remove a soft deleted model from the database by id
-func (m *UserModel) ForceDeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete()
+func (m *UserModel) ForceDeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).ForceDelete(ctx)
 }
 
 // Restore restore a soft deleted model into an active state
-func (m *UserModel) Restore(builders ...query.SQLBuilder) (int64, error) {
+func (m *UserModel) Restore(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	m2 := m.WithTrashed()
-	return m2.UpdateFields(query.KV{
+	return m2.UpdateFields(ctx, query.KV{
 		"deleted_at": nil,
 	}, builders...)
 }
 
 // RestoreById restore a soft deleted model into an active state by id
-func (m *UserModel) RestoreById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Restore()
+func (m *UserModel) RestoreById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Restore(ctx)
 }
 
 // Delete remove a model
-func (m *UserModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *UserModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
-	return m.UpdateFields(query.KV{
+	return m.UpdateFields(ctx, query.KV{
 		"deleted_at": time.Now(),
 	}, builders...)
 
 }
 
 // DeleteById remove a model by id
-func (m *UserModel) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *UserModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }
 
-// UserExt is a UserExt object
-type UserExt struct {
+// UserExtN is a UserExt object, all fields are nullable
+type UserExtN struct {
 	original     *userExtOriginal
 	userExtModel *UserExtModel
 
@@ -1104,12 +1108,12 @@ type UserExt struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *UserExt) As(dst interface{}) error {
+func (inst *UserExtN) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for UserExt
-func (inst *UserExt) SetModel(userExtModel *UserExtModel) {
+func (inst *UserExtN) SetModel(userExtModel *UserExtModel) {
 	inst.userExtModel = userExtModel
 }
 
@@ -1125,7 +1129,7 @@ type userExtOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *UserExt) Staled(onlyFields ...string) bool {
+func (inst *UserExtN) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &userExtOriginal{}
 	}
@@ -1194,7 +1198,7 @@ func (inst *UserExt) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *UserExt) StaledKV(onlyFields ...string) query.KV {
+func (inst *UserExtN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -1265,12 +1269,12 @@ func (inst *UserExt) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *UserExt) Save(onlyFields ...string) error {
+func (inst *UserExtN) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.userExtModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.userExtModel.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.userExtModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -1280,12 +1284,12 @@ func (inst *UserExt) Save(onlyFields ...string) error {
 }
 
 // Delete remove a UserExt
-func (inst *UserExt) Delete() error {
+func (inst *UserExtN) Delete(ctx context.Context) error {
 	if inst.userExtModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.userExtModel.DeleteById(inst.Id.Int64)
+	_, err := inst.userExtModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -1294,12 +1298,12 @@ func (inst *UserExt) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *UserExt) String() string {
+func (inst *UserExtN) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }
 
-func (inst *UserExt) User() *UserExtBelongsToUserRel {
+func (inst *UserExtN) User() *UserExtBelongsToUserRel {
 	return &UserExtBelongsToUserRel{
 		source:   inst,
 		relModel: NewUserModel(inst.userExtModel.GetDB()),
@@ -1307,12 +1311,12 @@ func (inst *UserExt) User() *UserExtBelongsToUserRel {
 }
 
 type UserExtBelongsToUserRel struct {
-	source   *UserExt
+	source   *UserExtN
 	relModel *UserModel
 }
 
-func (rel *UserExtBelongsToUserRel) Create(target User) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *UserExtBelongsToUserRel) Create(ctx context.Context, target UserN) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -1320,33 +1324,33 @@ func (rel *UserExtBelongsToUserRel) Create(target User) (int64, error) {
 	target.Id = null.IntFrom(targetId)
 
 	rel.source.UserId = target.Id
-	if err := rel.source.Save(); err != nil {
+	if err := rel.source.Save(ctx); err != nil {
 		return targetId, err
 	}
 
 	return targetId, nil
 }
 
-func (rel *UserExtBelongsToUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
+func (rel *UserExtBelongsToUserRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
 	builder := query.Builder().Where("id", rel.source.UserId).Merge(builders...)
 
-	return rel.relModel.Exists(builder)
+	return rel.relModel.Exists(ctx, builder)
 }
 
-func (rel *UserExtBelongsToUserRel) First(builders ...query.SQLBuilder) (User, error) {
+func (rel *UserExtBelongsToUserRel) First(ctx context.Context, builders ...query.SQLBuilder) (*UserN, error) {
 	builder := query.Builder().Where("id", rel.source.UserId).Limit(1).Merge(builders...)
 
-	return rel.relModel.First(builder)
+	return rel.relModel.First(ctx, builder)
 }
 
-func (rel *UserExtBelongsToUserRel) Associate(target User) error {
+func (rel *UserExtBelongsToUserRel) Associate(ctx context.Context, target UserN) error {
 	rel.source.UserId = target.Id
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
-func (rel *UserExtBelongsToUserRel) Dissociate() error {
+func (rel *UserExtBelongsToUserRel) Dissociate(ctx context.Context) error {
 	rel.source.UserId = null.IntFrom(0)
-	return rel.source.Save()
+	return rel.source.Save(ctx)
 }
 
 type userExtScope struct {
@@ -1404,7 +1408,7 @@ func (m *UserExtModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type UserExtPlain struct {
+type UserExt struct {
 	Address   string
 	Qq        string
 	Wechat    string
@@ -1414,9 +1418,9 @@ type UserExtPlain struct {
 	UpdatedAt time.Time
 }
 
-func (w UserExtPlain) ToUserExt(allows ...string) UserExt {
+func (w UserExt) ToUserExtN(allows ...string) UserExtN {
 	if len(allows) == 0 {
-		return UserExt{
+		return UserExtN{
 
 			Address:   null.StringFrom(w.Address),
 			Qq:        null.StringFrom(w.Qq),
@@ -1428,7 +1432,7 @@ func (w UserExtPlain) ToUserExt(allows ...string) UserExt {
 		}
 	}
 
-	res := UserExt{}
+	res := UserExtN{}
 	for _, al := range allows {
 		switch strcase.ToSnake(al) {
 
@@ -1455,12 +1459,12 @@ func (w UserExtPlain) ToUserExt(allows ...string) UserExt {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (w UserExtPlain) As(dst interface{}) error {
+func (w UserExt) As(dst interface{}) error {
 	return coll.CopyProperties(w, dst)
 }
 
-func (w *UserExt) ToUserExtPlain() UserExtPlain {
-	return UserExtPlain{
+func (w *UserExtN) ToUserExt() UserExt {
+	return UserExt{
 
 		Address:   w.Address.String,
 		Qq:        w.Qq.String,
@@ -1485,14 +1489,19 @@ type UserExtModel struct {
 
 var userExtTableName = "wz_userext"
 
+// UserExtTable return table name for UserExt
+func UserExtTable() string {
+	return userExtTableName
+}
+
 const (
-	UserExtFieldAddress   = "address"
-	UserExtFieldQq        = "qq"
-	UserExtFieldWechat    = "wechat"
-	UserExtFieldUserId    = "user_id"
-	UserExtFieldId        = "id"
-	UserExtFieldCreatedAt = "created_at"
-	UserExtFieldUpdatedAt = "updated_at"
+	FieldUserExtAddress   = "address"
+	FieldUserExtQq        = "qq"
+	FieldUserExtWechat    = "wechat"
+	FieldUserExtUserId    = "user_id"
+	FieldUserExtId        = "id"
+	FieldUserExtCreatedAt = "created_at"
+	FieldUserExtUpdatedAt = "updated_at"
 )
 
 // UserExtFields return all fields in UserExt model
@@ -1563,25 +1572,25 @@ func (m *UserExtModel) Condition(builder query.SQLBuilder) *UserExtModel {
 }
 
 // Find retrieve a model by its primary key
-func (m *UserExtModel) Find(id int64) (UserExt, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *UserExtModel) Find(ctx context.Context, id int64) (*UserExtN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *UserExtModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *UserExtModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *UserExtModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *UserExtModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -1597,7 +1606,7 @@ func (m *UserExtModel) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
-func (m *UserExtModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]UserExt, query.PaginateMeta, error) {
+func (m *UserExtModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]UserExtN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -1611,7 +1620,7 @@ func (m *UserExtModel) Paginate(page int64, perPage int64, builders ...query.SQL
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -1622,7 +1631,7 @@ func (m *UserExtModel) Paginate(page int64, perPage int64, builders ...query.SQL
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -1631,7 +1640,7 @@ func (m *UserExtModel) Paginate(page int64, perPage int64, builders ...query.SQL
 }
 
 // Get retrieve all results for given query
-func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
+func (m *UserExtModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]UserExtN, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select(
@@ -1668,8 +1677,8 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*UserExt, []interface{}) {
-		var userExtVar UserExt
+	var createScanVar = func(fields []query.Expr) (*UserExtN, []interface{}) {
+		var userExtVar UserExtN
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -1697,14 +1706,14 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	userExts := make([]UserExt, 0)
+	userExts := make([]UserExtN, 0)
 	for rows.Next() {
 		userExtReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -1722,21 +1731,21 @@ func (m *UserExtModel) Get(builders ...query.SQLBuilder) ([]UserExt, error) {
 }
 
 // First return first result for given query
-func (m *UserExtModel) First(builders ...query.SQLBuilder) (UserExt, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *UserExtModel) First(ctx context.Context, builders ...query.SQLBuilder) (*UserExtN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return UserExt{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return UserExt{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new UserExt to database
-func (m *UserExtModel) Create(kv query.KV) (int64, error) {
+func (m *UserExtModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -1748,7 +1757,7 @@ func (m *UserExtModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -1757,10 +1766,10 @@ func (m *UserExtModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all UserExts to database
-func (m *UserExtModel) SaveAll(userExts []UserExt) ([]int64, error) {
+func (m *UserExtModel) SaveAll(ctx context.Context, userExts []UserExtN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, userExt := range userExts {
-		id, err := m.Save(userExt)
+		id, err := m.Save(ctx, userExt)
 		if err != nil {
 			return ids, err
 		}
@@ -1772,23 +1781,23 @@ func (m *UserExtModel) SaveAll(userExts []UserExt) ([]int64, error) {
 }
 
 // Save save a UserExt to database
-func (m *UserExtModel) Save(userExt UserExt, onlyFields ...string) (int64, error) {
-	return m.Create(userExt.StaledKV(onlyFields...))
+func (m *UserExtModel) Save(ctx context.Context, userExt UserExtN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, userExt.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new UserExt or update it when it has a id > 0
-func (m *UserExtModel) SaveOrUpdate(userExt UserExt, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *UserExtModel) SaveOrUpdate(ctx context.Context, userExt UserExtN, onlyFields ...string) (id int64, updated bool, err error) {
 	if userExt.Id.Int64 > 0 {
-		_, _err := m.UpdateById(userExt.Id.Int64, userExt, onlyFields...)
+		_, _err := m.UpdateById(ctx, userExt.Id.Int64, userExt, onlyFields...)
 		return userExt.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(userExt, onlyFields...)
+	_id, _err := m.Save(ctx, userExt, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *UserExtModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *UserExtModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -1799,7 +1808,7 @@ func (m *UserExtModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -1808,26 +1817,21 @@ func (m *UserExtModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (
 }
 
 // Update update a model for given query
-func (m *UserExtModel) Update(userExt UserExt, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(userExt.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *UserExtModel) UpdatePart(userExt UserExt, onlyFields ...string) (int64, error) {
-	return m.UpdateFields(userExt.StaledKV(onlyFields...))
+func (m *UserExtModel) Update(ctx context.Context, builder query.SQLBuilder, userExt UserExtN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, userExt.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *UserExtModel) UpdateById(id int64, userExt UserExt, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(userExt.StaledKV(onlyFields...))
+func (m *UserExtModel) UpdateById(ctx context.Context, id int64, userExt UserExtN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, userExt.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
-func (m *UserExtModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *UserExtModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -1837,12 +1841,12 @@ func (m *UserExtModel) Delete(builders ...query.SQLBuilder) (int64, error) {
 }
 
 // DeleteById remove a model by id
-func (m *UserExtModel) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *UserExtModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }
 
-// PasswordReset is a PasswordReset object
-type PasswordReset struct {
+// PasswordResetN is a PasswordReset object, all fields are nullable
+type PasswordResetN struct {
 	original           *passwordResetOriginal
 	passwordResetModel *PasswordResetModel
 
@@ -1854,12 +1858,12 @@ type PasswordReset struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *PasswordReset) As(dst interface{}) error {
+func (inst *PasswordResetN) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for PasswordReset
-func (inst *PasswordReset) SetModel(passwordResetModel *PasswordResetModel) {
+func (inst *PasswordResetN) SetModel(passwordResetModel *PasswordResetModel) {
 	inst.passwordResetModel = passwordResetModel
 }
 
@@ -1872,7 +1876,7 @@ type passwordResetOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *PasswordReset) Staled(onlyFields ...string) bool {
+func (inst *PasswordResetN) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &passwordResetOriginal{}
 	}
@@ -1920,7 +1924,7 @@ func (inst *PasswordReset) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *PasswordReset) StaledKV(onlyFields ...string) query.KV {
+func (inst *PasswordResetN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -1970,12 +1974,12 @@ func (inst *PasswordReset) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *PasswordReset) Save(onlyFields ...string) error {
+func (inst *PasswordResetN) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.passwordResetModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.passwordResetModel.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.passwordResetModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -1985,12 +1989,12 @@ func (inst *PasswordReset) Save(onlyFields ...string) error {
 }
 
 // Delete remove a PasswordReset
-func (inst *PasswordReset) Delete() error {
+func (inst *PasswordResetN) Delete(ctx context.Context) error {
 	if inst.passwordResetModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.passwordResetModel.DeleteById(inst.Id.Int64)
+	_, err := inst.passwordResetModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -1999,7 +2003,7 @@ func (inst *PasswordReset) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *PasswordReset) String() string {
+func (inst *PasswordResetN) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }
@@ -2059,16 +2063,16 @@ func (m *PasswordResetModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type PasswordResetPlain struct {
+type PasswordReset struct {
 	Email     string
 	Token     string
 	Id        int64
 	CreatedAt time.Time
 }
 
-func (w PasswordResetPlain) ToPasswordReset(allows ...string) PasswordReset {
+func (w PasswordReset) ToPasswordResetN(allows ...string) PasswordResetN {
 	if len(allows) == 0 {
-		return PasswordReset{
+		return PasswordResetN{
 
 			Email:     null.StringFrom(w.Email),
 			Token:     null.StringFrom(w.Token),
@@ -2077,7 +2081,7 @@ func (w PasswordResetPlain) ToPasswordReset(allows ...string) PasswordReset {
 		}
 	}
 
-	res := PasswordReset{}
+	res := PasswordResetN{}
 	for _, al := range allows {
 		switch strcase.ToSnake(al) {
 
@@ -2098,12 +2102,12 @@ func (w PasswordResetPlain) ToPasswordReset(allows ...string) PasswordReset {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (w PasswordResetPlain) As(dst interface{}) error {
+func (w PasswordReset) As(dst interface{}) error {
 	return coll.CopyProperties(w, dst)
 }
 
-func (w *PasswordReset) ToPasswordResetPlain() PasswordResetPlain {
-	return PasswordResetPlain{
+func (w *PasswordResetN) ToPasswordReset() PasswordReset {
+	return PasswordReset{
 
 		Email:     w.Email.String,
 		Token:     w.Token.String,
@@ -2125,11 +2129,16 @@ type PasswordResetModel struct {
 
 var passwordResetTableName = "wz_passwordreset"
 
+// PasswordResetTable return table name for PasswordReset
+func PasswordResetTable() string {
+	return passwordResetTableName
+}
+
 const (
-	PasswordResetFieldEmail     = "email"
-	PasswordResetFieldToken     = "token"
-	PasswordResetFieldId        = "id"
-	PasswordResetFieldCreatedAt = "created_at"
+	FieldPasswordResetEmail     = "email"
+	FieldPasswordResetToken     = "token"
+	FieldPasswordResetId        = "id"
+	FieldPasswordResetCreatedAt = "created_at"
 )
 
 // PasswordResetFields return all fields in PasswordReset model
@@ -2197,25 +2206,25 @@ func (m *PasswordResetModel) Condition(builder query.SQLBuilder) *PasswordResetM
 }
 
 // Find retrieve a model by its primary key
-func (m *PasswordResetModel) Find(id int64) (PasswordReset, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *PasswordResetModel) Find(ctx context.Context, id int64) (*PasswordResetN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *PasswordResetModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *PasswordResetModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *PasswordResetModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *PasswordResetModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -2231,7 +2240,7 @@ func (m *PasswordResetModel) Count(builders ...query.SQLBuilder) (int64, error) 
 	return res, nil
 }
 
-func (m *PasswordResetModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]PasswordReset, query.PaginateMeta, error) {
+func (m *PasswordResetModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]PasswordResetN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -2245,7 +2254,7 @@ func (m *PasswordResetModel) Paginate(page int64, perPage int64, builders ...que
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -2256,7 +2265,7 @@ func (m *PasswordResetModel) Paginate(page int64, perPage int64, builders ...que
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -2265,7 +2274,7 @@ func (m *PasswordResetModel) Paginate(page int64, perPage int64, builders ...que
 }
 
 // Get retrieve all results for given query
-func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset, error) {
+func (m *PasswordResetModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]PasswordResetN, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select(
@@ -2293,8 +2302,8 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*PasswordReset, []interface{}) {
-		var passwordResetVar PasswordReset
+	var createScanVar = func(fields []query.Expr) (*PasswordResetN, []interface{}) {
+		var passwordResetVar PasswordResetN
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -2316,14 +2325,14 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	passwordResets := make([]PasswordReset, 0)
+	passwordResets := make([]PasswordResetN, 0)
 	for rows.Next() {
 		passwordResetReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -2341,21 +2350,21 @@ func (m *PasswordResetModel) Get(builders ...query.SQLBuilder) ([]PasswordReset,
 }
 
 // First return first result for given query
-func (m *PasswordResetModel) First(builders ...query.SQLBuilder) (PasswordReset, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *PasswordResetModel) First(ctx context.Context, builders ...query.SQLBuilder) (*PasswordResetN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return PasswordReset{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return PasswordReset{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new PasswordReset to database
-func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
+func (m *PasswordResetModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -2363,7 +2372,7 @@ func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -2372,10 +2381,10 @@ func (m *PasswordResetModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all PasswordResets to database
-func (m *PasswordResetModel) SaveAll(passwordResets []PasswordReset) ([]int64, error) {
+func (m *PasswordResetModel) SaveAll(ctx context.Context, passwordResets []PasswordResetN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, passwordReset := range passwordResets {
-		id, err := m.Save(passwordReset)
+		id, err := m.Save(ctx, passwordReset)
 		if err != nil {
 			return ids, err
 		}
@@ -2387,23 +2396,23 @@ func (m *PasswordResetModel) SaveAll(passwordResets []PasswordReset) ([]int64, e
 }
 
 // Save save a PasswordReset to database
-func (m *PasswordResetModel) Save(passwordReset PasswordReset, onlyFields ...string) (int64, error) {
-	return m.Create(passwordReset.StaledKV(onlyFields...))
+func (m *PasswordResetModel) Save(ctx context.Context, passwordReset PasswordResetN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, passwordReset.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new PasswordReset or update it when it has a id > 0
-func (m *PasswordResetModel) SaveOrUpdate(passwordReset PasswordReset, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *PasswordResetModel) SaveOrUpdate(ctx context.Context, passwordReset PasswordResetN, onlyFields ...string) (id int64, updated bool, err error) {
 	if passwordReset.Id.Int64 > 0 {
-		_, _err := m.UpdateById(passwordReset.Id.Int64, passwordReset, onlyFields...)
+		_, _err := m.UpdateById(ctx, passwordReset.Id.Int64, passwordReset, onlyFields...)
 		return passwordReset.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(passwordReset, onlyFields...)
+	_id, _err := m.Save(ctx, passwordReset, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *PasswordResetModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *PasswordResetModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -2412,7 +2421,7 @@ func (m *PasswordResetModel) UpdateFields(kv query.KV, builders ...query.SQLBuil
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -2421,26 +2430,21 @@ func (m *PasswordResetModel) UpdateFields(kv query.KV, builders ...query.SQLBuil
 }
 
 // Update update a model for given query
-func (m *PasswordResetModel) Update(passwordReset PasswordReset, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(passwordReset.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *PasswordResetModel) UpdatePart(passwordReset PasswordReset, onlyFields ...string) (int64, error) {
-	return m.UpdateFields(passwordReset.StaledKV(onlyFields...))
+func (m *PasswordResetModel) Update(ctx context.Context, builder query.SQLBuilder, passwordReset PasswordResetN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, passwordReset.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *PasswordResetModel) UpdateById(id int64, passwordReset PasswordReset, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(passwordReset.StaledKV(onlyFields...))
+func (m *PasswordResetModel) UpdateById(ctx context.Context, id int64, passwordReset PasswordResetN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, passwordReset.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
-func (m *PasswordResetModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *PasswordResetModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -2450,6 +2454,6 @@ func (m *PasswordResetModel) Delete(builders ...query.SQLBuilder) (int64, error)
 }
 
 // DeleteById remove a model by id
-func (m *PasswordResetModel) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *PasswordResetModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }

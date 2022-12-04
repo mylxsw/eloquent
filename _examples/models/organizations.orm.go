@@ -17,8 +17,8 @@ func init() {
 
 }
 
-// Organization is a Organization object
-type Organization struct {
+// OrganizationN is a Organization object, all fields are nullable
+type OrganizationN struct {
 	original          *organizationOriginal
 	organizationModel *OrganizationModel
 
@@ -30,12 +30,12 @@ type Organization struct {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (inst *Organization) As(dst interface{}) error {
+func (inst *OrganizationN) As(dst interface{}) error {
 	return coll.CopyProperties(inst, dst)
 }
 
 // SetModel set model for Organization
-func (inst *Organization) SetModel(organizationModel *OrganizationModel) {
+func (inst *OrganizationN) SetModel(organizationModel *OrganizationModel) {
 	inst.organizationModel = organizationModel
 }
 
@@ -48,7 +48,7 @@ type organizationOriginal struct {
 }
 
 // Staled identify whether the object has been modified
-func (inst *Organization) Staled(onlyFields ...string) bool {
+func (inst *OrganizationN) Staled(onlyFields ...string) bool {
 	if inst.original == nil {
 		inst.original = &organizationOriginal{}
 	}
@@ -96,7 +96,7 @@ func (inst *Organization) Staled(onlyFields ...string) bool {
 }
 
 // StaledKV return all fields has been modified
-func (inst *Organization) StaledKV(onlyFields ...string) query.KV {
+func (inst *OrganizationN) StaledKV(onlyFields ...string) query.KV {
 	kv := make(query.KV, 0)
 
 	if inst.original == nil {
@@ -146,12 +146,12 @@ func (inst *Organization) StaledKV(onlyFields ...string) query.KV {
 }
 
 // Save create a new model or update it
-func (inst *Organization) Save(onlyFields ...string) error {
+func (inst *OrganizationN) Save(ctx context.Context, onlyFields ...string) error {
 	if inst.organizationModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	id, _, err := inst.organizationModel.SaveOrUpdate(*inst, onlyFields...)
+	id, _, err := inst.organizationModel.SaveOrUpdate(ctx, *inst, onlyFields...)
 	if err != nil {
 		return err
 	}
@@ -161,12 +161,12 @@ func (inst *Organization) Save(onlyFields ...string) error {
 }
 
 // Delete remove a organization
-func (inst *Organization) Delete() error {
+func (inst *OrganizationN) Delete(ctx context.Context) error {
 	if inst.organizationModel == nil {
 		return query.ErrModelNotSet
 	}
 
-	_, err := inst.organizationModel.DeleteById(inst.Id.Int64)
+	_, err := inst.organizationModel.DeleteById(ctx, inst.Id.Int64)
 	if err != nil {
 		return err
 	}
@@ -175,12 +175,12 @@ func (inst *Organization) Delete() error {
 }
 
 // String convert instance to json string
-func (inst *Organization) String() string {
+func (inst *OrganizationN) String() string {
 	rs, _ := json.Marshal(inst)
 	return string(rs)
 }
 
-func (inst *Organization) Users() *OrganizationBelongsToManyUserRel {
+func (inst *OrganizationN) Users() *OrganizationBelongsToManyUserRel {
 	return &OrganizationBelongsToManyUserRel{
 		source:     inst,
 		pivotTable: "user_organization_ref",
@@ -189,13 +189,14 @@ func (inst *Organization) Users() *OrganizationBelongsToManyUserRel {
 }
 
 type OrganizationBelongsToManyUserRel struct {
-	source     *Organization
+	source     *OrganizationN
 	pivotTable string
 	relModel   *UserModel
 }
 
-func (rel *OrganizationBelongsToManyUserRel) Get(builders ...query.SQLBuilder) ([]User, error) {
+func (rel *OrganizationBelongsToManyUserRel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]UserN, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		ctx,
 		query.Builder().Table(rel.pivotTable).Select("user_id").Where("organization_id", rel.source.Id),
 		func(row eloquent.Scanner) (interface{}, error) {
 			var k interface{}
@@ -212,11 +213,12 @@ func (rel *OrganizationBelongsToManyUserRel) Get(builders ...query.SQLBuilder) (
 	}
 
 	resArr, _ := res.ToArray()
-	return rel.relModel.Get(query.Builder().Merge(builders...).WhereIn("id", resArr...))
+	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("id", resArr...))
 }
 
-func (rel *OrganizationBelongsToManyUserRel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (rel *OrganizationBelongsToManyUserRel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	res, err := eloquent.DB(rel.relModel.GetDB()).Query(
+		ctx,
 		query.Builder().Table(rel.pivotTable).Select(query.Raw("COUNT(1) as c")).Where("organization_id", rel.source.Id),
 		func(row eloquent.Scanner) (interface{}, error) {
 			var k int64
@@ -235,8 +237,8 @@ func (rel *OrganizationBelongsToManyUserRel) Count(builders ...query.SQLBuilder)
 	return res.Index(0).(int64), nil
 }
 
-func (rel *OrganizationBelongsToManyUserRel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	c, err := rel.Count(builders...)
+func (rel *OrganizationBelongsToManyUserRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	c, err := rel.Count(ctx, builders...)
 	if err != nil {
 		return false, err
 	}
@@ -244,8 +246,8 @@ func (rel *OrganizationBelongsToManyUserRel) Exists(builders ...query.SQLBuilder
 	return c > 0, nil
 }
 
-func (rel *OrganizationBelongsToManyUserRel) Attach(target User) error {
-	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(rel.pivotTable, query.KV{
+func (rel *OrganizationBelongsToManyUserRel) Attach(ctx context.Context, target UserN) error {
+	_, err := eloquent.DB(rel.relModel.GetDB()).Insert(ctx, rel.pivotTable, query.KV{
 		"user_id":         target.Id,
 		"organization_id": rel.source.Id,
 	})
@@ -253,31 +255,31 @@ func (rel *OrganizationBelongsToManyUserRel) Attach(target User) error {
 	return err
 }
 
-func (rel *OrganizationBelongsToManyUserRel) Detach(target User) error {
+func (rel *OrganizationBelongsToManyUserRel) Detach(ctx context.Context, target UserN) error {
 	_, err := eloquent.DB(rel.relModel.GetDB()).
-		Delete(eloquent.Build(rel.pivotTable).
+		Delete(ctx, eloquent.Build(rel.pivotTable).
 			Where("user_id", target.Id).
 			Where("organization_id", rel.source.Id))
 
 	return err
 }
 
-func (rel *OrganizationBelongsToManyUserRel) DetachAll() error {
+func (rel *OrganizationBelongsToManyUserRel) DetachAll(ctx context.Context) error {
 	_, err := eloquent.DB(rel.relModel.GetDB()).
-		Delete(eloquent.Build(rel.pivotTable).
+		Delete(ctx, eloquent.Build(rel.pivotTable).
 			Where("organization_id", rel.source.Id))
 	return err
 }
 
-func (rel *OrganizationBelongsToManyUserRel) Create(target User, builders ...query.SQLBuilder) (int64, error) {
-	targetId, err := rel.relModel.Save(target)
+func (rel *OrganizationBelongsToManyUserRel) Create(ctx context.Context, target UserN, builders ...query.SQLBuilder) (int64, error) {
+	targetId, err := rel.relModel.Save(ctx, target)
 	if err != nil {
 		return 0, err
 	}
 
 	target.Id = null.IntFrom(targetId)
 
-	err = rel.Attach(target)
+	err = rel.Attach(ctx, target)
 
 	return targetId, err
 }
@@ -337,16 +339,16 @@ func (m *OrganizationModel) globalScopeEnabled(name string) bool {
 	return true
 }
 
-type OrganizationPlain struct {
+type Organization struct {
 	Id        int64
 	Name      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-func (w OrganizationPlain) ToOrganization(allows ...string) Organization {
+func (w Organization) ToOrganizationN(allows ...string) OrganizationN {
 	if len(allows) == 0 {
-		return Organization{
+		return OrganizationN{
 
 			Id:        null.IntFrom(int64(w.Id)),
 			Name:      null.StringFrom(w.Name),
@@ -355,7 +357,7 @@ func (w OrganizationPlain) ToOrganization(allows ...string) Organization {
 		}
 	}
 
-	res := Organization{}
+	res := OrganizationN{}
 	for _, al := range allows {
 		switch strcase.ToSnake(al) {
 
@@ -376,12 +378,12 @@ func (w OrganizationPlain) ToOrganization(allows ...string) Organization {
 
 // As convert object to other type
 // dst must be a pointer to struct
-func (w OrganizationPlain) As(dst interface{}) error {
+func (w Organization) As(dst interface{}) error {
 	return coll.CopyProperties(w, dst)
 }
 
-func (w *Organization) ToOrganizationPlain() OrganizationPlain {
-	return OrganizationPlain{
+func (w *OrganizationN) ToOrganization() Organization {
+	return Organization{
 
 		Id:        w.Id.Int64,
 		Name:      w.Name.String,
@@ -403,11 +405,16 @@ type OrganizationModel struct {
 
 var organizationTableName = "wz_organization"
 
+// OrganizationTable return table name for Organization
+func OrganizationTable() string {
+	return organizationTableName
+}
+
 const (
-	OrganizationFieldId        = "id"
-	OrganizationFieldName      = "name"
-	OrganizationFieldCreatedAt = "created_at"
-	OrganizationFieldUpdatedAt = "updated_at"
+	FieldOrganizationId        = "id"
+	FieldOrganizationName      = "name"
+	FieldOrganizationCreatedAt = "created_at"
+	FieldOrganizationUpdatedAt = "updated_at"
 )
 
 // OrganizationFields return all fields in Organization model
@@ -475,25 +482,25 @@ func (m *OrganizationModel) Condition(builder query.SQLBuilder) *OrganizationMod
 }
 
 // Find retrieve a model by its primary key
-func (m *OrganizationModel) Find(id int64) (Organization, error) {
-	return m.First(m.query.Where("id", "=", id))
+func (m *OrganizationModel) Find(ctx context.Context, id int64) (*OrganizationN, error) {
+	return m.First(ctx, m.query.Where("id", "=", id))
 }
 
 // Exists return whether the records exists for a given query
-func (m *OrganizationModel) Exists(builders ...query.SQLBuilder) (bool, error) {
-	count, err := m.Count(builders...)
+func (m *OrganizationModel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
+	count, err := m.Count(ctx, builders...)
 	return count > 0, err
 }
 
 // Count return model count for a given query
-func (m *OrganizationModel) Count(builders ...query.SQLBuilder) (int64, error) {
+func (m *OrganizationModel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 	sqlStr, params := m.query.
 		Merge(builders...).
 		Table(m.tableName).
 		AppendCondition(m.applyScope()).
 		ResolveCount()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -509,7 +516,7 @@ func (m *OrganizationModel) Count(builders ...query.SQLBuilder) (int64, error) {
 	return res, nil
 }
 
-func (m *OrganizationModel) Paginate(page int64, perPage int64, builders ...query.SQLBuilder) ([]Organization, query.PaginateMeta, error) {
+func (m *OrganizationModel) Paginate(ctx context.Context, page int64, perPage int64, builders ...query.SQLBuilder) ([]OrganizationN, query.PaginateMeta, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -523,7 +530,7 @@ func (m *OrganizationModel) Paginate(page int64, perPage int64, builders ...quer
 		Page:    page,
 	}
 
-	count, err := m.Count(builders...)
+	count, err := m.Count(ctx, builders...)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -534,7 +541,7 @@ func (m *OrganizationModel) Paginate(page int64, perPage int64, builders ...quer
 		meta.LastPage += 1
 	}
 
-	res, err := m.Get(append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
+	res, err := m.Get(ctx, append([]query.SQLBuilder{query.Builder().Limit(perPage).Offset((page - 1) * perPage)}, builders...)...)
 	if err != nil {
 		return res, meta, err
 	}
@@ -543,7 +550,7 @@ func (m *OrganizationModel) Paginate(page int64, perPage int64, builders ...quer
 }
 
 // Get retrieve all results for given query
-func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, error) {
+func (m *OrganizationModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]OrganizationN, error) {
 	b := m.query.Merge(builders...).Table(m.tableName).AppendCondition(m.applyScope())
 	if len(b.GetFields()) == 0 {
 		b = b.Select(
@@ -571,8 +578,8 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 		}
 	}
 
-	var createScanVar = func(fields []query.Expr) (*Organization, []interface{}) {
-		var organizationVar Organization
+	var createScanVar = func(fields []query.Expr) (*OrganizationN, []interface{}) {
+		var organizationVar OrganizationN
 		scanFields := make([]interface{}, 0)
 
 		for _, f := range fields {
@@ -594,14 +601,14 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 
 	sqlStr, params := b.Fields(selectFields...).ResolveQuery()
 
-	rows, err := m.db.QueryContext(context.Background(), sqlStr, params...)
+	rows, err := m.db.QueryContext(ctx, sqlStr, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	organizations := make([]Organization, 0)
+	organizations := make([]OrganizationN, 0)
 	for rows.Next() {
 		organizationReal, scanFields := createScanVar(fields)
 		if err := rows.Scan(scanFields...); err != nil {
@@ -619,21 +626,21 @@ func (m *OrganizationModel) Get(builders ...query.SQLBuilder) ([]Organization, e
 }
 
 // First return first result for given query
-func (m *OrganizationModel) First(builders ...query.SQLBuilder) (Organization, error) {
-	res, err := m.Get(append(builders, query.Builder().Limit(1))...)
+func (m *OrganizationModel) First(ctx context.Context, builders ...query.SQLBuilder) (*OrganizationN, error) {
+	res, err := m.Get(ctx, append(builders, query.Builder().Limit(1))...)
 	if err != nil {
-		return Organization{}, err
+		return nil, err
 	}
 
 	if len(res) == 0 {
-		return Organization{}, query.ErrNoResult
+		return nil, query.ErrNoResult
 	}
 
-	return res[0], nil
+	return &res[0], nil
 }
 
 // Create save a new organization to database
-func (m *OrganizationModel) Create(kv query.KV) (int64, error) {
+func (m *OrganizationModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 
 	if _, ok := kv["created_at"]; !ok {
 		kv["created_at"] = time.Now()
@@ -645,7 +652,7 @@ func (m *OrganizationModel) Create(kv query.KV) (int64, error) {
 
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -654,10 +661,10 @@ func (m *OrganizationModel) Create(kv query.KV) (int64, error) {
 }
 
 // SaveAll save all organizations to database
-func (m *OrganizationModel) SaveAll(organizations []Organization) ([]int64, error) {
+func (m *OrganizationModel) SaveAll(ctx context.Context, organizations []OrganizationN) ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, organization := range organizations {
-		id, err := m.Save(organization)
+		id, err := m.Save(ctx, organization)
 		if err != nil {
 			return ids, err
 		}
@@ -669,23 +676,23 @@ func (m *OrganizationModel) SaveAll(organizations []Organization) ([]int64, erro
 }
 
 // Save save a organization to database
-func (m *OrganizationModel) Save(organization Organization, onlyFields ...string) (int64, error) {
-	return m.Create(organization.StaledKV(onlyFields...))
+func (m *OrganizationModel) Save(ctx context.Context, organization OrganizationN, onlyFields ...string) (int64, error) {
+	return m.Create(ctx, organization.StaledKV(onlyFields...))
 }
 
 // SaveOrUpdate save a new organization or update it when it has a id > 0
-func (m *OrganizationModel) SaveOrUpdate(organization Organization, onlyFields ...string) (id int64, updated bool, err error) {
+func (m *OrganizationModel) SaveOrUpdate(ctx context.Context, organization OrganizationN, onlyFields ...string) (id int64, updated bool, err error) {
 	if organization.Id.Int64 > 0 {
-		_, _err := m.UpdateById(organization.Id.Int64, organization, onlyFields...)
+		_, _err := m.UpdateById(ctx, organization.Id.Int64, organization, onlyFields...)
 		return organization.Id.Int64, true, _err
 	}
 
-	_id, _err := m.Save(organization, onlyFields...)
+	_id, _err := m.Save(ctx, organization, onlyFields...)
 	return _id, false, _err
 }
 
 // UpdateFields update kv for a given query
-func (m *OrganizationModel) UpdateFields(kv query.KV, builders ...query.SQLBuilder) (int64, error) {
+func (m *OrganizationModel) UpdateFields(ctx context.Context, kv query.KV, builders ...query.SQLBuilder) (int64, error) {
 	if len(kv) == 0 {
 		return 0, nil
 	}
@@ -696,7 +703,7 @@ func (m *OrganizationModel) UpdateFields(kv query.KV, builders ...query.SQLBuild
 		Table(m.tableName).
 		ResolveUpdate(kv)
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -705,26 +712,21 @@ func (m *OrganizationModel) UpdateFields(kv query.KV, builders ...query.SQLBuild
 }
 
 // Update update a model for given query
-func (m *OrganizationModel) Update(organization Organization, builders ...query.SQLBuilder) (int64, error) {
-	return m.UpdateFields(organization.StaledKV(), builders...)
-}
-
-// UpdatePart update a model for given query
-func (m *OrganizationModel) UpdatePart(organization Organization, onlyFields ...string) (int64, error) {
-	return m.UpdateFields(organization.StaledKV(onlyFields...))
+func (m *OrganizationModel) Update(ctx context.Context, builder query.SQLBuilder, organization OrganizationN, onlyFields ...string) (int64, error) {
+	return m.UpdateFields(ctx, organization.StaledKV(onlyFields...), builder)
 }
 
 // UpdateById update a model by id
-func (m *OrganizationModel) UpdateById(id int64, organization Organization, onlyFields ...string) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(organization.StaledKV(onlyFields...))
+func (m *OrganizationModel) UpdateById(ctx context.Context, id int64, organization OrganizationN, onlyFields ...string) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).UpdateFields(ctx, organization.StaledKV(onlyFields...))
 }
 
 // Delete remove a model
-func (m *OrganizationModel) Delete(builders ...query.SQLBuilder) (int64, error) {
+func (m *OrganizationModel) Delete(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
 
 	sqlStr, params := m.query.Merge(builders...).AppendCondition(m.applyScope()).Table(m.tableName).ResolveDelete()
 
-	res, err := m.db.ExecContext(context.Background(), sqlStr, params...)
+	res, err := m.db.ExecContext(ctx, sqlStr, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -734,6 +736,6 @@ func (m *OrganizationModel) Delete(builders ...query.SQLBuilder) (int64, error) 
 }
 
 // DeleteById remove a model by id
-func (m *OrganizationModel) DeleteById(id int64) (int64, error) {
-	return m.Condition(query.Builder().Where("id", "=", id)).Delete()
+func (m *OrganizationModel) DeleteById(ctx context.Context, id int64) (int64, error) {
+	return m.Condition(query.Builder().Where("id", "=", id)).Delete(ctx)
 }
