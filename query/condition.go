@@ -2,6 +2,7 @@ package query
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -16,20 +17,20 @@ type Condition interface {
 	OrWhereNull(field string) Condition
 	WhereNotNull(field string) Condition
 	WhereNull(field string) Condition
-	OrWhereRaw(raw string, items ...interface{}) Condition
-	WhereRaw(raw string, items ...interface{}) Condition
-	OrWhereNotIn(field string, items ...interface{}) Condition
-	OrWhereIn(field string, items ...interface{}) Condition
-	WhereNotIn(field string, items ...interface{}) Condition
-	WhereIn(field string, items ...interface{}) Condition
+	OrWhereRaw(raw string, items ...any) Condition
+	WhereRaw(raw string, items ...any) Condition
+	OrWhereNotIn(field string, items ...any) Condition
+	OrWhereIn(field string, items ...any) Condition
+	WhereNotIn(field string, items ...any) Condition
+	WhereIn(field string, items ...any) Condition
 	WhereGroup(wc ConditionGroup) Condition
 	OrWhereGroup(wc ConditionGroup) Condition
-	Where(field string, value ...interface{}) Condition
-	OrWhere(field string, value ...interface{}) Condition
-	WhereBetween(field string, min, max interface{}) Condition
-	WhereNotBetween(field string, min, max interface{}) Condition
-	OrWhereBetween(field string, min, max interface{}) Condition
-	OrWhereNotBetween(field string, min, max interface{}) Condition
+	Where(field string, value ...any) Condition
+	OrWhere(field string, value ...any) Condition
+	WhereBetween(field string, min, max any) Condition
+	WhereNotBetween(field string, min, max any) Condition
+	OrWhereBetween(field string, min, max any) Condition
+	OrWhereNotBetween(field string, min, max any) Condition
 
 	WhereCondition(cond sqlCondition) Condition
 
@@ -41,7 +42,7 @@ type Condition interface {
 
 	Clone() Condition
 	Empty() bool
-	Resolve(tableAlias string) (string, []interface{})
+	Resolve(tableAlias string) (string, []any)
 }
 
 type When func() bool
@@ -51,7 +52,7 @@ type conditionType int
 
 const (
 	connectTypeAnd connectType = "AND"
-	connectTypeOr              = "OR"
+	connectTypeOr  connectType = "OR"
 )
 
 const (
@@ -70,7 +71,7 @@ const (
 )
 
 type SubQuery interface {
-	ResolveQuery() (string, []interface{})
+	ResolveQuery() (string, []any)
 }
 
 type sqlCondition struct {
@@ -78,7 +79,7 @@ type sqlCondition struct {
 	Type      conditionType
 	Field     string
 	Operate   string
-	Values    []interface{}
+	Values    []any
 	Nested    ConditionGroup
 	SubQuery  SubQuery
 	When      When
@@ -153,7 +154,7 @@ func (builder *conditionBuilder) WhereColumn(field, operator string, value strin
 		Type:      condTypeColumn,
 		Field:     field,
 		Operate:   operator,
-		Values:    []interface{}{value},
+		Values:    []any{value},
 	})
 }
 
@@ -163,7 +164,7 @@ func (builder *conditionBuilder) OrWhereColumn(field, operator string, value str
 		Type:      condTypeColumn,
 		Field:     field,
 		Operate:   operator,
-		Values:    []interface{}{value},
+		Values:    []any{value},
 	})
 }
 
@@ -235,25 +236,25 @@ func (builder *conditionBuilder) WhereNull(field string) Condition {
 	})
 }
 
-func (builder *conditionBuilder) OrWhereRaw(raw string, items ...interface{}) Condition {
+func (builder *conditionBuilder) OrWhereRaw(raw string, items ...any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeOr,
 		Type:      condTypeRaw,
 		Field:     raw,
-		Values:    items,
+		Values:    arrayItems(items),
 	})
 }
 
-func (builder *conditionBuilder) WhereRaw(raw string, items ...interface{}) Condition {
+func (builder *conditionBuilder) WhereRaw(raw string, items ...any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeAnd,
 		Type:      condTypeRaw,
 		Field:     raw,
-		Values:    items,
+		Values:    arrayItems(items),
 	})
 }
 
-func (builder *conditionBuilder) OrWhereNotIn(field string, items ...interface{}) Condition {
+func (builder *conditionBuilder) OrWhereNotIn(field string, items ...any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeOr,
 		Type:      condTypeNotIn,
@@ -262,30 +263,50 @@ func (builder *conditionBuilder) OrWhereNotIn(field string, items ...interface{}
 	})
 }
 
-func (builder *conditionBuilder) OrWhereIn(field string, items ...interface{}) Condition {
+func arrayItems(items []any) []any {
+	if len(items) == 1 {
+		s := reflect.ValueOf(items[0])
+		if s.Kind() == reflect.Slice {
+			if s.IsNil() {
+				return []any{}
+			}
+
+			r := make([]any, s.Len())
+			for i := 0; i < s.Len(); i++ {
+				r[i] = s.Index(i).Interface()
+			}
+
+			return r
+		}
+	}
+
+	return items
+}
+
+func (builder *conditionBuilder) OrWhereIn(field string, items ...any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeOr,
 		Type:      condTypeIn,
 		Field:     field,
-		Values:    items,
+		Values:    arrayItems(items),
 	})
 }
 
-func (builder *conditionBuilder) WhereNotIn(field string, items ...interface{}) Condition {
+func (builder *conditionBuilder) WhereNotIn(field string, items ...any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeAnd,
 		Type:      condTypeNotIn,
 		Field:     field,
-		Values:    items,
+		Values:    arrayItems(items),
 	})
 }
 
-func (builder *conditionBuilder) WhereIn(field string, items ...interface{}) Condition {
+func (builder *conditionBuilder) WhereIn(field string, items ...any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeAnd,
 		Type:      condTypeIn,
 		Field:     field,
-		Values:    items,
+		Values:    arrayItems(items),
 	})
 }
 
@@ -305,11 +326,11 @@ func (builder *conditionBuilder) OrWhereGroup(wc ConditionGroup) Condition {
 	})
 }
 
-func (builder *conditionBuilder) Where(field string, value ...interface{}) Condition {
+func (builder *conditionBuilder) Where(field string, value ...any) Condition {
 	argCount := len(value)
 
 	var operator string
-	var values []interface{}
+	var values []any
 
 	if argCount == 1 {
 		operator = "="
@@ -335,11 +356,11 @@ func (builder *conditionBuilder) Where(field string, value ...interface{}) Condi
 	})
 }
 
-func (builder *conditionBuilder) OrWhere(field string, value ...interface{}) Condition {
+func (builder *conditionBuilder) OrWhere(field string, value ...any) Condition {
 	argCount := len(value)
 
 	var operator string
-	var values []interface{}
+	var values []any
 
 	if argCount == 1 {
 		operator = "="
@@ -365,39 +386,39 @@ func (builder *conditionBuilder) OrWhere(field string, value ...interface{}) Con
 	})
 }
 
-func (builder *conditionBuilder) WhereBetween(field string, min, max interface{}) Condition {
+func (builder *conditionBuilder) WhereBetween(field string, min, max any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeAnd,
 		Type:      condTypeBetween,
 		Field:     field,
-		Values:    []interface{}{min, max},
+		Values:    []any{min, max},
 	})
 }
 
-func (builder *conditionBuilder) OrWhereBetween(field string, min, max interface{}) Condition {
+func (builder *conditionBuilder) OrWhereBetween(field string, min, max any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeOr,
 		Type:      condTypeBetween,
 		Field:     field,
-		Values:    []interface{}{min, max},
+		Values:    []any{min, max},
 	})
 }
 
-func (builder *conditionBuilder) WhereNotBetween(field string, min, max interface{}) Condition {
+func (builder *conditionBuilder) WhereNotBetween(field string, min, max any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeAnd,
 		Type:      condTypeNotBetween,
 		Field:     field,
-		Values:    []interface{}{min, max},
+		Values:    []any{min, max},
 	})
 }
 
-func (builder *conditionBuilder) OrWhereNotBetween(field string, min, max interface{}) Condition {
+func (builder *conditionBuilder) OrWhereNotBetween(field string, min, max any) Condition {
 	return builder.WhereCondition(sqlCondition{
 		Connector: connectTypeOr,
 		Type:      condTypeNotBetween,
 		Field:     field,
-		Values:    []interface{}{min, max},
+		Values:    []any{min, max},
 	})
 }
 
@@ -412,9 +433,9 @@ func (builder *conditionBuilder) WhereCondition(cond sqlCondition) Condition {
 	return builder
 }
 
-func (builder *conditionBuilder) Resolve(tableAlias string) (string, []interface{}) {
+func (builder *conditionBuilder) Resolve(tableAlias string) (string, []any) {
 	var result = ""
-	var params = make([]interface{}, 0)
+	var params = make([]any, 0)
 	for i, c := range builder.conditions {
 		if !c.When() {
 			continue
@@ -434,9 +455,9 @@ func (builder *conditionBuilder) Resolve(tableAlias string) (string, []interface
 	return result, params
 }
 
-func (builder *conditionBuilder) resolveCondition(tableAlias string, connector connectType, c sqlCondition) (string, []interface{}) {
+func (builder *conditionBuilder) resolveCondition(tableAlias string, connector connectType, c sqlCondition) (string, []any) {
 	result := ""
-	params := make([]interface{}, 0)
+	params := make([]any, 0)
 
 	switch c.Type {
 	case condTypeSimple:

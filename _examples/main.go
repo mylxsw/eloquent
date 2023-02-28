@@ -75,7 +75,6 @@ func modelOperationExample(db *sql.DB) {
 			misc.AssertError(user.As(&userView))
 
 			log.Infof("UserView name=%s, email=%s", userView.Name, userView.Email)
-
 		}
 
 		// only specified fields
@@ -107,6 +106,15 @@ func modelOperationExample(db *sql.DB) {
 		misc.AssertError(err)
 
 		log.Infof("After force deleted count=%d/%d", c1, c2)
+
+		_, err = userModel.Get(context.TODO(), query.Builder().WhereIn("id", []int{1, 2, 3}))
+		misc.AssertError(err)
+
+		_, err = userModel.Get(context.TODO(), query.Builder().WhereIn("id", 1, 2, 3, 4))
+		misc.AssertError(err)
+
+		_, err = userModel.Get(context.TODO(), query.Builder().WhereIn("id", query.ToAnys([]int{1, 2, 3, 4, 5})...))
+		misc.AssertError(err)
 
 		return nil
 	})
@@ -154,8 +162,8 @@ func databaseOperationExample(db *sql.DB) {
 		)
 		misc.AssertError(err)
 
-		res.Each(func(user models.UserN) {
-			log.Infof("user_id=%d, name=%s, email=%s", user.Id.ValueOrZero(), user.Name.ValueOrZero(), user.Email.ValueOrZero())
+		res.Each(func(user models.User) {
+			log.Infof("user_id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
 		})
 
 		res, err = eloquent.DB(tx).Query(context.TODO(), eloquent.Raw("select count(*) from wz_user"), func(row eloquent.Scanner) (interface{}, error) {

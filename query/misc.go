@@ -29,7 +29,17 @@ type PaginateMeta struct {
 	LastPage int64 `json:"last_page"`
 }
 
-func isSubQuery(values []interface{}) bool {
+// ToAnys convert []T to []any ([]any)
+func ToAnys[T any](items []T) []any {
+	arr := make([]any, len(items))
+	for i, item := range items {
+		arr[i] = item
+	}
+
+	return arr
+}
+
+func isSubQuery(values []any) bool {
 	if len(values) != 1 {
 		return false
 	}
