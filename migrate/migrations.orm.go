@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/iancoleman/strcase"
-	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 )
@@ -30,7 +29,7 @@ type MigrationsN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *MigrationsN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for Migrations
@@ -293,7 +292,7 @@ func (w Migrations) ToMigrationsN(allows ...string) MigrationsN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w Migrations) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *MigrationsN) ToMigrations() Migrations {
@@ -538,7 +537,7 @@ func (m *MigrationsModel) Get(ctx context.Context, builders ...query.SQLBuilder)
 		}
 
 		migrationsReal.original = &migrationsOriginal{}
-		_ = coll.CopyProperties(migrationsReal, migrationsReal.original)
+		_ = query.Copy(migrationsReal, migrationsReal.original)
 
 		migrationsReal.SetModel(m)
 		migrationss = append(migrationss, *migrationsReal)

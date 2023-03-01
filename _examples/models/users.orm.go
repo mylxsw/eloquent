@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/iancoleman/strcase"
-	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -42,7 +41,7 @@ type UserN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *UserN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for User
@@ -460,8 +459,7 @@ func (rel *UserBelongsToManyOrganizationRel) Get(ctx context.Context, builders .
 		return nil, err
 	}
 
-	resArr, _ := res.ToArray()
-	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("id", resArr...))
+	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("id", res...))
 }
 
 func (rel *UserBelongsToManyOrganizationRel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
@@ -482,7 +480,7 @@ func (rel *UserBelongsToManyOrganizationRel) Count(ctx context.Context, builders
 		return 0, err
 	}
 
-	return res.Index(0).(int64), nil
+	return res[0].(int64), nil
 }
 
 func (rel *UserBelongsToManyOrganizationRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
@@ -651,7 +649,7 @@ func (w User) ToUserN(allows ...string) UserN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w User) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *UserN) ToUser() User {
@@ -941,7 +939,7 @@ func (m *UserModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]Us
 		}
 
 		userReal.original = &userOriginal{}
-		_ = coll.CopyProperties(userReal, userReal.original)
+		_ = query.Copy(userReal, userReal.original)
 
 		userReal.SetModel(m)
 		users = append(users, *userReal)
@@ -1109,7 +1107,7 @@ type UserExtN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *UserExtN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for UserExt
@@ -1460,7 +1458,7 @@ func (w UserExt) ToUserExtN(allows ...string) UserExtN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w UserExt) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *UserExtN) ToUserExt() UserExt {
@@ -1721,7 +1719,7 @@ func (m *UserExtModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([
 		}
 
 		userExtReal.original = &userExtOriginal{}
-		_ = coll.CopyProperties(userExtReal, userExtReal.original)
+		_ = query.Copy(userExtReal, userExtReal.original)
 
 		userExtReal.SetModel(m)
 		userExts = append(userExts, *userExtReal)
@@ -1859,7 +1857,7 @@ type PasswordResetN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *PasswordResetN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for PasswordReset
@@ -2103,7 +2101,7 @@ func (w PasswordReset) ToPasswordResetN(allows ...string) PasswordResetN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w PasswordReset) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *PasswordResetN) ToPasswordReset() PasswordReset {
@@ -2340,7 +2338,7 @@ func (m *PasswordResetModel) Get(ctx context.Context, builders ...query.SQLBuild
 		}
 
 		passwordResetReal.original = &passwordResetOriginal{}
-		_ = coll.CopyProperties(passwordResetReal, passwordResetReal.original)
+		_ = query.Copy(passwordResetReal, passwordResetReal.original)
 
 		passwordResetReal.SetModel(m)
 		passwordResets = append(passwordResets, *passwordResetReal)

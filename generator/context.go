@@ -54,7 +54,6 @@ func (d DomainContext) importPackages() []string {
 		"encoding/json",
 		"gopkg.in/guregu/null.v3",
 		"github.com/mylxsw/eloquent/query",
-		"github.com/mylxsw/coll",
 		"github.com/iancoleman/strcase",
 	}
 
@@ -68,9 +67,7 @@ func (d DomainContext) importPackages() []string {
 		}
 	}
 
-	for _, imp := range d.domain.Imports {
-		internalPackages = append(internalPackages, imp)
-	}
+	internalPackages = append(internalPackages, d.domain.Imports...)
 
 	return unique(internalPackages)
 }

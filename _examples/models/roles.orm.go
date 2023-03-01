@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/iancoleman/strcase"
-	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -31,7 +30,7 @@ type RoleN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *RoleN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for Role
@@ -334,7 +333,7 @@ func (w Role) ToRoleN(allows ...string) RoleN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w Role) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *RoleN) ToRole() Role {
@@ -579,7 +578,7 @@ func (m *RoleModel) Get(ctx context.Context, builders ...query.SQLBuilder) ([]Ro
 		}
 
 		roleReal.original = &roleOriginal{}
-		_ = coll.CopyProperties(roleReal, roleReal.original)
+		_ = query.Copy(roleReal, roleReal.original)
 
 		roleReal.SetModel(m)
 		roles = append(roles, *roleReal)

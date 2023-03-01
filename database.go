@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 )
 
@@ -27,25 +26,25 @@ func DB(db query.Database) Database {
 
 type rawQueryBuilder struct {
 	sql  string
-	args []interface{}
+	args []any
 }
 
-func Raw(sqlStr string, args ...interface{}) QueryBuilder {
+func Raw(sqlStr string, args ...any) QueryBuilder {
 	return &rawQueryBuilder{sql: sqlStr, args: args}
 }
 
-func (r *rawQueryBuilder) ResolveQuery() (sqlStr string, args []interface{}) {
+func (r *rawQueryBuilder) ResolveQuery() (sqlStr string, args []any) {
 	return r.sql, r.args
 }
 
 // Query run a basic query
-func (db *databaseImpl) Query(ctx context.Context, builder QueryBuilder, cb func(row Scanner) (interface{}, error)) (*coll.Collection, error) {
-	results := make([]interface{}, 0)
+func (db *databaseImpl) Query(ctx context.Context, builder QueryBuilder, cb func(row Scanner) (any, error)) ([]any, error) {
+	results := make([]any, 0)
 
 	sqlStr, args := builder.ResolveQuery()
 	rows, err := db.db.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		return coll.MustNew(results), err
+		return results, err
 	}
 
 	defer rows.Close()
@@ -53,13 +52,13 @@ func (db *databaseImpl) Query(ctx context.Context, builder QueryBuilder, cb func
 	for rows.Next() {
 		r, err := cb(rows)
 		if err != nil {
-			return coll.MustNew(results), err
+			return results, err
 		}
 
 		results = append(results, r)
 	}
 
-	return coll.MustNew(results), nil
+	return results, nil
 }
 
 // Insert to execute an insert statement
@@ -96,7 +95,7 @@ func (db *databaseImpl) Update(ctx context.Context, builder query.SQLBuilder, kv
 }
 
 // Statement running a general statement which return no value
-func (db *databaseImpl) Statement(ctx context.Context, raw string, args ...interface{}) error {
+func (db *databaseImpl) Statement(ctx context.Context, raw string, args ...any) error {
 	_, err := db.db.ExecContext(ctx, raw, args...)
 	return err
 }

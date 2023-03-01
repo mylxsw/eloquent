@@ -30,7 +30,7 @@ func (w {{ camel $m.Name }}) To{{ camel $m.Name }}N(allows ...string) {{ camel $
 // As convert object to other type
 // dst must be a pointer to struct
 func (w {{ camel $m.Name }}) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 

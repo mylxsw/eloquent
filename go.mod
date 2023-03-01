@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/iancoleman/strcase v0.2.0
-	github.com/mylxsw/coll v0.0.0-20210423142615-0a2e3d0afc0e
 	github.com/mylxsw/go-utils v1.0.3-0.20230227032219-b96a084bd6c3
 	github.com/urfave/cli v1.22.5
 	gopkg.in/guregu/null.v3 v3.5.0

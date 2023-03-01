@@ -12,8 +12,6 @@ import (
 	"github.com/mylxsw/eloquent/event"
 	"github.com/mylxsw/eloquent/migrate"
 	"github.com/mylxsw/eloquent/query"
-	"github.com/mylxsw/go-toolkit/events"
-	"github.com/mylxsw/go-toolkit/misc"
 	"github.com/mylxsw/go-utils/array"
 	"gopkg.in/guregu/null.v3"
 )
@@ -51,12 +49,12 @@ func modelOperationExample(db *sql.DB) {
 			Email:    null.StringFrom("guan@aicode.cc"),
 			Password: null.StringFrom("88959q"),
 		})
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("Insert User ID=%d", id)
 
 		user, err := userModel.Find(context.TODO(), id)
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("User id=%d, name=%s, email=%s", user.Id.Int64, user.Name.String, user.Email.String)
 
@@ -64,12 +62,12 @@ func modelOperationExample(db *sql.DB) {
 			Name:        null.StringFrom("admin"),
 			Description: null.StringFrom("root user"),
 		})
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("Insert Role ID=%d", roleId)
 
 		users, err := userModel.Get(context.TODO())
-		misc.AssertError(err)
+		AssertError(err)
 
 		ids := array.Map(users, func(user models.UserN, _ int) int64 { return user.Id.Int64 })
 		log.Infof("user ids: %v", ids)
@@ -77,54 +75,54 @@ func modelOperationExample(db *sql.DB) {
 		for _, user := range users {
 			log.Infof("User id=%d, name=%s, email=%s, role_id=%d", user.Id.Int64, user.Name.String, user.Email.String, user.RoleId.Int64)
 			var userView UserView
-			misc.AssertError(user.As(&userView))
+			AssertError(user.As(&userView))
 
 			log.Infof("UserView name=%s, email=%s", userView.Name, userView.Email)
 		}
 
 		// only specified fields
 		users, err = userModel.Get(context.TODO(), query.Builder().Select("id", "name"))
-		misc.AssertError(err)
+		AssertError(err)
 
 		for _, user := range users {
 			log.Infof("User With Only id/name, id=%d, name=%s, email=%v(must be null)", user.Id, user.Name, user.Email)
 		}
 
 		_, err = userModel.DeleteById(context.TODO(), user.Id.Int64)
-		misc.AssertError(err)
+		AssertError(err)
 
 		c1, err := userModel.Count(context.TODO())
-		misc.AssertError(err)
+		AssertError(err)
 
 		c2, err := userModel.WithTrashed().Count(context.TODO())
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("After soft deleted count=%d/%d", c1, c2)
 
 		_, err = userModel.ForceDeleteById(context.TODO(), user.Id.Int64)
-		misc.AssertError(err)
+		AssertError(err)
 
 		c1, err = userModel.Count(context.TODO())
-		misc.AssertError(err)
+		AssertError(err)
 
 		c2, err = userModel.WithTrashed().Count(context.TODO())
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("After force deleted count=%d/%d", c1, c2)
 
 		_, err = userModel.Get(context.TODO(), query.Builder().WhereIn("id", []int{1, 2, 3}))
-		misc.AssertError(err)
+		AssertError(err)
 
 		_, err = userModel.Get(context.TODO(), query.Builder().WhereIn("id", 1, 2, 3, 4))
-		misc.AssertError(err)
+		AssertError(err)
 
 		_, err = userModel.Get(context.TODO(), query.Builder().WhereIn("id", query.ToAnys([]int{1, 2, 3, 4, 5})...))
-		misc.AssertError(err)
+		AssertError(err)
 
 		return nil
 	})
 
-	misc.AssertError(err)
+	AssertError(err)
 }
 
 func databaseOperationExample(db *sql.DB) {
@@ -138,7 +136,7 @@ func databaseOperationExample(db *sql.DB) {
 				"password": "123455",
 			},
 		)
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("Insert ID=%d", id)
 
@@ -151,44 +149,45 @@ func databaseOperationExample(db *sql.DB) {
 				"password": "123455",
 			},
 		)
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("Insert ID=%d", id)
 
 		res, err := eloquent.DB(tx).Query(
 			context.TODO(),
 			eloquent.Build("wz_user").Select("id", "name", "email"),
-			func(row eloquent.Scanner) (interface{}, error) {
+			func(row eloquent.Scanner) (any, error) {
 				user := models.User{}
 				err := row.Scan(&user.Id, &user.Name, &user.Email)
 
 				return user, err
 			},
 		)
-		misc.AssertError(err)
+		AssertError(err)
 
-		res.Each(func(user models.User) {
+		users := array.Map(res, func(v any, _ int) models.User { return v.(models.User) })
+		array.Each(users, func(user models.User, _ int) {
 			log.Infof("user_id=%d, name=%s, email=%s", user.Id, user.Name, user.Email)
 		})
 
-		res, err = eloquent.DB(tx).Query(context.TODO(), eloquent.Raw("select count(*) from wz_user"), func(row eloquent.Scanner) (interface{}, error) {
+		res, err = eloquent.DB(tx).Query(context.TODO(), eloquent.Raw("select count(*) from wz_user"), func(row eloquent.Scanner) (any, error) {
 			var count int64
 			err := row.Scan(&count)
 			return count, err
 		})
-		misc.AssertError(err)
+		AssertError(err)
 
-		log.Infof("user_count=%d", res.Index(0).(int64))
+		log.Infof("user_count=%d", res[0].(int64))
 
 		affected, err := eloquent.DB(tx).Delete(context.TODO(), eloquent.Build("wz_user"))
-		misc.AssertError(err)
+		AssertError(err)
 
 		log.Infof("Deleted rows %d", affected)
 
 		return nil
 	})
 
-	misc.AssertError(err)
+	AssertError(err)
 }
 
 func createMigrate(db *sql.DB) {
@@ -253,30 +252,36 @@ func createMigrate(db *sql.DB) {
 
 func createEventDispatcher() {
 	// create event listener
-	eventManager := events.NewEventManager(events.NewMemoryEventStore(false))
-	event.SetDispatcher(eventManager)
+	em := event.NewEventManager(event.NewMemoryEventStore())
+	event.SetDispatcher(em)
 
-	eventManager.Listen(func(evt event.MigrationStartedEvent) {
-		log.Debugf("MigrationStartedEvent received: %s", evt.SQL)
+	em.Listen(func(evt event.MigrationStartedEvent) {
+		log.Debugf("MigrationStartedEvent: %s", evt.SQL)
 	})
 
-	eventManager.Listen(func(evt event.QueryExecutedEvent) {
+	em.Listen(func(evt event.QueryExecutedEvent) {
 		log.WithFields(log.Fields{
 			"sql":      evt.SQL,
 			"bindings": evt.Bindings,
 			"elapse":   evt.Time.String(),
-		}).Debugf("QueryExecutedEvent received")
+		}).Debugf("QueryExecutedEvent")
 	})
 
-	eventManager.Listen(func(evt event.TransactionBeginningEvent) {
+	em.Listen(func(evt event.TransactionBeginningEvent) {
 		log.Debugf("Transaction starting")
 	})
 
-	eventManager.Listen(func(evt event.TransactionCommittedEvent) {
+	em.Listen(func(evt event.TransactionCommittedEvent) {
 		log.Debugf("Transaction committed")
 	})
 
-	eventManager.Listen(func(evt event.TransactionRolledBackEvent) {
+	em.Listen(func(evt event.TransactionRolledBackEvent) {
 		log.Debugf("Transaction rollback")
 	})
+}
+
+func AssertError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

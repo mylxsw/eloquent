@@ -14,7 +14,7 @@ type {{ camel $m.Name }}N struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *{{ camel $m.Name }}N) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for {{ camel $m.Name }}

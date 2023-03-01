@@ -215,7 +215,7 @@ func (m *{{ camel $m.Name }}Model) Get(ctx context.Context, builders ...query.SQ
 		}
 
 		{{ lower_camel $m.Name }}Real.original = &{{ lower_camel $m.Name }}Original{}
-		_ = coll.CopyProperties({{ lower_camel $m.Name }}Real, {{ lower_camel $m.Name }}Real.original)
+		_ = query.Copy({{ lower_camel $m.Name }}Real, {{ lower_camel $m.Name }}Real.original)
 
 		{{ lower_camel $m.Name }}Real.SetModel(m)
 		{{ lower_camel $m.Name }}s = append({{ lower_camel $m.Name }}s, *{{ lower_camel $m.Name }}Real)

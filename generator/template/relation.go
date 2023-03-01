@@ -205,8 +205,7 @@ func (rel *{{ $relName }}) Get(ctx context.Context, builders ...query.SQLBuilder
 		return nil, err
 	}
 
-	resArr, _ := res.ToArray()
-	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("{{ rel_owner_key $rel | snake }}", resArr...))
+	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("{{ rel_owner_key $rel | snake }}", res...))
 }
 
 func (rel *{{ $relName }}) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
@@ -227,7 +226,7 @@ func (rel *{{ $relName }}) Count(ctx context.Context, builders ...query.SQLBuild
 		return 0, err
 	}
 
-	return res.Index(0).(int64), nil
+	return res[0].(int64), nil
 }
 
 func (rel *{{ $relName }}) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {

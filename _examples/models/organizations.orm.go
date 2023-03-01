@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/iancoleman/strcase"
-	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
@@ -31,7 +30,7 @@ type OrganizationN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *OrganizationN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for Organization
@@ -212,8 +211,7 @@ func (rel *OrganizationBelongsToManyUserRel) Get(ctx context.Context, builders .
 		return nil, err
 	}
 
-	resArr, _ := res.ToArray()
-	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("id", resArr...))
+	return rel.relModel.Get(ctx, query.Builder().Merge(builders...).WhereIn("id", res...))
 }
 
 func (rel *OrganizationBelongsToManyUserRel) Count(ctx context.Context, builders ...query.SQLBuilder) (int64, error) {
@@ -234,7 +232,7 @@ func (rel *OrganizationBelongsToManyUserRel) Count(ctx context.Context, builders
 		return 0, err
 	}
 
-	return res.Index(0).(int64), nil
+	return res[0].(int64), nil
 }
 
 func (rel *OrganizationBelongsToManyUserRel) Exists(ctx context.Context, builders ...query.SQLBuilder) (bool, error) {
@@ -379,7 +377,7 @@ func (w Organization) ToOrganizationN(allows ...string) OrganizationN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w Organization) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *OrganizationN) ToOrganization() Organization {
@@ -616,7 +614,7 @@ func (m *OrganizationModel) Get(ctx context.Context, builders ...query.SQLBuilde
 		}
 
 		organizationReal.original = &organizationOriginal{}
-		_ = coll.CopyProperties(organizationReal, organizationReal.original)
+		_ = query.Copy(organizationReal, organizationReal.original)
 
 		organizationReal.SetModel(m)
 		organizations = append(organizations, *organizationReal)

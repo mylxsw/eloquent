@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/iancoleman/strcase"
-	"github.com/mylxsw/coll"
 	"github.com/mylxsw/eloquent/query"
 	"gopkg.in/guregu/null.v3"
 	"time"
@@ -38,7 +37,7 @@ type EnterpriseN struct {
 // As convert object to other type
 // dst must be a pointer to struct
 func (inst *EnterpriseN) As(dst interface{}) error {
-	return coll.CopyProperties(inst, dst)
+	return query.Copy(inst, dst)
 }
 
 // SetModel set model for Enterprise
@@ -379,7 +378,7 @@ func (w Enterprise) ToEnterpriseN(allows ...string) EnterpriseN {
 // As convert object to other type
 // dst must be a pointer to struct
 func (w Enterprise) As(dst interface{}) error {
-	return coll.CopyProperties(w, dst)
+	return query.Copy(w, dst)
 }
 
 func (w *EnterpriseN) ToEnterprise() Enterprise {
@@ -645,7 +644,7 @@ func (m *EnterpriseModel) Get(ctx context.Context, builders ...query.SQLBuilder)
 		}
 
 		enterpriseReal.original = &enterpriseOriginal{}
-		_ = coll.CopyProperties(enterpriseReal, enterpriseReal.original)
+		_ = query.Copy(enterpriseReal, enterpriseReal.original)
 
 		enterpriseReal.SetModel(m)
 		enterprises = append(enterprises, *enterpriseReal)
