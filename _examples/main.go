@@ -4,15 +4,17 @@ import (
 	"context"
 	"database/sql"
 
+	"_examples/models"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/eloquent"
-	"github.com/mylxsw/eloquent/_examples/models"
 	"github.com/mylxsw/eloquent/event"
 	"github.com/mylxsw/eloquent/migrate"
 	"github.com/mylxsw/eloquent/query"
 	"github.com/mylxsw/go-toolkit/events"
 	"github.com/mylxsw/go-toolkit/misc"
+	"github.com/mylxsw/go-utils/array"
 	"gopkg.in/guregu/null.v3"
 )
 
@@ -68,6 +70,9 @@ func modelOperationExample(db *sql.DB) {
 
 		users, err := userModel.Get(context.TODO())
 		misc.AssertError(err)
+
+		ids := array.Map(users, func(user models.UserN, _ int) int64 { return user.Id.Int64 })
+		log.Infof("user ids: %v", ids)
 
 		for _, user := range users {
 			log.Infof("User id=%d, name=%s, email=%s, role_id=%d", user.Id.Int64, user.Name.String, user.Email.String, user.RoleId.Int64)

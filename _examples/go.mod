@@ -1,4 +1,4 @@
-module github.com/mylxsw/eloquent/_examples
+module _examples
 
 go 1.19
 
@@ -11,6 +11,7 @@ require (
 	github.com/mylxsw/coll v0.0.0-20210423142615-0a2e3d0afc0e
 	github.com/mylxsw/eloquent v0.0.0-00010101000000-000000000000
 	github.com/mylxsw/go-toolkit v0.0.0-20210324033045-3caf8156335e
+	github.com/mylxsw/go-utils v1.0.3
 	gopkg.in/guregu/null.v3 v3.5.0
 )
 
