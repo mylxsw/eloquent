@@ -17,13 +17,14 @@ func main() {
 		Name: "Eloquent 命令行工具",
 		Commands: []cli.Command{
 			{
-				Name:  "gen",
-				Usage: "根据模型文件定义生成模型对象",
+				Name:    "gen",
+				Aliases: []string{"generate", "g"},
+				Usage:   "根据模型文件定义生成模型对象",
 				Flags: []cli.Flag{
 					cli.StringFlag{
 						Name:     "source",
 						Required: true,
-						Usage:    "模型定义所在文件的 Glob 表达式，比如 ./models/*.yml",
+						Usage:    "模型定义所在文件的 Glob 表达式，比如 ./models/*.yaml",
 					},
 				},
 				Action: func(c *cli.Context) error {
@@ -100,7 +101,7 @@ func main() {
 						return err
 					}
 
-					return os.WriteFile(filepath.Join(c.String("output"), c.String("table")+".yml"), data, os.ModePerm)
+					return os.WriteFile(filepath.Join(c.String("output"), c.String("table")+".yaml"), data, os.ModePerm)
 				},
 			},
 		},
