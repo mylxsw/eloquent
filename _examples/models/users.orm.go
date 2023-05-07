@@ -586,13 +586,13 @@ func (m *UserModel) globalScopeEnabled(name string) bool {
 }
 
 type User struct {
-	Id            int64
+	Id            int64 `json:"id"`
 	Name          string
-	Email         string
-	Password      string
+	Email         string `json:"email"`
+	Password      string `json:"password" yaml:"password"`
 	RoleId        int64
 	EnterpriseId  int64
-	RememberToken string
+	RememberToken string `json:"remember_token" yaml:"remember_token"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     time.Time

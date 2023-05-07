@@ -3,7 +3,7 @@ package template
 func GetEntityPlainTemplate() string {
 	return `
 type {{ camel $m.Name }} struct { {{ range $j, $f := fields $m.Definition }}	
-	{{ camel $f.Name }} {{ $f.Type }}{{ end }}
+	{{ camel $f.Name }} {{ $f.Type }} {{ tag $f }}{{ end }}
 }
 
 func (w {{ camel $m.Name }}) To{{ camel $m.Name }}N(allows ...string) {{ camel $m.Name }}N {
