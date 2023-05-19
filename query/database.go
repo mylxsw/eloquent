@@ -66,7 +66,7 @@ func Transaction(db *sql.DB, cb func(tx Database) error) (err error) {
 			if err3 := tx.Rollback(); err3 != nil {
 				err = fmt.Errorf("rollback (%s) failed: %s", err2, err3)
 			} else {
-				err = fmt.Errorf("rollback (%s)", err2)
+				err = fmt.Errorf("%s", err2)
 				event.Dispatch(event.TransactionRolledBackEvent{})
 			}
 		}
@@ -79,7 +79,7 @@ func Transaction(db *sql.DB, cb func(tx Database) error) (err error) {
 
 		event.Dispatch(event.TransactionRolledBackEvent{})
 
-		return fmt.Errorf("rollback (%s)", err)
+		return err
 	}
 
 	if err := tx.Commit(); err != nil {
