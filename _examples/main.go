@@ -192,6 +192,25 @@ func databaseOperationExample(db *sql.DB) {
 
 func createMigrate(db *sql.DB) {
 	m := migrate.NewManager(db).Init(context.TODO())
+	m.Schema("2023112901").Raw("wz_storage_file", func() []string {
+		return []string{
+			`CREATE TABLE wz_storage_file
+(
+    id         INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    user_id    INT             NOT NULL,
+    file_key   VARCHAR(255)    NULL,
+    hash       VARCHAR(255)    NULL,
+    file_size  INT             NULL,
+    bucket     VARCHAR(100)    NULL,
+    name       VARCHAR(255)    NULL,
+    status     TINYINT         NOT NULL DEFAULT 1 COMMENT '状态：1-正常 2-禁用 3-REVIEW',
+    note       VARCHAR(255)    NULL COMMENT '备注',
+    channel    VARCHAR(20)     NULL COMMENT '上传渠道',
+    created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)`,
+		}
+	})
 	m.Schema("20190692901").Create("wz_user", func(builder *migrate.Builder) {
 		builder.Increments("id")
 		builder.String("name", 255)

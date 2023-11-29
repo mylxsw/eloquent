@@ -21,7 +21,7 @@ func (s *Schema) Create(table string, apply func(builder *Builder)) {
 	s.m.Execute(builder, s.version)
 }
 
-// Table update a existing table
+// Table update an existing table
 func (s *Schema) Table(table string, apply func(builder *Builder)) {
 	builder := NewBuilder(table, s.m.Prefix).DefaultStringLength(s.m.DefaultStringLength)
 	builder.Engine(s.m.Engine)
@@ -34,7 +34,7 @@ func (s *Schema) Table(table string, apply func(builder *Builder)) {
 	s.m.Execute(builder, s.version)
 }
 
-// Drop drop a table
+// Drop a table
 func (s *Schema) Drop(table string) {
 	builder := NewBuilder(table, s.m.Prefix)
 	builder.Drop()
@@ -43,13 +43,18 @@ func (s *Schema) Drop(table string) {
 	s.m.Execute(builder, s.version)
 }
 
-// Drop drop a table if exists
+// DropIfExists Drop a table if exists
 func (s *Schema) DropIfExists(table string) {
 	builder := NewBuilder(table, s.m.Prefix)
 	builder.DropIfExists()
 
 	s.tableName = table
 	s.m.Execute(builder, s.version)
+}
+
+// Raw execute a raw sql statements
+func (s *Schema) Raw(table string, apply func() []string) {
+	s.m.ExecuteRaw(s.version, table, apply()...)
 }
 
 // NewSchema create a new Schema

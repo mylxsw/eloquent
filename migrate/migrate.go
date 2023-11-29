@@ -101,6 +101,24 @@ func (m *Manager) Execute(builder *Builder, version string) {
 	})
 }
 
+func (m *Manager) ExecuteRaw(version string, table string, sqls ...string) {
+	m.migrateFuncs = append(m.migrateFuncs, func(ctx context.Context) error {
+		if m.HasVersion(ctx, version, table) {
+			return nil
+		}
+
+		if err := m.execute(ctx, sqls); err != nil {
+			return err
+		}
+
+		if err := m.AddVersion(ctx, version, table, strings.Join(sqls, ";\n")+";"); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 func (m *Manager) execute(ctx context.Context, sqls []string) error {
 	event.Dispatch(event.MigrationsStartedEvent{})
 
