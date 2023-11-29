@@ -61,7 +61,7 @@ func (m *Manager) Init(ctx context.Context) *Manager {
 	builder.Increments("id")
 	builder.String("table", 0)
 	builder.String("version", 20)
-	builder.Text("migration")
+	builder.LongText("migration")
 	builder.Integer("batch", false, false)
 
 	builder.CreateIfNotExists()
