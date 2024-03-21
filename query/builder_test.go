@@ -28,6 +28,13 @@ func TestSQLBuilder_Where(t *testing.T) {
 	if sqlStr != "SELECT SUM(age) as sum FROM users WHERE users.`status` > ?" {
 		t.Error("test failed")
 	}
+
+	sqlStr, _ = Builder().Table("users").Where("status", 1).WhereGroup(func(builder Condition) {
+		builder.Where("phone", "123455").OrWhere("email", "xxx@xxx.xx")
+	}).ResolveQuery()
+	if sqlStr != "SELECT * FROM users WHERE users.`status` = ? AND (  users.`phone` = ? OR users.`email` = ?)" {
+		t.Error("test failed")
+	}
 }
 
 func TestSQLBuilder_WhereBetween(t *testing.T) {
