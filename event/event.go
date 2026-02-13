@@ -5,12 +5,12 @@ import (
 )
 
 // Listener is a event listener
-type Listener interface{}
+type Listener any
 
 // EventStore is a interface for event store
 type EventStore interface {
 	Listen(eventName string, listener Listener)
-	Publish(eventName string, evt interface{})
+	Publish(eventName string, evt any)
 	SetManager(*EventManager)
 }
 
@@ -51,12 +51,12 @@ func (em *EventManager) Listen(listeners ...Listener) {
 }
 
 // Publish a event
-func (em *EventManager) Publish(evt interface{}) {
+func (em *EventManager) Publish(evt any) {
 	em.store.Publish(reflect.TypeOf(evt).String(), evt)
 }
 
 // Call trigger listener to execute
-func (em *EventManager) Call(evt interface{}, listener Listener) {
+func (em *EventManager) Call(evt any, listener Listener) {
 	reflect.ValueOf(listener).Call([]reflect.Value{reflect.ValueOf(evt)})
 }
 
@@ -83,7 +83,7 @@ func (eventStore *MemoryEventStore) Listen(evtType string, listener Listener) {
 }
 
 // Publish publish a event
-func (eventStore *MemoryEventStore) Publish(evtType string, evt interface{}) {
+func (eventStore *MemoryEventStore) Publish(evtType string, evt any) {
 	if listeners, ok := eventStore.listeners[evtType]; ok {
 		for _, listener := range listeners {
 			eventStore.manager.Call(evt, listener)

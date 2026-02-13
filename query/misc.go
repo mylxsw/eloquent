@@ -46,7 +46,7 @@ func ToAnys[T any](items []T) []any {
 
 // Copy exported properties(with same name and type) from source to target
 // target must be a pointer to struct
-func Copy(source interface{}, targets ...interface{}) error {
+func Copy(source any, targets ...any) error {
 	sourceRefVal := reflect.Indirect(reflect.ValueOf(source))
 	// 如果 source 为 null，则不需要拷贝任何属性
 	if !sourceRefVal.IsValid() {
@@ -60,7 +60,7 @@ func Copy(source interface{}, targets ...interface{}) error {
 			return ErrTargetIsNil
 		}
 
-		if targetRefVal.Kind() != reflect.Ptr {
+		if targetRefVal.Kind() != reflect.Pointer {
 			return ErrTargetInvalid
 		}
 
@@ -103,28 +103,29 @@ func replaceTableField(tableAlias string, name string) string {
 	segs1 := strings.Split(name, " ")
 	org := segs1[0]
 	segs1len := len(segs1)
-	if segs1len == 3 {
+
+	switch segs1len {
+	case 3:
 		return resolveOrgTableField(tableAlias, org) + " AS " + segs1[2]
-	} else if segs1len == 2 {
+	case 2:
 		return resolveOrgTableField(tableAlias, org) + " AS " + segs1[1]
+	default:
+		// a.b      => a.`b`
+		// b        => alias.`b`
+		// b as c   => alias.`b` as c
+		// a.b as c => a.`b` as c
+		return resolveOrgTableField(tableAlias, org)
 	}
-
-	// a.b      => a.`b`
-	// b        => alias.`b`
-	// b as c   => alias.`b` as c
-	// a.b as c => a.`b` as c
-
-	return resolveOrgTableField(tableAlias, org)
 }
 
 func resolveOrgTableField(tableAlias string, org string) string {
 	segs := strings.Split(org, ".")
 	if len(segs) > 1 {
 		if segs[1] != "*" {
-			segs[1] = "`" + segs[1] + "`"
+			segs[1] = globalDialect.QuoteIdentifier(segs[1])
 		}
 	} else if segs[0] != "*" {
-		segs[0] = "`" + segs[0] + "`"
+		segs[0] = globalDialect.QuoteIdentifier(segs[0])
 	}
 
 	if tableAlias != "" && len(segs) == 1 {

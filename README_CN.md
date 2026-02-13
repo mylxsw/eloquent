@@ -2,7 +2,7 @@
 
 > **[English](./README.md)** | 中文
 
-Eloquent 是一款为 Go 语言开发的基于**代码生成**的数据库 ORM 框架，设计灵感来源于 PHP 框架 Laravel 的 Eloquent ORM。目前支持 MySQL 数据库。
+Eloquent 是一款为 Go 语言开发的基于**代码生成**的数据库 ORM 框架，设计灵感来源于 PHP 框架 Laravel 的 Eloquent ORM。支持 MySQL 和 PostgreSQL 数据库。
 
 ## 目录
 
@@ -10,6 +10,7 @@ Eloquent 是一款为 Go 语言开发的基于**代码生成**的数据库 ORM �
 - [快速开始](#快速开始)
 - [安装](#安装)
 - [模型定义与代码生成](#模型定义与代码生成)
+- [数据库方言 (MySQL / PostgreSQL)](#数据库方言-mysql--postgresql)
 - [数据库连接](#数据库连接)
 - [CRUD 操作](#crud-操作)
 - [查询构建器](#查询构建器)
@@ -117,7 +118,13 @@ eloquent gen --source './models/*.yaml'
 ```bash
 go get github.com/mylxsw/eloquent
 go get gopkg.in/guregu/null.v3
+
+# MySQL 驱动
 go get github.com/go-sql-driver/mysql
+
+# PostgreSQL 驱动（二选一）
+go get github.com/lib/pq
+# 或者: go get github.com/jackc/pgx/v5
 ```
 
 ### 第五步：编写业务代码
@@ -270,9 +277,47 @@ eloquent create-model \
 | `UserTable()` | 返回表名 |
 | 关联方法 | 如果定义了 `relations`，会生成对应的关联方法 |
 
+## 数据库方言 (MySQL / PostgreSQL)
+
+Eloquent 通过方言（Dialect）系统同时支持 MySQL 和 PostgreSQL。默认使用 MySQL 方言。要切换到 PostgreSQL，在应用启动时设置方言：
+
+```go
+import (
+    "github.com/mylxsw/eloquent/query"
+    "github.com/mylxsw/eloquent/migrate"
+)
+
+// 切换到 PostgreSQL 模式（在应用启动时调用一次，必须在任何数据库操作之前）
+query.SetDialect(query.PostgreSQLDialect{})
+migrate.SetMigrateDialect(migrate.PostgreSQLMigrateDialect{})
+```
+
+方言系统会自动处理 MySQL 和 PostgreSQL 之间的差异：
+
+| 特性 | MySQL | PostgreSQL |
+|------|-------|------------|
+| 标识符引用 | `` `name` `` | `"name"` |
+| 参数占位符 | `?` | `$1, $2, ...` |
+| 自增主键 | `AUTO_INCREMENT PRIMARY KEY` | `SERIAL PRIMARY KEY` |
+| 插入返回 ID | `LastInsertId()` | `INSERT ... RETURNING id` |
+| 引擎 / 字符集 / 排序规则 | 支持 | 忽略（不适用） |
+| `TINYINT(1)` | `TINYINT(1)` | `BOOLEAN` |
+| `BLOB` | `BLOB` | `BYTEA` |
+| `LONGTEXT` / `MEDIUMTEXT` | 原样 | `TEXT` |
+| `JSON` | `JSON` | `JSONB` |
+| `DATETIME` | `DATETIME` | `TIMESTAMP` |
+| `UNSIGNED` | 支持 | 忽略（不适用） |
+| 创建索引 | `ALTER TABLE ... ADD INDEX` | `CREATE INDEX ... ON` |
+| 删除索引 | `ALTER TABLE ... DROP INDEX` | `DROP INDEX` |
+| 删除外键 | `DROP FOREIGN KEY` | `DROP CONSTRAINT` |
+
+> **注意：** 使用原生 SQL 迁移（`Schema.Raw()`）时，你需要自行编写对应数据库的 SQL 语句。
+
 ## 数据库连接
 
-Eloquent 直接使用 Go 标准库的 `database/sql` 来管理数据库连接：
+Eloquent 直接使用 Go 标准库的 `database/sql` 来管理数据库连接。
+
+### MySQL
 
 ```go
 import (
@@ -288,6 +333,30 @@ defer db.Close()
 ```
 
 > **重要：** 连接字符串中必须加上 `parseTime=true` 参数，否则时间字段无法正确解析。
+
+### PostgreSQL
+
+```go
+import (
+    "database/sql"
+
+    _ "github.com/lib/pq"
+    "github.com/mylxsw/eloquent/query"
+    "github.com/mylxsw/eloquent/migrate"
+)
+
+// 在打开连接之前设置方言
+query.SetDialect(query.PostgreSQLDialect{})
+migrate.SetMigrateDialect(migrate.PostgreSQLMigrateDialect{})
+
+db, err := sql.Open("postgres", "host=127.0.0.1 port=5432 user=postgres password=secret dbname=mydb sslmode=disable")
+if err != nil {
+    panic(err)
+}
+defer db.Close()
+```
+
+> **提示：** 你也可以使用 `pgx` 作为 PostgreSQL 驱动，导入 `github.com/jackc/pgx/v5/stdlib` 替代 `github.com/lib/pq`。
 
 ## CRUD 操作
 
@@ -731,39 +800,39 @@ if err := m.Run(context.TODO()); err != nil {
 
 ### 可用的字段类型方法
 
-| 方法 | 说明 |
-|------|------|
-| `Increments(name)` | 自增无符号整数主键 |
-| `BigIncrements(name)` | 自增无符号大整数主键 |
-| `Integer(name, autoIncrement, unsigned)` | 整数 |
-| `BigInteger(name, autoIncrement, unsigned)` | 大整数 |
-| `TinyInteger(name, autoIncrement, unsigned)` | 小整数 |
-| `SmallInteger(name, autoIncrement, unsigned)` | 短整数 |
-| `MediumInteger(name, autoIncrement, unsigned)` | 中整数 |
-| `Float(name, total, scale)` | 浮点数 |
-| `Double(name, total, scale)` | 双精度浮点数 |
-| `Decimal(name, total, scale)` | 定点数 |
-| `String(name, length)` | VARCHAR |
-| `Char(name, length)` | CHAR |
-| `Text(name)` | TEXT |
-| `MediumText(name)` | MEDIUMTEXT |
-| `LongText(name)` | LONGTEXT |
-| `Boolean(name)` | TINYINT(1) |
-| `Date(name)` | DATE |
-| `DateTime(name, precision)` | DATETIME |
-| `Timestamp(name, precision)` | TIMESTAMP |
-| `Time(name, precision)` | TIME |
-| `Year(name)` | YEAR |
-| `Binary(name)` | BLOB |
-| `Json(name)` | JSON |
-| `Enum(name, items...)` | ENUM |
-| `Set(name, items...)` | SET |
-| `Uuid(name)` | CHAR(36) |
-| `IpAddress(name)` | VARCHAR(45) |
-| `MacAddress(name)` | VARCHAR(17) |
-| `Timestamps(precision)` | 添加 created_at 和 updated_at |
-| `SoftDeletes(column, precision)` | 添加软删除字段 |
-| `RememberToken()` | VARCHAR(100) 的 remember_token 字段 |
+| 方法 | MySQL 类型 | PostgreSQL 类型 |
+|------|-----------|-----------------|
+| `Increments(name)` | INT UNSIGNED AUTO_INCREMENT | SERIAL |
+| `BigIncrements(name)` | BIGINT UNSIGNED AUTO_INCREMENT | BIGSERIAL |
+| `Integer(name, autoIncrement, unsigned)` | INT | INTEGER |
+| `BigInteger(name, autoIncrement, unsigned)` | BIGINT | BIGINT |
+| `TinyInteger(name, autoIncrement, unsigned)` | TINYINT | SMALLINT |
+| `SmallInteger(name, autoIncrement, unsigned)` | SMALLINT | SMALLINT |
+| `MediumInteger(name, autoIncrement, unsigned)` | MEDIUMINT | INTEGER |
+| `Float(name, total, scale)` | DOUBLE | DOUBLE PRECISION |
+| `Double(name, total, scale)` | DOUBLE | DOUBLE PRECISION |
+| `Decimal(name, total, scale)` | DECIMAL(m,n) | DECIMAL(m,n) |
+| `String(name, length)` | VARCHAR(n) | VARCHAR(n) |
+| `Char(name, length)` | CHAR(n) | CHAR(n) |
+| `Text(name)` | TEXT | TEXT |
+| `MediumText(name)` | MEDIUMTEXT | TEXT |
+| `LongText(name)` | LONGTEXT | TEXT |
+| `Boolean(name)` | TINYINT(1) | BOOLEAN |
+| `Date(name)` | DATE | DATE |
+| `DateTime(name, precision)` | DATETIME | TIMESTAMP |
+| `Timestamp(name, precision)` | TIMESTAMP | TIMESTAMP |
+| `Time(name, precision)` | TIME | TIME |
+| `Year(name)` | YEAR | SMALLINT |
+| `Binary(name)` | BLOB | BYTEA |
+| `Json(name)` | JSON | JSONB |
+| `Enum(name, items...)` | ENUM | TEXT |
+| `Set(name, items...)` | SET | TEXT |
+| `Uuid(name)` | CHAR(36) | CHAR(36) |
+| `IpAddress(name)` | VARCHAR(45) | VARCHAR(45) |
+| `MacAddress(name)` | VARCHAR(17) | VARCHAR(17) |
+| `Timestamps(precision)` | created_at + updated_at | created_at + updated_at |
+| `SoftDeletes(column, precision)` | 可空 TIMESTAMP | 可空 TIMESTAMP |
+| `RememberToken()` | VARCHAR(100) | VARCHAR(100) |
 
 ### 字段修饰方法
 
@@ -772,15 +841,17 @@ builder.String("name", 100).
     Nullable(true).          // 允许 NULL
     Default(migrate.StringExpr("default_value")). // 默认值（字符串）
     Default(migrate.RawExpr("CURRENT_TIMESTAMP")). // 默认值（原生表达式）
-    Comment("用户名").        // 字段注释
+    Comment("用户名").        // 字段注释（仅 MySQL）
     Unique().                // 唯一索引
-    After("id").             // 放在某字段之后
-    First().                 // 放在第一列
-    Charset("utf8mb4").      // 字符集
-    Collation("utf8mb4_unicode_ci"). // 排序规则
-    Unsigned().              // 无符号
+    After("id").             // 放在某字段之后（仅 MySQL）
+    First().                 // 放在第一列（仅 MySQL）
+    Charset("utf8mb4").      // 字符集（仅 MySQL）
+    Collation("utf8mb4_unicode_ci"). // 排序规则（仅 MySQL）
+    Unsigned().              // 无符号（仅 MySQL，PostgreSQL 下忽略）
     Change()                 // 修改已有字段（而非添加）
 ```
+
+> **PostgreSQL 注意：** 标注"仅 MySQL"的修饰方法在 PostgreSQL 方言下会被静默忽略。
 
 ### 索引操作
 

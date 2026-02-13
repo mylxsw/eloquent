@@ -26,7 +26,7 @@ type sqlUnion struct {
 type Expr struct {
 	Value    string
 	Type     exprType
-	Bindings []interface{}
+	Bindings []any
 }
 
 type exprType int
@@ -36,7 +36,7 @@ const (
 	exprTypeRaw
 )
 
-func Raw(rawStr string, bindings ...interface{}) Expr {
+func Raw(rawStr string, bindings ...any) Expr {
 	return Expr{
 		Type:     exprTypeRaw,
 		Value:    rawStr,
@@ -96,11 +96,11 @@ func (builder SQLBuilder) Clone() SQLBuilder {
 	return b
 }
 
-type KV map[string]interface{}
+type KV map[string]any
 
-func (builder SQLBuilder) ResolveDelete() (string, []interface{}) {
+func (builder SQLBuilder) ResolveDelete() (string, []any) {
 	sqlStr := fmt.Sprintf("DELETE FROM %s", builder.tableName)
-	values := make([]interface{}, 0)
+	values := make([]any, 0)
 
 	tableAlias := resolveTableAlias(builder.tableName)
 	if !builder.conditions.Empty() {
@@ -117,10 +117,11 @@ func (builder SQLBuilder) ResolveDelete() (string, []interface{}) {
 		sqlStr += fmt.Sprintf(" LIMIT %d", builder.limit)
 	}
 
+	sqlStr = replacePlaceholders(sqlStr)
 	return sqlStr, values
 }
 
-func (builder SQLBuilder) ResolveUpdate(kvPairs KV) (string, []interface{}) {
+func (builder SQLBuilder) ResolveUpdate(kvPairs KV) (string, []any) {
 
 	sqlStr := fmt.Sprintf("UPDATE %s", builder.tableName)
 
@@ -133,26 +134,28 @@ func (builder SQLBuilder) ResolveUpdate(kvPairs KV) (string, []interface{}) {
 		values = append(values, p...)
 	}
 
+	sqlStr = replacePlaceholders(sqlStr)
 	return sqlStr, values
 }
 
-func (builder SQLBuilder) resolveKvPairsForUpdate(kvPairs KV) ([]string, []interface{}) {
+func (builder SQLBuilder) resolveKvPairsForUpdate(kvPairs KV) ([]string, []any) {
 	fields := make([]string, len(kvPairs))
-	values := make([]interface{}, 0)
+	values := make([]any, 0)
+	q := globalDialect.QuoteIdentifier
 	var i = 0
 	for k, v := range kvPairs {
 		vv, ok := v.(Expr)
 		if ok {
 			switch vv.Type {
 			case exprTypeString:
-				fields[i] = "`" + k + "` = ?"
+				fields[i] = q(k) + " = ?"
 				values = append(values, vv.Value)
 			case exprTypeRaw:
-				fields[i] = "`" + k + "` = " + vv.Value
+				fields[i] = q(k) + " = " + vv.Value
 				values = append(values, vv.Bindings...)
 			}
 		} else {
-			fields[i] = "`" + k + "` = ?"
+			fields[i] = q(k) + " = ?"
 			values = append(values, v)
 		}
 
@@ -161,17 +164,18 @@ func (builder SQLBuilder) resolveKvPairsForUpdate(kvPairs KV) ([]string, []inter
 	return fields, values
 }
 
-func (builder SQLBuilder) resolveKvPairsForInsert(kvPairs KV) ([]string, []interface{}) {
+func (builder SQLBuilder) resolveKvPairsForInsert(kvPairs KV) ([]string, []any) {
 	fields := make([]string, len(kvPairs))
-	values := make([]interface{}, 0)
+	values := make([]any, 0)
+	q := globalDialect.QuoteIdentifier
 	var i = 0
 	for k, v := range kvPairs {
-		fields[i] = "`" + k + "`"
+		fields[i] = q(k)
 
 		vv, ok := v.(Expr)
 		if ok {
 			values = append(values, vv.Value)
-			if vv.Bindings != nil && len(vv.Bindings) > 0 {
+			if len(vv.Bindings) > 0 {
 				values = append(values, vv.Bindings...)
 			}
 		} else {
@@ -183,16 +187,24 @@ func (builder SQLBuilder) resolveKvPairsForInsert(kvPairs KV) ([]string, []inter
 	return fields, values
 }
 
-func (builder SQLBuilder) ResolveInsert(kvPairs KV) (string, []interface{}) {
+func (builder SQLBuilder) ResolveInsert(kvPairs KV) (string, []any) {
 	sqlStr := fmt.Sprintf("INSERT INTO %s", builder.tableName)
 
 	fields, values := builder.resolveKvPairsForInsert(kvPairs)
-	sqlStr += fmt.Sprintf(" (%s) VALUES (%s)", strings.Join(fields, ", "), strings.Trim(strings.Repeat("?,", len(values)), ","))
+	sqlStr += fmt.Sprintf(" (%s) VALUES (%s)", strings.Join(fields, ", "), makePlaceholders(len(values)))
 
+	sqlStr = replacePlaceholders(sqlStr)
 	return sqlStr, values
 }
 
-func (builder SQLBuilder) ResolveCount() (string, []interface{}) {
+// ResolveInsertReturning generates an INSERT ... RETURNING statement (for PostgreSQL).
+func (builder SQLBuilder) ResolveInsertReturning(kvPairs KV, returningColumn string) (string, []any) {
+	sqlStr, values := builder.ResolveInsert(kvPairs)
+	sqlStr += fmt.Sprintf(" RETURNING %s", globalDialect.QuoteIdentifier(returningColumn))
+	return sqlStr, values
+}
+
+func (builder SQLBuilder) ResolveCount() (string, []any) {
 	b := builder.Clone()
 	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw("COUNT(1) as count")
@@ -200,7 +212,7 @@ func (builder SQLBuilder) ResolveCount() (string, []interface{}) {
 	return b.ResolveQuery()
 }
 
-func (builder SQLBuilder) ResolveMax(field string) (string, []interface{}) {
+func (builder SQLBuilder) ResolveMax(field string) (string, []any) {
 	b := builder.Clone()
 	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("MAX(%s) as max", field))
@@ -208,7 +220,7 @@ func (builder SQLBuilder) ResolveMax(field string) (string, []interface{}) {
 	return b.ResolveQuery()
 }
 
-func (builder SQLBuilder) ResolveMin(field string) (string, []interface{}) {
+func (builder SQLBuilder) ResolveMin(field string) (string, []any) {
 	b := builder.Clone()
 	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("MIN(%s) as min", field))
@@ -216,7 +228,7 @@ func (builder SQLBuilder) ResolveMin(field string) (string, []interface{}) {
 	return b.ResolveQuery()
 }
 
-func (builder SQLBuilder) ResolveAvg(field string) (string, []interface{}) {
+func (builder SQLBuilder) ResolveAvg(field string) (string, []any) {
 	b := builder.Clone()
 	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("AVG(%s) as avg", field))
@@ -224,7 +236,7 @@ func (builder SQLBuilder) ResolveAvg(field string) (string, []interface{}) {
 	return b.ResolveQuery()
 }
 
-func (builder SQLBuilder) ResolveSum(field string) (string, []interface{}) {
+func (builder SQLBuilder) ResolveSum(field string) (string, []any) {
 	b := builder.Clone()
 	b.fields = make([]Expr, 1)
 	b.fields[0] = Raw(fmt.Sprintf("SUM(%s) as sum", field))
@@ -232,10 +244,10 @@ func (builder SQLBuilder) ResolveSum(field string) (string, []interface{}) {
 	return b.ResolveQuery()
 }
 
-func (builder SQLBuilder) ResolveQuery() (string, []interface{}) {
+func (builder SQLBuilder) ResolveQuery() (string, []any) {
 	tableAlias := resolveTableAlias(builder.tableName)
 
-	params := make([]interface{}, 0)
+	params := make([]any, 0)
 
 	fields, p := builder.getFields(tableAlias)
 	params = append(params, p...)
@@ -294,6 +306,7 @@ func (builder SQLBuilder) ResolveQuery() (string, []interface{}) {
 		}
 	}
 
+	sqlStr = replacePlaceholders(sqlStr)
 	return sqlStr, params
 }
 
@@ -379,7 +392,7 @@ func (builder SQLBuilder) Union(b2 SubQuery, distinct bool) SQLBuilder {
 	return b
 }
 
-func (builder SQLBuilder) Select(fields ...interface{}) SQLBuilder {
+func (builder SQLBuilder) Select(fields ...any) SQLBuilder {
 	b := builder.Clone()
 	for _, f := range fields {
 		f1, ok := f.(Expr)
@@ -431,8 +444,8 @@ func (builder SQLBuilder) Having(closure ConditionGroup) SQLBuilder {
 	return b
 }
 
-func (builder SQLBuilder) getFields(tableAlias string) (string, []interface{}) {
-	var params = make([]interface{}, 0)
+func (builder SQLBuilder) getFields(tableAlias string) (string, []any) {
+	var params = make([]any, 0)
 	if len(builder.fields) == 0 {
 		return "*", params
 	}
@@ -521,42 +534,42 @@ func (builder SQLBuilder) WhereNull(field string) SQLBuilder {
 	return b
 }
 
-func (builder SQLBuilder) OrWhereRaw(raw string, items ...interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhereRaw(raw string, items ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhereRaw(raw, items...)
 
 	return b
 }
 
-func (builder SQLBuilder) WhereRaw(raw string, items ...interface{}) SQLBuilder {
+func (builder SQLBuilder) WhereRaw(raw string, items ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.WhereRaw(raw, items...)
 
 	return b
 }
 
-func (builder SQLBuilder) OrWhereNotIn(field string, items ...interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhereNotIn(field string, items ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhereNotIn(field, items...)
 
 	return b
 }
 
-func (builder SQLBuilder) OrWhereIn(field string, items ...interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhereIn(field string, items ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhereIn(field, items...)
 
 	return b
 }
 
-func (builder SQLBuilder) WhereNotIn(field string, items ...interface{}) SQLBuilder {
+func (builder SQLBuilder) WhereNotIn(field string, items ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.WhereNotIn(field, items...)
 
 	return b
 }
 
-func (builder SQLBuilder) WhereIn(field string, items ...interface{}) SQLBuilder {
+func (builder SQLBuilder) WhereIn(field string, items ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.WhereIn(field, items...)
 
@@ -577,14 +590,14 @@ func (builder SQLBuilder) OrWhereGroup(wc ConditionGroup) SQLBuilder {
 	return b
 }
 
-func (builder SQLBuilder) Where(field string, value ...interface{}) SQLBuilder {
+func (builder SQLBuilder) Where(field string, value ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.Where(field, value...)
 
 	return b
 }
 
-func (builder SQLBuilder) OrWhere(field string, value ...interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhere(field string, value ...any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhere(field, value...)
 
@@ -605,28 +618,28 @@ func (builder SQLBuilder) OrWhen(when When, cg ConditionGroup) SQLBuilder {
 	return b
 }
 
-func (builder SQLBuilder) WhereBetween(field string, min interface{}, max interface{}) SQLBuilder {
+func (builder SQLBuilder) WhereBetween(field string, min any, max any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.WhereBetween(field, min, max)
 
 	return b
 }
 
-func (builder SQLBuilder) OrWhereBetween(field string, min interface{}, max interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhereBetween(field string, min any, max any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhereBetween(field, min, max)
 
 	return b
 }
 
-func (builder SQLBuilder) WhereNotBetween(field string, min interface{}, max interface{}) SQLBuilder {
+func (builder SQLBuilder) WhereNotBetween(field string, min any, max any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.WhereNotBetween(field, min, max)
 
 	return b
 }
 
-func (builder SQLBuilder) OrWhereNotBetween(field string, min interface{}, max interface{}) SQLBuilder {
+func (builder SQLBuilder) OrWhereNotBetween(field string, min any, max any) SQLBuilder {
 	b := builder.Clone()
 	b.conditions.OrWhereNotBetween(field, min, max)
 

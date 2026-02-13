@@ -1,3 +1,5 @@
+test:
+	go test -cover -v ./...
 
 run: generate-models
 	go run _examples/main.go
@@ -13,4 +15,4 @@ init: build
 	./bin/eloquent gen --source "./migrate/*.yaml"
 	go fmt ./migrate/migrations.orm.go
 
-.PHONY: build init generate-models run
+.PHONY: build init generate-models run test

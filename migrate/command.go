@@ -92,6 +92,8 @@ func (c *Command) Build() string {
 		return c.t.compileDropPrimary(c)
 	case "drop":
 		return c.t.compileDrop(c)
+	case "dropIfExists":
+		return c.t.compileDropIfExists(c)
 	case "rename":
 		return c.t.compileRename(c)
 	case "create":

@@ -100,7 +100,7 @@ func (t *Builder) Build() []string {
 }
 
 func (t *Builder) wrapTable() string {
-	return "`" + t.GetTableName() + "`"
+	return globalMigrateDialect.WrapTable(t.prefix, t.name)
 }
 
 func (t *Builder) getColumns() []string {
@@ -640,143 +640,64 @@ func (t *Builder) creating() bool {
 }
 
 func (t *Builder) compileKey(c *Command, indexType string) string {
-	alg := ""
-	if c.CommandAlgorithm != "" {
-		alg = " USING " + c.CommandAlgorithm
-	}
-
-	return fmt.Sprintf(
-		"ALTER TABLE %s ADD %s %s%s(%s)",
-		t.wrapTable(),
-		indexType,
-		c.CommandIndex,
-		alg,
-		columnize(c.CommandParameters),
-	)
+	return globalMigrateDialect.CompileKey(t.wrapTable(), c, indexType)
 }
 
 func (t *Builder) compileDrop(c *Command) string {
-	return fmt.Sprintf("DROP TABLE %s", t.wrapTable())
+	return globalMigrateDialect.CompileDrop(t.wrapTable())
 }
 
 func (t *Builder) compileDropIfExists(c *Command) string {
-	return fmt.Sprintf("DROP TABLE IF EXISTS %s", t.wrapTable())
+	return globalMigrateDialect.CompileDropIfExists(t.wrapTable())
 }
 
 func (t *Builder) compileDropColumn(c *Command) string {
-	dropColumns := make([]string, len(c.CommandParameters))
-	for i, cc := range c.CommandParameters {
-		dropColumns[i] = "DROP " + cc
-	}
-
-	return fmt.Sprintf("ALTER TABLE %s %s", t.wrapTable(), strings.Join(dropColumns, ", "))
+	return globalMigrateDialect.CompileDropColumn(t.wrapTable(), c.CommandParameters)
 }
 
 func (t *Builder) compileDropPrimary(c *Command) string {
-	return fmt.Sprintf("ALTER TABLE %s DROP PRIMARY KEY", t.wrapTable())
+	return globalMigrateDialect.CompileDropPrimary(t.wrapTable())
 }
 
 func (t *Builder) compileDropIndex(c *Command) string {
-	return fmt.Sprintf("ALTER TABLE %s DROP INDEX `%s`", t.wrapTable(), c.CommandIndex)
+	return globalMigrateDialect.CompileDropIndex(t.wrapTable(), c.CommandIndex)
 }
 
 func (t *Builder) compileRename(c *Command) string {
-	return fmt.Sprintf("RENAME TABLE %s TO `%s`", t.wrapTable(), c.CommandParameters[0])
+	return globalMigrateDialect.CompileRename(t.wrapTable(), c.CommandParameters[0])
 }
 
 func (t *Builder) compileCreateCommand(createIfNotExist bool) string {
-	sqlStr := t.compileCreateTable(createIfNotExist)
-	sqlStr += t.compileCreateEncoding()
-	sqlStr += t.compileCreateEngine()
+	sqlStr := globalMigrateDialect.CompileCreateTable(t.temporary, createIfNotExist, t.wrapTable(), t.getColumns())
+	sqlStr += globalMigrateDialect.CompileCreateEncoding(t.charset, t.collation)
+	sqlStr += globalMigrateDialect.CompileCreateEngine(t.engine)
 
 	return sqlStr
-}
-
-func (t *Builder) compileCreateEngine() string {
-	if t.engine != "" {
-		return " ENGINE = " + t.engine
-	}
-
-	return ""
-}
-
-func (t *Builder) compileCreateEncoding() string {
-	sqlStr := ""
-	if t.charset != "" {
-		sqlStr += " DEFAULT CHARACTER SET " + t.charset
-	}
-
-	if t.collation != "" {
-		sqlStr += " COLLATE " + t.collation
-	}
-
-	return sqlStr
-}
-
-func (t *Builder) compileCreateTable(createIfNotExist bool) string {
-	createStatement := "CREATE"
-	if t.temporary {
-		createStatement += " TEMPORARY"
-	}
-
-	ifNotExists := ""
-	if createIfNotExist {
-		ifNotExists = "IF NOT EXISTS "
-	}
-
-	return fmt.Sprintf(
-		"%s TABLE %s%s (%s)",
-		createStatement,
-		ifNotExists,
-		t.wrapTable(),
-		strings.Join(t.getColumns(), ", "),
-	)
 }
 
 func (t *Builder) compileAdd() string {
-	var cols = make([]string, 0)
-	for _, c := range t.getColumns() {
-		cols = append(cols, "ADD "+c)
-	}
-
-	return fmt.Sprintf("ALTER TABLE %s %s", t.wrapTable(), strings.Join(cols, ", "))
+	return globalMigrateDialect.CompileAdd(t.wrapTable(), t.getColumns())
 }
 
 func (t *Builder) compileChange() string {
 	var cols = make([]string, 0)
 	for _, c := range t.getChangedColumns() {
-		cols = append(cols, "MODIFY "+c.Build())
+		cols = append(cols, c.Build())
 	}
 
-	return fmt.Sprintf("ALTER TABLE %s %s", t.wrapTable(), strings.Join(cols, ", "))
+	return globalMigrateDialect.CompileChange(t.wrapTable(), cols)
 }
 
 func (t *Builder) compileRenameColumn(from string, to string) string {
-	return fmt.Sprintf("ALTER TABLE %s RENAME COLUMN `%s` TO `%s`", t.wrapTable(), from, to)
+	return globalMigrateDialect.CompileRenameColumn(t.wrapTable(), from, to)
 }
 
 func (t *Builder) compileForeign(c *Command) string {
-	sqlStr := fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s ", t.wrapTable(), c.CommandIndex)
-	sqlStr += fmt.Sprintf(
-		"FOREIGN KEY (%s) REFERENCES `%s` (%s)",
-		columnize(c.CommandParameters),
-		c.CommandOnTable,
-		columnize(c.CommandReferences),
-	)
-
-	if c.CommandOnDelete != "" {
-		sqlStr += " ON DELETE " + c.CommandOnDelete
-	}
-
-	if c.CommandOnUpdate != "" {
-		sqlStr += " ON UPDATE " + c.CommandOnUpdate
-	}
-
-	return sqlStr
+	return globalMigrateDialect.CompileForeign(t.wrapTable(), c)
 }
 
 func (t *Builder) compileDropForeign(name string) string {
-	return fmt.Sprintf("ALTER TABLE %s DROP FOREIGN KEY `%s`", t.wrapTable(), name)
+	return globalMigrateDialect.CompileDropForeign(t.wrapTable(), name)
 }
 
 func createIndexName(tableName string, indexType string, columns ...string) string {

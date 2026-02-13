@@ -2,7 +2,7 @@
 
 > English | **[中文文档](./README_CN.md)**
 
-Eloquent is a **code-generation based** database ORM framework for Go, inspired by the Eloquent ORM in the PHP framework Laravel. Currently supports MySQL.
+Eloquent is a **code-generation based** database ORM framework for Go, inspired by the Eloquent ORM in the PHP framework Laravel. Supports MySQL and PostgreSQL.
 
 ## Table of Contents
 
@@ -10,6 +10,7 @@ Eloquent is a **code-generation based** database ORM framework for Go, inspired 
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Model Definition & Code Generation](#model-definition--code-generation)
+- [Database Dialect (MySQL / PostgreSQL)](#database-dialect-mysql--postgresql)
 - [Database Connection](#database-connection)
 - [CRUD Operations](#crud-operations)
 - [Query Builder](#query-builder)
@@ -117,7 +118,13 @@ This generates a `users.orm.go` file in the same directory, containing `UserN`, 
 ```bash
 go get github.com/mylxsw/eloquent
 go get gopkg.in/guregu/null.v3
+
+# For MySQL
 go get github.com/go-sql-driver/mysql
+
+# For PostgreSQL (use one of the following)
+go get github.com/lib/pq
+# or: go get github.com/jackc/pgx/v5
 ```
 
 ### Step 5: Write Business Code
@@ -270,9 +277,47 @@ For a `User` model, the generated code includes:
 | `UserTable()` | Returns the table name |
 | Relationship methods | Generated if `relations` are defined |
 
+## Database Dialect (MySQL / PostgreSQL)
+
+Eloquent supports both MySQL and PostgreSQL through a dialect system. By default, MySQL dialect is used. To switch to PostgreSQL, set the dialects at application startup:
+
+```go
+import (
+    "github.com/mylxsw/eloquent/query"
+    "github.com/mylxsw/eloquent/migrate"
+)
+
+// Switch to PostgreSQL mode (call once at startup, before any database operations)
+query.SetDialect(query.PostgreSQLDialect{})
+migrate.SetMigrateDialect(migrate.PostgreSQLMigrateDialect{})
+```
+
+The dialect system automatically handles the differences between MySQL and PostgreSQL:
+
+| Feature | MySQL | PostgreSQL |
+|---------|-------|------------|
+| Identifier quoting | `` `name` `` | `"name"` |
+| Parameter placeholders | `?` | `$1, $2, ...` |
+| Auto-increment primary key | `AUTO_INCREMENT PRIMARY KEY` | `SERIAL PRIMARY KEY` |
+| Insert returning ID | `LastInsertId()` | `INSERT ... RETURNING id` |
+| Engine / Charset / Collation | Supported | Ignored (not applicable) |
+| `TINYINT(1)` | `TINYINT(1)` | `BOOLEAN` |
+| `BLOB` | `BLOB` | `BYTEA` |
+| `LONGTEXT` / `MEDIUMTEXT` | As-is | `TEXT` |
+| `JSON` | `JSON` | `JSONB` |
+| `DATETIME` | `DATETIME` | `TIMESTAMP` |
+| `UNSIGNED` | Supported | Ignored (not applicable) |
+| Index creation | `ALTER TABLE ... ADD INDEX` | `CREATE INDEX ... ON` |
+| Drop index | `ALTER TABLE ... DROP INDEX` | `DROP INDEX` |
+| Drop foreign key | `DROP FOREIGN KEY` | `DROP CONSTRAINT` |
+
+> **Note:** When using raw SQL in migrations (`Schema.Raw()`), you are responsible for writing database-specific SQL yourself.
+
 ## Database Connection
 
-Eloquent uses Go's standard `database/sql` library to manage database connections:
+Eloquent uses Go's standard `database/sql` library to manage database connections.
+
+### MySQL
 
 ```go
 import (
@@ -288,6 +333,30 @@ defer db.Close()
 ```
 
 > **Important:** You must include `parseTime=true` in the connection string, otherwise time fields cannot be parsed correctly.
+
+### PostgreSQL
+
+```go
+import (
+    "database/sql"
+
+    _ "github.com/lib/pq"
+    "github.com/mylxsw/eloquent/query"
+    "github.com/mylxsw/eloquent/migrate"
+)
+
+// Set dialect before opening the connection
+query.SetDialect(query.PostgreSQLDialect{})
+migrate.SetMigrateDialect(migrate.PostgreSQLMigrateDialect{})
+
+db, err := sql.Open("postgres", "host=127.0.0.1 port=5432 user=postgres password=secret dbname=mydb sslmode=disable")
+if err != nil {
+    panic(err)
+}
+defer db.Close()
+```
+
+> **Tip:** You can also use `pgx` as the PostgreSQL driver by importing `github.com/jackc/pgx/v5/stdlib` instead of `github.com/lib/pq`.
 
 ## CRUD Operations
 
@@ -731,39 +800,39 @@ if err := m.Run(context.TODO()); err != nil {
 
 ### Available Column Type Methods
 
-| Method | Description |
-|--------|-------------|
-| `Increments(name)` | Auto-incrementing unsigned integer primary key |
-| `BigIncrements(name)` | Auto-incrementing unsigned big integer primary key |
-| `Integer(name, autoIncrement, unsigned)` | Integer |
-| `BigInteger(name, autoIncrement, unsigned)` | Big integer |
-| `TinyInteger(name, autoIncrement, unsigned)` | Tiny integer |
-| `SmallInteger(name, autoIncrement, unsigned)` | Small integer |
-| `MediumInteger(name, autoIncrement, unsigned)` | Medium integer |
-| `Float(name, total, scale)` | Float |
-| `Double(name, total, scale)` | Double |
-| `Decimal(name, total, scale)` | Decimal |
-| `String(name, length)` | VARCHAR |
-| `Char(name, length)` | CHAR |
-| `Text(name)` | TEXT |
-| `MediumText(name)` | MEDIUMTEXT |
-| `LongText(name)` | LONGTEXT |
-| `Boolean(name)` | TINYINT(1) |
-| `Date(name)` | DATE |
-| `DateTime(name, precision)` | DATETIME |
-| `Timestamp(name, precision)` | TIMESTAMP |
-| `Time(name, precision)` | TIME |
-| `Year(name)` | YEAR |
-| `Binary(name)` | BLOB |
-| `Json(name)` | JSON |
-| `Enum(name, items...)` | ENUM |
-| `Set(name, items...)` | SET |
-| `Uuid(name)` | CHAR(36) |
-| `IpAddress(name)` | VARCHAR(45) |
-| `MacAddress(name)` | VARCHAR(17) |
-| `Timestamps(precision)` | Adds created_at and updated_at |
-| `SoftDeletes(column, precision)` | Adds soft delete column |
-| `RememberToken()` | VARCHAR(100) remember_token field |
+| Method | MySQL Type | PostgreSQL Type |
+|--------|-----------|-----------------|
+| `Increments(name)` | INT UNSIGNED AUTO_INCREMENT | SERIAL |
+| `BigIncrements(name)` | BIGINT UNSIGNED AUTO_INCREMENT | BIGSERIAL |
+| `Integer(name, autoIncrement, unsigned)` | INT | INTEGER |
+| `BigInteger(name, autoIncrement, unsigned)` | BIGINT | BIGINT |
+| `TinyInteger(name, autoIncrement, unsigned)` | TINYINT | SMALLINT |
+| `SmallInteger(name, autoIncrement, unsigned)` | SMALLINT | SMALLINT |
+| `MediumInteger(name, autoIncrement, unsigned)` | MEDIUMINT | INTEGER |
+| `Float(name, total, scale)` | DOUBLE | DOUBLE PRECISION |
+| `Double(name, total, scale)` | DOUBLE | DOUBLE PRECISION |
+| `Decimal(name, total, scale)` | DECIMAL(m,n) | DECIMAL(m,n) |
+| `String(name, length)` | VARCHAR(n) | VARCHAR(n) |
+| `Char(name, length)` | CHAR(n) | CHAR(n) |
+| `Text(name)` | TEXT | TEXT |
+| `MediumText(name)` | MEDIUMTEXT | TEXT |
+| `LongText(name)` | LONGTEXT | TEXT |
+| `Boolean(name)` | TINYINT(1) | BOOLEAN |
+| `Date(name)` | DATE | DATE |
+| `DateTime(name, precision)` | DATETIME | TIMESTAMP |
+| `Timestamp(name, precision)` | TIMESTAMP | TIMESTAMP |
+| `Time(name, precision)` | TIME | TIME |
+| `Year(name)` | YEAR | SMALLINT |
+| `Binary(name)` | BLOB | BYTEA |
+| `Json(name)` | JSON | JSONB |
+| `Enum(name, items...)` | ENUM | TEXT |
+| `Set(name, items...)` | SET | TEXT |
+| `Uuid(name)` | CHAR(36) | CHAR(36) |
+| `IpAddress(name)` | VARCHAR(45) | VARCHAR(45) |
+| `MacAddress(name)` | VARCHAR(17) | VARCHAR(17) |
+| `Timestamps(precision)` | created_at + updated_at | created_at + updated_at |
+| `SoftDeletes(column, precision)` | Nullable TIMESTAMP | Nullable TIMESTAMP |
+| `RememberToken()` | VARCHAR(100) | VARCHAR(100) |
 
 ### Column Modifiers
 
@@ -772,15 +841,17 @@ builder.String("name", 100).
     Nullable(true).          // Allow NULL
     Default(migrate.StringExpr("default_value")). // Default value (string)
     Default(migrate.RawExpr("CURRENT_TIMESTAMP")). // Default value (raw expression)
-    Comment("Username").     // Column comment
+    Comment("Username").     // Column comment (MySQL only)
     Unique().                // Unique index
-    After("id").             // Place after a specific column
-    First().                 // Place as the first column
-    Charset("utf8mb4").      // Character set
-    Collation("utf8mb4_unicode_ci"). // Collation
-    Unsigned().              // Unsigned
+    After("id").             // Place after a specific column (MySQL only)
+    First().                 // Place as the first column (MySQL only)
+    Charset("utf8mb4").      // Character set (MySQL only)
+    Collation("utf8mb4_unicode_ci"). // Collation (MySQL only)
+    Unsigned().              // Unsigned (MySQL only, ignored on PostgreSQL)
     Change()                 // Modify an existing column (instead of adding)
 ```
+
+> **PostgreSQL note:** Modifiers marked "MySQL only" are silently ignored when using the PostgreSQL dialect.
 
 ### Index Operations
 

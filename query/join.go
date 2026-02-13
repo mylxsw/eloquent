@@ -10,7 +10,7 @@ type sqlJoin struct {
 	on        ConditionGroup
 }
 
-func (t sqlJoin) String(tableAlias string) (string, []interface{}) {
+func (t sqlJoin) String(tableAlias string) (string, []any) {
 	newBuilder := ConditionBuilder()
 	t.on(newBuilder)
 

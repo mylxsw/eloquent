@@ -65,6 +65,10 @@ func (c *ColumnDefinition) SpatialIndex() *ColumnDefinition {
 }
 
 func (c *ColumnDefinition) Build() string {
+	return globalMigrateDialect.CompileColumnType(c)
+}
+
+func (c *ColumnDefinition) buildMySQL() string {
 	sqlStr := "`" + c.ColumnName + "`"
 	sqlStr += strings.ToUpper(c.Type())
 
@@ -82,6 +86,99 @@ func (c *ColumnDefinition) Build() string {
 	sqlStr += c.modifySrid()
 
 	return sqlStr
+}
+
+func (c *ColumnDefinition) buildPostgreSQL() string {
+	sqlStr := `"` + c.ColumnName + `"`
+
+	if c.ColumnAutoIncrement {
+		// Use SERIAL/BIGSERIAL for auto-increment columns
+		switch strings.ToLower(c.ColumnType) {
+		case "bigint":
+			sqlStr += " BIGSERIAL PRIMARY KEY"
+		case "smallint":
+			sqlStr += " SMALLSERIAL PRIMARY KEY"
+		default:
+			sqlStr += " SERIAL PRIMARY KEY"
+		}
+		return sqlStr
+	}
+
+	sqlStr += " " + c.pgColumnType()
+
+	sqlStr += c.modifyNullable()
+	sqlStr += c.modifyDefault()
+
+	return sqlStr
+}
+
+// pgColumnType converts MySQL column types to PostgreSQL equivalents.
+func (c *ColumnDefinition) pgColumnType() string {
+	ct := c.ColumnType
+	if c.ColumnUseCurrent {
+		return strings.ToUpper(ct) + " DEFAULT CURRENT_TIMESTAMP"
+	}
+
+	upper := strings.ToUpper(ct)
+
+	switch {
+	case upper == "TINYINT(1)":
+		return "BOOLEAN"
+	case strings.HasPrefix(upper, "TINYINT"),
+		strings.HasPrefix(upper, "SMALLINT"):
+		return "SMALLINT"
+	case strings.HasPrefix(upper, "MEDIUMINT"),
+		upper == "INT",
+		strings.HasPrefix(upper, "INT("):
+		return "INTEGER"
+	case strings.HasPrefix(upper, "BIGINT"):
+		return "BIGINT"
+	case strings.HasPrefix(upper, "FLOAT"),
+		strings.HasPrefix(upper, "DOUBLE"):
+		return "DOUBLE PRECISION"
+	case strings.HasPrefix(upper, "DECIMAL"):
+		return upper
+	case strings.HasPrefix(upper, "VARCHAR"):
+		return upper
+	case strings.HasPrefix(upper, "CHAR("):
+		return upper
+	case upper == "BLOB":
+		return "BYTEA"
+	case upper == "TEXT":
+		return "TEXT"
+	case upper == "MEDIUMTEXT", upper == "LONGTEXT":
+		return "TEXT"
+	case upper == "JSON":
+		return "JSONB"
+	case upper == "DATE":
+		return "DATE"
+	case strings.HasPrefix(upper, "DATETIME"):
+		return strings.Replace(upper, "DATETIME", "TIMESTAMP", 1)
+	case strings.HasPrefix(upper, "TIMESTAMP"):
+		return upper
+	case strings.HasPrefix(upper, "TIME"):
+		return upper
+	case upper == "YEAR":
+		return "SMALLINT"
+	case strings.HasPrefix(upper, "ENUM"):
+		return "TEXT"
+	case strings.HasPrefix(upper, "SET"):
+		return "TEXT"
+	case upper == "GEOMETRY":
+		return "GEOMETRY"
+	case upper == "GEOMETRYCOLLECTION":
+		return "GEOMETRY"
+	case upper == "POINT":
+		return "POINT"
+	case upper == "LINESTRING":
+		return "PATH"
+	case upper == "POLYGON":
+		return "POLYGON"
+	case upper == "MULTILINESTRING", upper == "MULTIPOINT", upper == "MULTIPOLYGON":
+		return "GEOMETRY"
+	default:
+		return upper
+	}
 }
 
 func (c *ColumnDefinition) Change() *ColumnDefinition {

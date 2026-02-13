@@ -63,6 +63,23 @@ func (db *databaseImpl) Query(ctx context.Context, builder QueryBuilder, cb func
 
 // Insert to execute an insert statement
 func (db *databaseImpl) Insert(ctx context.Context, tableName string, kv query.KV) (int64, error) {
+	if !query.GetDialect().SupportsLastInsertId() {
+		sqlStr, args := query.Builder().Table(tableName).ResolveInsertReturning(kv, "id")
+		rows, err := db.db.QueryContext(ctx, sqlStr, args...)
+		if err != nil {
+			return 0, err
+		}
+		defer rows.Close()
+		if rows.Next() {
+			var id int64
+			if err := rows.Scan(&id); err != nil {
+				return 0, err
+			}
+			return id, nil
+		}
+		return 0, nil
+	}
+
 	sqlStr, args := query.Builder().Table(tableName).ResolveInsert(kv)
 	res, err := db.db.ExecContext(ctx, sqlStr, args...)
 	if err != nil {

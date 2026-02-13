@@ -612,6 +612,23 @@ func (m *RoleModel) Create(ctx context.Context, kv query.KV) (int64, error) {
 		kv["updated_at"] = time.Now()
 	}
 
+	if !query.GetDialect().SupportsLastInsertId() {
+		sqlStr, params := m.query.Table(m.tableName).ResolveInsertReturning(kv, "id")
+		rows, err := m.db.QueryContext(ctx, sqlStr, params...)
+		if err != nil {
+			return 0, err
+		}
+		defer rows.Close()
+		if rows.Next() {
+			var id int64
+			if err := rows.Scan(&id); err != nil {
+				return 0, err
+			}
+			return id, nil
+		}
+		return 0, nil
+	}
+
 	sqlStr, params := m.query.Table(m.tableName).ResolveInsert(kv)
 
 	res, err := m.db.ExecContext(ctx, sqlStr, params...)

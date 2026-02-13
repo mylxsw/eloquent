@@ -10,8 +10,8 @@ import (
 )
 
 type Database interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
 type DatabaseWrap struct {
@@ -26,26 +26,26 @@ func (d *DatabaseWrap) GetDB() Database {
 	return d.db
 }
 
-func (d *DatabaseWrap) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (d *DatabaseWrap) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	startTs := time.Now()
 	defer func() {
 		event.Dispatch(event.QueryExecutedEvent{
 			SQL:      query,
 			Bindings: args,
-			Time:     time.Now().Sub(startTs),
+			Time:     time.Since(startTs),
 		})
 	}()
 
 	return d.db.ExecContext(ctx, query, args...)
 }
 
-func (d *DatabaseWrap) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (d *DatabaseWrap) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	startTs := time.Now()
 	defer func() {
 		event.Dispatch(event.QueryExecutedEvent{
 			SQL:      query,
 			Bindings: args,
-			Time:     time.Now().Sub(startTs),
+			Time:     time.Since(startTs),
 		})
 	}()
 
